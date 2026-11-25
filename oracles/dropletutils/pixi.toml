@@ -1,6 +1,6 @@
 # One R environment per DropletUtils release with a change sc-droplets reproduces, from bioconda.
 # Used by run.sh; see README there. The osx-64 pins keep old builds loadable (they need the
-# libc++, libgfortran and OpenSSL they were built against).
+# libc++ and libgfortran they were built against).
 [workspace]
 name = "dropletutils-oracles"
 channels = ["conda-forge", "bioconda"]
@@ -39,10 +39,10 @@ libcxx = "<15"
 
 [feature.du110.dependencies]
 bioconductor-dropletutils = "==1.10.3"
+openssl = "1.1.*"  # its rhdf5 links libcrypto 1.1, on both platforms
 
 [feature.du110.target.osx-64.dependencies]
 libcxx = "<15"
-openssl = "1.1.*"
 
 [feature.du112.dependencies]
 bioconductor-dropletutils = "==1.12.1"
