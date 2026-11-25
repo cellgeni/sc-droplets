@@ -20,9 +20,8 @@ antibody-only libraries.
 
 ## At a glance
 
-| | |
-|---|---|
 | Id | `cellranger-ordmag` |
+|---|---|
 | Tool | Cell Ranger 2.0 – 3.1 and 7.2 – 10.1 |
 | Category | rank-threshold |
 | Counts | UMIs, Gene Expression features, per genome and GEM group |
@@ -33,39 +32,39 @@ antibody-only libraries.
 
 ## How it works
 
-For one genome's features and one GEM group, with \(N\) expected cells (`--expect-cells` divided
+For one genome's features and one GEM group, with $$N$$ expected cells (`--expect-cells` divided
 by the number of GEM groups, or 3,000):
 
-1. \(b = \operatorname{round}(N \cdot (1 - 0.99))\), halves rounded up (Python 2), capped at the
-   number of nonzero barcodes − 1. For 3,000 expected cells \(b = 30\).
+1. $$b = \operatorname{round}(N \cdot (1 - 0.99))$$, halves rounded up (Python 2), capped at the
+   number of nonzero barcodes − 1. For 3,000 expected cells $$b = 30$$.
 2. Draw 100 bootstrap samples of the nonzero totals (with replacement, as many as there are),
-   from numpy's legacy random stream seeded 0. In each sample, the baseline is its \(b\)-th
-   largest value, the cut is \(\max(1, \operatorname{round}(0.1 \times \text{baseline}))\), and
-   \(n_i\) counts the values \(\ge\) the cut.
-3. \(n = \operatorname{round}(\overline{n_i})\).
-4. The cells are the \(n\) barcodes with the largest totals, as numpy's (pre-SIMD) quicksort
+   from numpy's legacy random stream seeded 0. In each sample, the baseline is its $$b$$-th
+   largest value, the cut is $$\max(1, \operatorname{round}(0.1 \times \text{baseline}))$$, and
+   $$n_i$$ counts the values $$\ge$$ the cut.
+3. $$n = \operatorname{round}(\overline{n_i})$$.
+4. The cells are the $$n$$ barcodes with the largest totals, as numpy's (pre-SIMD) quicksort
    orders them; ties at the boundary fall where that sort leaves them.
 
-With \(b = 0\) (fewer than 50 expected cells) the baseline is the *smallest* value, as Cell
+With $$b = 0$$ (fewer than 50 expected cells) the baseline is the *smallest* value, as Cell
 Ranger indexes `[-0]`; 7.1 fixed this.
 
 ### From 7.2
 
-- **Baseline**: the \((b+1)\)-th largest, with \(b = \operatorname{round}(N \cdot q)\), where
-  \(q = 1 - 0.99\) computed in floating point (slightly above 0.01), and numpy's rounding (halves
-  to even). The cut is \(\max(1, \operatorname{round}(0.1 \times \text{baseline}))\).
+- **Baseline**: the $$(b+1)$$-th largest, with $$b = \operatorname{round}(N \cdot q)$$, where
+  $$q = 1 - 0.99$$ computed in floating point (slightly above 0.01), and numpy's rounding (halves
+  to even). The cut is $$\max(1, \operatorname{round}(0.1 \times \text{baseline}))$$.
 - **Random stream**: a fresh `RandomState(0)` for each genome and GEM group.
-- **Expected cells**: given, they become \(\max(N, 50)\); not given, they are estimated. For each
-  of 100 bootstraps and each candidate \(r\) on a grid of 2,000 log-spaced values from 2 to a cap
+- **Expected cells**: given, they become $$\max(N, 50)$$; not given, they are estimated. For each
+  of 100 bootstraps and each candidate $$r$$ on a grid of 2,000 log-spaced values from 2 to a cap
   (the low end of the [ambient range](cellranger.md#3-the-ambient-range-and-the-fdr-by-release-and-chemistry),
-  at most 262,144), count the barcodes \(f(r)\) within the order of magnitude of the
-  \((\operatorname{round}(r q) + 1)\)-th largest; keep the \(r\) with the smallest
-  \((f(r) - r)^2 / r\). The estimate is the mean of the 100 picks, rounded, at least 50.
-- **Cells**: \(n_0\), the mean count over 100 more bootstraps (continuing the stream), then a
+  at most 262,144), count the barcodes $$f(r)$$ within the order of magnitude of the
+  $$(\operatorname{round}(r q) + 1)$$-th largest; keep the $$r$$ with the smallest
+  $$(f(r) - r)^2 / r$$. The estimate is the mean of the 100 picks, rounded, at least 50.
+- **Cells**: $$n_0$$, the mean count over 100 more bootstraps (continuing the stream), then a
   tie extension that, as written, always takes one barcode past the run of barcodes tied with the
-  \(n_0\)-th: \(n_0 + 1\) cells when there are no ties. If the extension would add more than 20 %
-  of \(n_0\), 7.2 keeps \(n_0\) and 8.0+ keeps the extension up to 20 %.
-- **Selection**: the top \(n\) by a stable sort, ties to the barcode later in the matrix.
+  $$n_0$$-th: $$n_0 + 1$$ cells when there are no ties. If the extension would add more than 20 %
+  of $$n_0$$, 7.2 keeps $$n_0$$ and 8.0+ keeps the extension up to 20 %.
+- **Selection**: the top $$n$$ by a stable sort, ties to the barcode later in the matrix.
 
 The genomes are taken in the order their features first appear; each genome's cells are called
 on its own features, and the cells are their union.

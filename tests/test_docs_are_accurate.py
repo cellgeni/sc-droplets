@@ -277,3 +277,12 @@ def test_every_relative_link_points_at_a_page_and_heading_that_exist(path, targe
         assert destination.is_relative_to(SITE), f"{_label(path)} links outside the site"
     if anchor and destination.suffix == ".md":
         assert anchor in _anchors(destination), f"{_label(path)}: no heading #{anchor} in {file}"
+
+
+@pytest.mark.parametrize("path", PAGES, ids=[_label(p) for p in PAGES])
+def test_inline_formulas_use_kramdown_dollars(path):
+    """kramdown reads `\\(` as an escaped parenthesis, so `\\(x\\)` showed as "(x)" on the
+    site; inline formulas are written `$$x$$`, which kramdown turns into KaTeX's form."""
+    _, body = front_matter(path.read_text())
+    prose = re.sub(r"```.*?```", "", body, flags=re.S)
+    assert "\\(" not in prose, f"{_label(path)} has \\( ... \\); write $$...$$ instead"

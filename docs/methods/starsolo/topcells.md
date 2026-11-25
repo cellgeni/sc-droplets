@@ -18,9 +18,8 @@ plus any that tie with the last, and before 2.7.6a it kept every barcode.
 
 ## At a glance
 
-| | |
-|---|---|
 | Id | `starsolo-topcells` |
+|---|---|
 | Tool | STAR 2.7.3a and later (`--soloCellFilter TopCells N`) |
 | Category | rank-threshold |
 | Counts | UMIs of the detected barcodes |
@@ -31,21 +30,21 @@ plus any that tie with the last, and before 2.7.6a it kept every barcode.
 
 ## How it works
 
-With the detected totals sorted in decreasing order, \(u_{(0)} \ge u_{(1)} \ge \dots\), and nCB
+With the detected totals sorted in decreasing order, $$u_{(0)} \ge u_{(1)} \ge \dots$$, and nCB
 detected barcodes:
 
-1. The cut is \(c = u_{(k)}\) with \(k = \min(nCB - 1, N)\): the (N+1)-th largest, as the index is
+1. The cut is $$c = u_{(k)}$$ with $$k = \min(nCB - 1, N)$$: the (N+1)-th largest, as the index is
    0-based.
-2. From 2.7.5a, \(c = \max(c, 1)\).
-3. Every detected barcode with total \(\ge c\) is a cell: N + 1 of them, plus ties.
+2. From 2.7.5a, $$c = \max(c, 1)$$.
+3. Every detected barcode with total $$\ge c$$ is a cell: N + 1 of them, plus ties.
 
 ## Versions
 
 | STAR | Variant | `--tool-version` | Behaviour |
 |---|---|---|---|
-| 2.7.3a – 2.7.4a | `v1` | `2.7.3a` | \(k = \max(nCB - 1, N)\): while N < nCB − 1 the cut is the smallest total, so every detected barcode is kept; with N ≥ nCB, STAR reads past its array (refused here) |
+| 2.7.3a – 2.7.4a | `v1` | `2.7.3a` | $$k = \max(nCB - 1, N)$$: while N < nCB − 1 the cut is the smallest total, so every detected barcode is kept; with N ≥ nCB, STAR reads past its array (refused here) |
 | 2.7.5a – 2.7.5c | `v2` | `2.7.5a` | as v1, cut floored at 1 |
-| 2.7.6a – 2.7.11b | `v3` | `2.7.6a` | \(k = \min(nCB - 1, N)\), floored at 1 |
+| 2.7.6a – 2.7.11b | `v3` | `2.7.6a` | $$k = \min(nCB - 1, N)$$, floored at 1 |
 
 ## Parameters
 

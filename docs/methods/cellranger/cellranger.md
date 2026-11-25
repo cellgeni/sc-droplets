@@ -20,9 +20,8 @@ and rescues those that differ. Each release since has changed the details.
 
 ## At a glance
 
-| | |
-|---|---|
 | Id | `cellranger` |
+|---|---|
 | Tool | Cell Ranger 2.0 – 3.1 and 7.2 – 10.1 |
 | Category | statistical-test |
 | Counts | UMIs, Gene Expression features (Antibody Capture in an antibody-only run) |
@@ -39,8 +38,8 @@ and rescues those that differ. Each release since has changed the details.
   antibodies at once are removed from the matrix before anything else. Of the antibodies with at
   least 1,000 UMIs in total (at least 5 are needed), each nominates its top 25 barcodes (× the
   number of probe barcodes); a barcode among the top 25 by total over these antibodies is an
-  aggregate if at least \(\operatorname{round}(n \cdot f)\) antibodies nominate it, with
-  \(f = 1.1 - 0.02\,n\) (0.6 above 26 antibodies). Cell Ranger also removes barcodes with a high
+  aggregate if at least $$\operatorname{round}(n \cdot f)$$ antibodies nominate it, with
+  $$f = 1.1 - 0.02\,n$$ (0.6 above 26 antibodies). Cell Ranger also removes barcodes with a high
   share of corrected reads, which needs read counts; give its `aggregate_barcodes.csv` to remove
   exactly its list.
 
@@ -77,16 +76,16 @@ its HDF5 files) unless `--chemistry` names one, by name (`SC3Pv4`) or descriptio
 
 1. **Ambient droplets**: the barcodes at ranks low to high − 1 with at least one count.
 2. **Ambient profile**: their summed counts over the features with any count, smoothed by Cell
-   Ranger's Simple Good-Turing; the unseen probability \(P_0\) is shared by the features with no
+   Ranger's Simple Good-Turing; the unseen probability $$P_0$$ is shared by the features with no
    ambient count (if there are none: 3.x fails, 7.2+ renormalises). Up to 8.x the step is skipped
    when the log-log slope is above −1; 9.0+ sets such a slope to −1 and goes on. It is skipped
    with fewer than 10 distinct ambient counts.
 3. **Candidates**, not called by OrdMag, with at least:
-   - 3.x: \(\max(500, \lceil 0.01 \times \text{median OrdMag cell} \rceil)\) UMIs, the 20,000 with the most;
-   - 7.2: \(\max(m, \lceil 0.01 \times \text{median} \rceil)\) with \(m\) = `--emptydrops-minimum-umis`
+   - 3.x: $$\max(500, \lceil 0.01 \times \text{median OrdMag cell} \rceil)$$ UMIs, the 20,000 with the most;
+   - 7.2: $$\max(m, \lceil 0.01 \times \text{median} \rceil)$$ with $$m$$ = `--emptydrops-minimum-umis`
      (500), no limit on their number;
-   - 8.0+: \(\max(m, 1 + \text{the largest ambient total})\): above the ambient range.
-4. **Observed likelihood** \(\log n! - \sum_g \log x_g! + \sum_g x_g \log p_g\).
+   - 8.0+: $$\max(m, 1 + \text{the largest ambient total})$$: above the ambient range.
+4. **Observed likelihood** $$\log n! - \sum_g \log x_g! + \sum_g x_g \log p_g$$.
 5. **Simulations**, a droplet grown from the profile through every candidate total:
    - 3.x – 8.x: 10,000, from numpy's legacy stream seeded 0 (3.x: once, before OrdMag; 7.2+: at
      each genome and GEM group); a block of 1,000,000 pre-drawn features; gaps of 1,000 UMIs or
@@ -94,8 +93,8 @@ its HDF5 files) unless `--chemistry` names one, by name (`SC3Pv4`) or descriptio
      tail plus fresh draws) when they would reach its end.
    - 9.0+: 100,000, from a PCG64 stream seeded 42 once per run; every feature drawn by inverting
      the profile's cumulative sum; 10.0+ orders the features by id for this.
-6. **p-value** \((1 + \#\{\text{simulations below the observed likelihood}\})/(1 + \text{simulations})\),
-   Benjamini-Hochberg, called if adjusted \(p \le\) the FDR.
+6. **p-value** $$(1 + \#\{\text{simulations below the observed likelihood}\})/(1 + \text{simulations})$$,
+   Benjamini-Hochberg, called if adjusted $$p \le$$ the FDR.
 
 With several genomes, 3.x tests all genomes' features together; 7.2+ tests each genome on its own
 features (7.2–8.x one genome after another, each treating the earlier genomes' rescues as cells;

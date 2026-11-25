@@ -20,9 +20,8 @@ total where Cell Ranger takes the 30th.
 
 ## At a glance
 
-| | |
-|---|---|
 | Id | `starsolo-cellranger2.2` |
+|---|---|
 | Tool | STAR 2.7.3a and later (`--soloCellFilter CellRanger2.2 3000 0.99 10`) |
 | Category | rank-threshold |
 | Counts | UMIs of the detected barcodes |
@@ -33,14 +32,14 @@ total where Cell Ranger takes the 30th.
 
 ## How it works
 
-With \(N\) expected cells, percentile \(q\) and ratio \(r\) (defaults 3000, 0.99, 10), and the
-detected barcodes' totals sorted in decreasing order \(u_{(0)} \ge u_{(1)} \ge \dots\):
+With $$N$$ expected cells, percentile $$q$$ and ratio $$r$$ (defaults 3000, 0.99, 10), and the
+detected barcodes' totals sorted in decreasing order $$u_{(0)} \ge u_{(1)} \ge \dots$$:
 
-1. \(i = \operatorname{round}(N (1 - q))\), which is 30 for the defaults (0-based, so the 31st
+1. $$i = \operatorname{round}(N (1 - q))$$, which is 30 for the defaults (0-based, so the 31st
    largest).
-2. The robust maximum is \(m = u_{(\min(nCB - 1,\, i))}\).
-3. The cut is \(c = \max(1, \operatorname{round}(m / r))\).
-4. Every detected barcode with total \(\ge c\) is a cell.
+2. The robust maximum is $$m = u_{(\min(nCB - 1,\, i))}$$.
+3. The cut is $$c = \max(1, \operatorname{round}(m / r))$$.
+4. Every detected barcode with total $$\ge c$$ is a cell.
 
 ## Versions
 

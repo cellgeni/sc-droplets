@@ -19,9 +19,8 @@ protocol's typical yield, or another method).
 
 ## At a glance
 
-| | |
-|---|---|
 | Id | `threshold` |
+|---|---|
 | Tool | none (generic) |
 | Category | rank-threshold |
 | Counts | UMIs, reads or genes detected |
@@ -35,7 +34,7 @@ A barcode is a cell when its value is at least the threshold, or, with `--strict
 
 $$\text{cell}_b = \left[\, v_b \ge t \,\right] \quad\text{or}\quad \left[\, v_b > t \,\right]$$
 
-where \(v_b\) is the barcode's total UMIs, reads, or number of genes with a nonzero count.
+where $$v_b$$ is the barcode's total UMIs, reads, or number of genes with a nonzero count.
 
 Tools that use a fixed threshold:
 

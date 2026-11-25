@@ -21,9 +21,8 @@ and the order of ties.
 
 ## At a glance
 
-| | |
-|---|---|
 | Id | `starsolo-emptydrops-cr` |
+|---|---|
 | Tool | STAR 2.7.8a and later (`--soloCellFilter EmptyDrops_CR`) |
 | Category | statistical-test |
 | Counts | UMIs of the detected barcodes, every feature |
@@ -39,29 +38,29 @@ and the order of ties.
 2. **Order.** Detected barcodes by decreasing total, ties by increasing position in the barcode
    list.
 3. **Ambient profile.** Sum the counts of the barcodes at ranks `indMin` to `indMax − 1` (45,000
-   to 89,999, 0-based) per feature. With \(n_r\) features summing to \(r\) (features detected in
+   to 89,999, 0-based) per feature. With $$n_r$$ features summing to $$r$$ (features detected in
    no barcode at all are not counted among the zeros), STAR's Simple Good-Turing gives each
-   feature with sum \(r > 0\) the probability of one item seen \(r\) times, and shares \(P_0 =
+   feature with sum $$r > 0$$ the probability of one item seen $$r$$ times, and shares \(P_0 =
    n_1/N\) equally among the detected features with sum 0. The profile is normalised to sum to 1.
    STAR's Good-Turing switches from the Turing estimate to the smoothed one at the first
    frequency whose successor is missing, or where the two agree within 1.96 standard deviations;
    it needs at least 5 distinct frequencies.
 4. **Candidates.** The barcodes following the initial cells in that order, up to `candMaxN`
    (20,000), stopping at the first with fewer than
-   \(\max(\text{umiMin},\ \lfloor \text{umiMinFracMedian} \cdot u_{(\lfloor nCellsSimple/2 \rfloor)} \rfloor)\)
+   $$\max(\text{umiMin},\ \lfloor \text{umiMinFracMedian} \cdot u_{(\lfloor nCellsSimple/2 \rfloor)} \rfloor)$$
    UMIs: 500, or 1 % of the middle initial cell's total, truncated.
-5. **Observed likelihood.** For a candidate with counts \(x\) and total \(n\),
+5. **Observed likelihood.** For a candidate with counts $$x$$ and total $$n$$,
    $$\log L = \log n! - \sum_g \log x_g! + \sum_g x_g \log p_g,$$
-   with log-factorials from a table of cumulative sums of \(\log k\).
-6. **Simulations.** For \(s = 0 \dots \text{simN} - 1\), a `std::mt19937` seeded
-   \(19760110\,(s+1)\) draws one feature at a time from `std::discrete_distribution` over the
+   with log-factorials from a table of cumulative sums of $$\log k$$.
+6. **Simulations.** For $$s = 0 \dots \text{simN} - 1$$, a `std::mt19937` seeded
+   $$19760110\,(s+1)$$ draws one feature at a time from `std::discrete_distribution` over the
    profile's nonzero entries, up to the largest candidate's total; after each draw the simulated
-   log-likelihood grows by \(\log p_g + \log n - \log c_g\) (\(c_g\): how often \(g\) has been
+   log-likelihood grows by $$\log p_g + \log n - \log c_g$$ ($$c_g$$: how often $$g$$ has been
    drawn).
-7. **p-values.** \(p = (1 + \#\{s : L_s(n) < \log L\}) / (1 + \text{simN})\), at the candidate's
+7. **p-values.** $$p = (1 + \#\{s : L_s(n) < \log L\}) / (1 + \text{simN})$$, at the candidate's
    own total.
 8. **Adjustment.** Benjamini-Hochberg without capping at 1; candidates with adjusted
-   \(p \le \text{FDR}\) (0.01) are cells.
+   $$p \le \text{FDR}$$ (0.01) are cells.
 
 STAR stops early, adding no cells, when there are no more than `indMin` detected barcodes, when
 the ambient droplets hold no counts, or when there is no candidate.

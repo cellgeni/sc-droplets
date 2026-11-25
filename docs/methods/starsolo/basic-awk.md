@@ -18,9 +18,8 @@ Before STAR filtered cells itself (2.7.3a), it shipped an awk script that filter
 
 ## At a glance
 
-| | |
-|---|---|
 | Id | `starsolo-basic-awk` |
+|---|---|
 | Tool | STAR 2.7.2a and later, `extras/scripts/soloBasicCellFilter.awk` |
 | Category | rank-threshold |
 | Counts | the sum of each barcode's matrix entries |
@@ -31,15 +30,15 @@ Before STAR filtered cells itself (2.7.3a), it shipped an awk script that filter
 
 ## How it works
 
-With \(L\) barcodes that have matrix entries and their totals sorted in increasing order
-\(t_1 \le \dots \le t_L\) (1-based, as awk's `asort`):
+With $$L$$ barcodes that have matrix entries and their totals sorted in increasing order
+$$t_1 \le \dots \le t_L$$ (1-based, as awk's `asort`):
 
-1. The robust maximum is \(m = t_{L - \lfloor (1 - q)\,\text{maxCells} \rfloor}\), the 31st largest
+1. The robust maximum is $$m = t_{L - \lfloor (1 - q)\,\text{maxCells} \rfloor}$$, the 31st largest
    for the defaults.
-2. The cut is \(c = m / \text{maxMinRatio}\), unrounded.
-3. With `exactCells` > 0 instead: \(c = t_1\) if \(L < \text{exactCells}\), else
-   \(c = t_{L - \text{exactCells}}\), keeping exactCells + 1 barcodes plus ties.
-4. Every barcode with total \(\ge c\) is a cell. awk reads a barcode with no entries as 0, so a
+2. The cut is $$c = m / \text{maxMinRatio}$$, unrounded.
+3. With `exactCells` > 0 instead: $$c = t_1$$ if $$L < \text{exactCells}$$, else
+   $$c = t_{L - \text{exactCells}}$$, keeping exactCells + 1 barcodes plus ties.
+4. Every barcode with total $$\ge c$$ is a cell. awk reads a barcode with no entries as 0, so a
    cut of 0 keeps every barcode in the list.
 
 ## Versions
