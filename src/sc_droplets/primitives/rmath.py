@@ -65,6 +65,15 @@ _ALGMCS = np.array([
 _XBIG = 94906265.62425156
 
 
+def _c(function, value: float) -> float:
+    """C semantics where Python raises: log(0) is -inf, log of a negative number is NaN."""
+    if value > 0:
+        return function(value)
+    if value == 0:
+        return -math.inf
+    return math.nan if value < 0 or math.isnan(value) else function(value)
+
+
 def clog(x: np.ndarray) -> np.ndarray:
     """The C library's `log`, element by element, as R calls it.
 
@@ -72,13 +81,15 @@ def clog(x: np.ndarray) -> np.ndarray:
     whose last bit can differ from the C library's.
     """
     x = np.asarray(x, dtype=np.float64)
-    return np.fromiter(map(math.log, x.ravel().tolist()), dtype=np.float64, count=x.size).reshape(x.shape)
+    values = [_c(math.log, v) for v in x.ravel().tolist()]
+    return np.array(values, dtype=np.float64).reshape(x.shape)
 
 
 def clog10(x: np.ndarray) -> np.ndarray:
     """The C library's `log10`, element by element."""
     x = np.asarray(x, dtype=np.float64)
-    return np.fromiter(map(math.log10, x.ravel().tolist()), dtype=np.float64, count=x.size).reshape(x.shape)
+    values = [_c(math.log10, v) for v in x.ravel().tolist()]
+    return np.array(values, dtype=np.float64).reshape(x.shape)
 
 
 def _chebyshev(x: np.ndarray, coefficients: np.ndarray) -> np.ndarray:
@@ -192,6 +203,9 @@ def ld_cumsum(values) -> np.ndarray:
     values = np.asarray(values, dtype=np.float64)
     if X87:
         return np.cumsum(values, dtype=np.longdouble).astype(np.float64)
+    if not np.all(np.isfinite(values)):
+        # -inf, inf or NaN take over the sum, whatever the precision
+        return np.cumsum(values)
     out = np.empty(values.size)
     num, exp = 0, 0
     for k, value in enumerate(values.tolist()):
@@ -207,6 +221,9 @@ def ld_sum(values) -> float:
         return 0.0
     if X87:
         return float(np.cumsum(values, dtype=np.longdouble)[-1])
+    if not np.all(np.isfinite(values)):
+        # -inf (a zero probability's log), inf or NaN take over the sum, whatever the precision
+        return float(np.cumsum(values)[-1])
     num, exp = 0, 0
     i, n = 0, values.size
     length = 256

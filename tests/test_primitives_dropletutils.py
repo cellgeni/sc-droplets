@@ -24,6 +24,26 @@ from sc_droplets.primitives.smoothspline import nknots_smspl, smooth_spline
 FIXTURES = Path(__file__).parent / "oracles" / "dropletutils" / "fixtures"
 
 
+def _same_c_library() -> bool:
+    """Whether the fixtures' R ran on this platform's C library (glibc, or Apple's libm).
+
+    R's lgamma and edgeR's Good-Turing call the C library's log and exp, whose last bit differs
+    between platforms; sc-droplets calls the same functions, so it matches R where they are the
+    same library.
+    """
+    import sys
+
+    platform = (FIXTURES / "platform.txt").read_text().strip() if (FIXTURES / "platform.txt").exists() else ""
+    return ("linux" in platform and sys.platform.startswith("linux")) or ("darwin" in platform and sys.platform == "darwin")
+
+
+def _assert_r_values(got: np.ndarray, expected: np.ndarray) -> None:
+    if _same_c_library():
+        assert np.array_equal(got, expected)
+    else:
+        np.testing.assert_array_max_ulp(got, expected, maxulp=8)
+
+
 def _read(name: str) -> list:
     path = FIXTURES / name
     opener = gzip.open if name.endswith(".gz") else open
@@ -143,7 +163,7 @@ def test_edger_good_turing_proportions_match_r(case):
     rows = [line.split("\t") for line in _read(f"goodturing_{case}.tsv.gz")]
     counts = np.array([float(c) for c, _ in rows])
     expected = np.array([float(p) for _, p in rows])
-    assert np.array_equal(good_turing_proportions_edger(counts), expected)
+    _assert_r_values(good_turing_proportions_edger(counts), expected)
 
 
 def test_optimize_finds_rs_optimum():
@@ -201,7 +221,7 @@ def test_lgammafn_is_rs_own_log_gamma():
     rows = [line.split("\t") for line in _read("lgamma.txt")]
     x = np.array([float(a) for a, _ in rows])
     expected = np.array([float(b) for _, b in rows])
-    assert np.array_equal(lgammafn(x), expected)
+    _assert_r_values(lgammafn(x), expected)
 
 
 def test_sums_accumulate_in_long_double_as_r_does_on_x86_64():

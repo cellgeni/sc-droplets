@@ -322,3 +322,19 @@ def test_emptydrops_diagnostics_show_retain_and_the_log_probabilities(adata):
     first = fig.axes[0].get_legend_handles_labels()[1]
     assert any(text.startswith("retain (knee)") for text in first)
     assert any(text.startswith("called") for text in fig.axes[1].get_legend_handles_labels()[1])
+
+
+def test_a_zero_ambient_probability_gives_minus_infinity_as_in_r():
+    """Before 1.8, a profile without singletons left unseen features at probability 0; R's
+    log(0) is -Inf, so droplets with those features get the smallest p-value. Python's math.log(0)
+    raised instead."""
+    rng = np.random.default_rng(5)
+    ambient = [2 * np.bincount(rng.integers(0, 10, 40), minlength=20) for _ in range(300)]  # even counts only
+    cells = [np.bincount(rng.integers(0, 20, 2000), minlength=20) for _ in range(5)]
+    adata = ad.AnnData(sp.csr_matrix(np.array(ambient + cells, dtype=np.float32)))
+    adata.var["feature_types"] = "Gene Expression"
+    result = scd.call(adata, "dropletutils-emptydrops", tool_version="1.6", alpha="inf", retain=10**6, niters=50, inplace=False)
+    tested = ~np.isnan(result.columns["pvalue"])
+    assert tested.sum() == 5
+    assert np.all(result.columns["logprob"][tested] == -np.inf)
+    assert np.all(result.columns["pvalue"][tested] == 1 / 51)

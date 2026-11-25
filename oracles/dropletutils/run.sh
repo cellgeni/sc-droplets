@@ -7,7 +7,9 @@
 # Needs pixi. Creates one R environment per release from pixi.toml (bioconda builds), in a
 # short folder: old conda packages cannot be installed under a long path. Writes
 # OUT_DIR/<dataset>/<release>/{barcoderanks.txt,defaultdrops.txt,emptydrops.tsv,
-# emptydropscellranger.tsv}. Runs on linux-64 and osx-64 (Apple silicon through Rosetta).
+# emptydropscellranger.tsv}, and OUT_DIR/fixtures (fixtures.R). Runs on linux-64 and osx-64
+# (Apple silicon through Rosetta); the committed outputs are linux-64's, the platform of
+# Bioconductor's builds, and of CI.
 set -euo pipefail
 
 mkdir -p "$1"
@@ -39,3 +41,8 @@ for dataset in "${datasets[@]}"; do
   done
   gzip -f "$out/$dataset"/*/*.tsv "$out/$dataset"/*/defaultdrops.txt
 done
+
+# The primitives' fixtures, from the same R (tests/test_primitives_dropletutils.py)
+mkdir -p "$out/fixtures"
+cp "$repo"/tests/oracles/dropletutils/fixtures/mc_ambient.txt "$repo"/tests/oracles/dropletutils/fixtures/mc_grid_*.tsv.gz "$out/fixtures/"
+(cd "$work" && pixi run -e du130 Rscript "$here/fixtures.R" "$out/fixtures")

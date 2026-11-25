@@ -317,6 +317,7 @@ def dropletutils(
     times the profile's sum, inverted through the cumulative profile.
     """
     from sc_droplets.primitives import boostrandom as br
+    from sc_droplets.primitives.rmath import clog
     from sc_droplets.primitives.rrandom import RMersenneTwister, generate_seed_vectors
 
     ambient = np.asarray(ambient, dtype=np.float64)
@@ -331,7 +332,7 @@ def dropletutils(
     size = ambient.size
     use_alpha = math.isfinite(alpha)
     # std::log, as the C library computes it (numpy's own log can differ in the last bit)
-    log_ambient = np.array([math.log(a) for a in ambient.tolist()])
+    log_ambient = clog(ambient)  # a zero probability's log is -inf, as in C
     log_count = np.array([0.0] + [math.log(k) for k in range(1, longest + 1)])
     scaled = ambient * alpha if use_alpha else None
     rng = RMersenneTwister(seed)

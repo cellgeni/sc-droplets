@@ -9,9 +9,11 @@
 #   spline_<n>_spar.txt     its spar and df
 #   goodturing_<k>.tsv.gz      counts, edgeR::goodTuringProportions
 #   optimize.txt, quantile.txt, nknots.txt, padjust.txt, lgamma.txt, sum.txt (+ sum_values.txt.gz)
+#   platform.txt            R's platform: lgamma and Good-Turing carry its C library's log and exp
 suppressMessages(library(DropletUtils))
 out <- commandArgs(trailingOnly = TRUE)[1]
 fmt <- function(x) sprintf("%.17g", x)
+writeLines(R.version$platform, file.path(out, "platform.txt"))  # whose C library the values carry
 
 ambient <- scan(file.path(out, "mc_ambient.txt"), quiet = TRUE)
 set.seed(100)
