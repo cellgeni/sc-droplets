@@ -88,9 +88,16 @@ bundle install
 bundle exec jekyll serve
 ```
 
+## Branches
+
+`dev` collects work in progress: each milestone or fix is a branch from `dev` and a pull request
+into `dev`, merged once its checks pass. `main` holds releases only, and the site is built from
+it, so documentation reaches the site with a release.
+
 ## Releases
 
-1. A branch `release/X.Y.Z`; the version in `pyproject.toml` and `uv.lock`.
+1. A branch `release/X.Y.Z` from `dev`; the version in `pyproject.toml` and `uv.lock`.
 2. A `## X.Y.Z` section in [Changelog](changelog.md).
-3. Merge, then push a tag `X.Y.Z` (no `v`). The tag runs the suite, checks the tag against
+3. A pull request into `main`. Merge, then push a tag `X.Y.Z` (no `v`), and merge `main` back
+   into `dev`. The tag runs the suite, checks the tag against
    `pyproject.toml`, publishes to PyPI and pushes `quay.io/cellgeni/sc-droplets:X.Y.Z`.
