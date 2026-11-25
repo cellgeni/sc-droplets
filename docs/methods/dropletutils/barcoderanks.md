@@ -152,9 +152,15 @@ windows (1.30).
 
 ## Differences from the original
 
-- R's `smooth.spline` and `bvalue` are ported operation for operation and agree with R to the
-  last bit. R linked to an optimised BLAS gives the same fits here (the banded solve uses only
-  dot products of length 3 or less, which OpenBLAS sums in the same order).
+- R's `smooth.spline` and `bvalue` are ported operation for operation and agree to the last bit
+  with R and its reference BLAS, as R ships it and Bioconductor's containers run it. R linked to
+  OpenBLAS (conda's default) on a processor with fused multiply-add computes the banded solve's
+  dot products with FMA, so its spline differs in the last bits; the knee is a data point, and on
+  pbmc_1k_v3 it is the same either way.
+- 1.30's knee and inflection are interpolated from `log10` values, so they carry the C library's
+  last bits: on pbmc_1k_v3, R and sc-droplets give 5199.8422235753687 on Linux and
+  5199.8422235753533 on macOS. sc-droplets calls the C library's `log10`, as R does, and matches
+  R on the same platform.
 - $$10^y$$ is computed correctly rounded, as R's `powl` on x86-64 gives it. It is often not the
   total again: R's knee for a run of total 1,852 is 1851.9999999999993, so those barcodes are
   above it. R on Apple silicon uses `pow`, which can differ in the last bit.

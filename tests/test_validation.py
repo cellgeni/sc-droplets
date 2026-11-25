@@ -151,6 +151,24 @@ def _du_test(path: Path):
     return meta, rows
 
 
+def _same_c_library(path: Path) -> bool:
+    """Whether R made this oracle on this platform's C library (glibc, or Apple's libm)."""
+    import sys
+
+    record = path / "platform.txt"
+    platform = record.read_text().split("\n", 1)[0] if record.exists() else ""
+    return ("linux" in platform and sys.platform.startswith("linux")) or ("darwin" in platform and sys.platform == "darwin")
+
+
+def _assert_r_value(path: Path, ours: float, theirs: float) -> None:
+    """Exact on R's own C library. 1.30's knee is interpolated from log10 values, so elsewhere it
+    can differ in the last bits (5199.842223575369 on Linux, ...5353 on macOS, for pbmc_1k_v3)."""
+    if _same_c_library(path):
+        assert ours == theirs
+    else:
+        assert ours == pytest.approx(theirs, rel=1e-13, abs=0)
+
+
 def test_there_are_dropletutils_oracles_to_check():
     assert len(DU_ORACLES) >= 13
 
@@ -161,8 +179,8 @@ def test_dropletutils_knees_and_defaultdrops_are_rs(path):
     adata = _read(name)
     lines = dict(line.split(" ", 1) for line in (path / "barcoderanks.txt").read_text().splitlines()[1:])
     ranks = scd.call(adata, f"dropletutils-barcoderanks@{release}", inplace=False)
-    assert ranks.thresholds["knee"] == float(lines["knee"])
-    assert ranks.thresholds["inflection"] == float(lines["inflection"])
+    _assert_r_value(path, ranks.thresholds["knee"], float(lines["knee"]))
+    _assert_r_value(path, ranks.thresholds["inflection"], float(lines["inflection"]))
     cells = np.array(gzip.open(path / "defaultdrops.txt.gz", "rt").read().split(), dtype=int)
     default = scd.call(adata, f"dropletutils-defaultdrops@{release}", inplace=False)
     assert np.array_equal(np.flatnonzero(default.is_cell), np.sort(cells))
@@ -197,7 +215,7 @@ def test_dropletutils_tests_give_rs_p_values_and_cells(path, method):
         retain = float(knee)
     else:
         retain = float(meta["retain"])
-    assert result.diagnostics["retain"] == retain
+    _assert_r_value(path, result.diagnostics["retain"], retain)
     fdr = rows[:, 3].astype(float)
     cut = 0.001 if method.endswith("emptydrops") else 0.01
     expected = set(index[fdr <= cut]) | set(np.flatnonzero(np.rint(np.asarray(result.totals)) >= retain))

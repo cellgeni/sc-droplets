@@ -24,6 +24,8 @@ features <- read.delim(file.path(mtx, "features.tsv"), header = FALSE, colClasse
 m <- m[features[[3]] == "Gene Expression", , drop = FALSE]
 version <- as.character(packageVersion("DropletUtils"))
 fmt <- function(x) sprintf("%.17g", x)
+# The knee of 1.30 is interpolated from log10 values, so it carries the C library's last bits.
+writeLines(c(R.version$platform, tryCatch(extSoftVersion()[["BLAS"]], error = function(e) "")), file.path(out, "platform.txt"))
 
 points <- function(br) {
   if (!is.null(br$knee)) c(br$knee, br$inflection)  # 1.0 - 1.2 return a list
