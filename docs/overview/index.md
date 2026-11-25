@@ -57,7 +57,7 @@ closed).
 | Generic | MAD, Otsu, multi-Otsu, KDE valley, Gaussian mixtures (1-D, 2-D), negative-binomial mixture | planned, 0.1.0 |
 | Cell Ranger | [cell calling](../methods/cellranger/cellranger.md) (2.x, 3.x, 7.2, 8.0, 8.0.1, 9.0, 10.0, 10.1, with the antibody-aggregate, 8.0+ and high-occupancy filters), [OrdMag](../methods/cellranger/ordmag.md) | implemented; 1.x and 4.0–7.1 are documented gaps (no public source); targeted (gradient) calling planned |
 | STARsolo | [CellRanger2.2](../methods/starsolo/cellranger2-2.md), [TopCells](../methods/starsolo/topcells.md), [EmptyDrops_CR](../methods/starsolo/emptydrops-cr.md), [`soloBasicCellFilter.awk`](../methods/starsolo/basic-awk.md) | implemented |
-| DropletUtils | barcodeRanks (four knee definitions), emptyDrops (eight behaviours), emptyDropsCellRanger, defaultDrops | planned, 0.1.0 |
+| DropletUtils | [barcodeRanks](../methods/dropletutils/barcoderanks.md) (four knee definitions), [emptyDrops](../methods/dropletutils/emptydrops.md) (ten behaviours), [emptyDropsCellRanger](../methods/dropletutils/emptydropscellranger.md), [defaultDrops](../methods/dropletutils/defaultdrops.md) | implemented; 1.0–1.2's Dirichlet-multinomial (R's `rgamma`) refused |
 | CellBender | prior estimates of expected cells and total droplets (0.1, 0.2, 0.3–0.4) | planned, 0.1.0; the VAE is docs only |
 | cellsweep | empty-droplet step: autoknee, kneed, mx_filter | planned, 0.1.0 |
 | UMI-tools | whitelist distance and density | planned, 0.1.0 |

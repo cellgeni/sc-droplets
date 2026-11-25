@@ -28,5 +28,17 @@ Then Cell Ranger and STARsolo, each checked against the original on public data:
   numpy's classic quicksort (for tie order), C++ `mt19937` and libstdc++'s
   `discrete_distribution`, and the Cell Ranger and STAR Monte Carlo engines.
 - `scd.pl.diagnostics` and `sc-droplets plot diagnostics`: each call's own view.
+
+Then DropletUtils, checked against every release from 1.0 to 1.30 run in R:
+
+- `dropletutils-barcoderanks` (the knee by spline curvature, 1.0 with its indexing bug, 1.10 and
+  1.12; by chord distance, 1.28; by curve tracing, 1.30), `dropletutils-emptydrops` (ten
+  variants: multinomial or Dirichlet-multinomial, R's or PCG32 random numbers, the rounding,
+  `by.rank` and `test.ambient` rules of each release), `dropletutils-emptydropscellranger` (with
+  1.14's median bug) and `dropletutils-defaultdrops`. On 10x's pbmc_1k_v3 raw matrix every knee,
+  p-value, estimated alpha, FDR and call is R's own, with the same `set.seed`.
+- New building blocks: R's random numbers and dqrng's seeds; PCG32 and Boost.Random's
+  alias-table, exponential and gamma sampling; R's `smooth.spline` and `predict`; R's `lgamma`,
+  long-double `sum` and `cumsum`, `optimize`, `quantile` and `p.adjust`; edgeR's Good-Turing.
 - The 10x HDF5 reader keeps the file's attributes (chemistry, Cell Ranger version).
 - A validation suite on public data (`-m integration`), and an oracle workflow that runs STAR.

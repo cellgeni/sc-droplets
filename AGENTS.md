@@ -46,11 +46,21 @@ Markers: `integration` (downloads public data or builds oracle environments; nee
 - `methods/`: one module per tool page, listed in `methods/__init__.py::_MODULES`.
   `cellranger.py` holds the chemistry tables (ambient range and FDR per release and kit family),
   OrdMag v2/v7, the EmptyDrops steps, and the aggregate and high-occupancy filters.
-- `primitives/`: the arithmetic of each tool, reused across methods: `goodturing` (Cell Ranger's
-  and STAR's), `legacysort` (numpy's classic quicksort, with a `window` so a slice is cheap: tie
-  order decides Cell Ranger's ambient droplets), `stdrandom` (C++ `mt19937` and libstdc++'s
-  `discrete_distribution`), `simulate` (Monte Carlo engines: Cell Ranger 3.x–8.x with its block
-  refills, 9.0+ PCG64, STAR), `multinomial`, `pvalues`, `rounding`.
+  `dropletutils.py` holds barcodeRanks (four knee rules), emptyDrops, emptyDropsCellRanger and
+  defaultDrops.
+- `primitives/`: the arithmetic of each tool, reused across methods: `goodturing` (Cell Ranger's,
+  STAR's and edgeR's), `legacysort` (numpy's classic quicksort, with a `window` so a slice is
+  cheap: tie order decides Cell Ranger's ambient droplets), `stdrandom` (C++ `mt19937` and
+  libstdc++'s `discrete_distribution`), `rrandom` (R's `set.seed` Mersenne-Twister, dqrng's
+  seeds), `boostrandom` (PCG32, Boost's integer buckets, alias table, ziggurat exponential and
+  gamma), `smoothspline` (R's `smooth.spline`, operation for operation), `rstats` (R's
+  `quantile`, `p.adjust`, `optimize`, `seq.int`), `rmath` (R's `lgamma`; R's long-double
+  `sum`/`cumsum`, emulated where numpy has no 80-bit type), `simulate` (Monte Carlo engines:
+  Cell Ranger 3.x–8.x with its block refills, 9.0+ PCG64, STAR, DropletUtils), `multinomial`,
+  `pvalues`, `rounding`.
+  - Where the original calls the C library (`log`, `log10`), call it too (`math`, `rmath.clog`):
+    numpy's vectorised `log` can differ in the last bit (AVX-512), and some results
+    (DropletUtils' alpha) depend on those bits. Square with `x * x`, not `x ** 2` (libm `pow`).
 - `pl/`: plots take an AnnData, draw stored calls or run specs, return the Axes, accept `ax=`.
   `terminal.py` draws the knee in braille for `inspect`.
 - `cli.py`: typer. `call <id>` subcommands are generated from the registry
@@ -86,8 +96,12 @@ Markers: `integration` (downloads public data or builds oracle environments; nee
 - `tests/test_validation.py` (marker `integration`) is the oracle suite: Cell Ranger against 10x's
   own filtered matrices (`tests/datasets.py` downloads and caches them in `$SC_DROPLETS_DATA`),
   STARsolo against STAR's calls in `tests/oracles/starsolo/` (made by `oracles/starsolo/run.sh`
-  in the `Oracles` workflow, which runs on branch pushes that touch `oracles/`). A new method
-  adds its cases here.
+  in the `Oracles` workflow, which runs on branch pushes that touch `oracles/`), DropletUtils
+  against R's outputs in `tests/oracles/dropletutils/` (made by `oracles/dropletutils/run.sh`:
+  one pixi environment per release from bioconda, `set.seed(100)`). A new method adds its cases
+  here.
+- `tests/oracles/dropletutils/fixtures/` (from `oracles/dropletutils/fixtures.R`): R's own values
+  for the primitives (`smooth.spline`, `lgamma`, `sum`, Good-Turing, Monte Carlo counts).
 - CLI tests use a module-level `CliRunner`; strip ANSI codes and collapse whitespace before
   matching (`_out`).
 - `tests/test_docs_are_accurate.py`: every `sc-droplets …` line in README and `docs/` parses

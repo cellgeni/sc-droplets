@@ -335,8 +335,16 @@ Other functions:
 
 Porting traps for exact equality: R `smooth.spline(df=20)` (df→λ search, knot rule; GCV fallback
 if df > unique x); edgeR's SGT C++; R `optimize` (Brent, tol ≈ 1.22e-4); `quantile` type 7;
-half-to-even `round`; `p.adjust` NA handling; the Monte Carlo RNG (pcg32 + Boost) cannot be
-bit-matched — validate p-values distributionally.
+half-to-even `round`; `p.adjust` NA handling.
+
+Correction (milestone 2): the Monte Carlo *can* be bit-matched, and is. 1.4+ seeds each
+iteration's `pcg32(seed_i, i)` from R's Mersenne-Twister through dqrng's `generateSeedVectors`
+(three `unif_rand` per 32-bit word, `R_unif_index` with rejection sampling); 1.6+ draws with
+Boost's alias-table `discrete_distribution`; the Dirichlet profiles use Boost's ziggurat
+exponential and gamma. Ported in `primitives/rrandom.py` and `primitives/boostrandom.py`, and
+checked against DropletUtils' `montecarlo_pval` with every simulated value pinned. The DM alpha
+needs R's `lgamma` and R's long-double `sum` to the last bit (the likelihood is flat to 1e-5 over
+0.03 of alpha), so those are ported too (`primitives/rmath.py`).
 
 ## 4. Existing Python ports
 
