@@ -101,6 +101,15 @@ scd.pl.knee(adata, ["top_n", "threshold"])
 scd.pl.knee(adata, "top-n:n_cells=3000", rotated=True)
 ```
 
+### `scd.pl.diagnostics(adata, call, *, fig=None)`
+
+One call's own view, as `plot diagnostics` draws it; returns the Figure. `call` is a stored key or
+a method spec.
+
+```python
+scd.pl.diagnostics(adata, "starsolo-emptydrops-cr")
+```
+
 ### `scd.pl.knee_text(totals, *, width=60, height=14, marks=None)`
 
 The knee as lines of Unicode braille, as `inspect` prints it.

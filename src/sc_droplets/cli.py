@@ -639,6 +639,55 @@ def plot_knee(
         raise _fail(e)
 
 
+@plot_app.command("diagnostics")
+def plot_diagnostics(
+    input: Path = _input_argument(),
+    output: Path = typer.Option(..., "--output", "-o", help="Figure to write (.png, .pdf or .svg)."),
+    method: Optional[str] = typer.Option(None, "--method", "-m", help="Run this method spec and draw it."),
+    key: Optional[str] = typer.Option(None, "--key", help="Draw this call stored in an .h5ad input."),
+    feature_type: Optional[List[str]] = _feature_type_option(),
+    layer: Optional[str] = _layer_option(),
+    genome: Optional[str] = _genome_option(),
+    solo_feature: str = _solo_feature_option(),
+) -> None:
+    """One call's own view: its cut and robust maximum, or its classes, likelihoods and p-values.
+
+    Examples:
+        sc-droplets plot diagnostics raw_feature_bc_matrix.h5 -m starsolo-emptydrops-cr -o diagnostics.png
+        sc-droplets plot diagnostics calls.h5ad --key cellranger -o diagnostics.pdf
+    """
+    from sc_droplets.io.write import check_outputs
+
+    try:
+        if (method is None) == (key is None):
+            raise ValueError("give exactly one of --method and --key")
+        check_outputs([output], [input])
+        adata = _load(input, solo_feature, genome)
+        if key is not None:
+            if key not in adata.uns.get("sc_droplets", {}):
+                raise KeyError(f"no stored call {key} in {input}")
+            target = key
+        else:
+            from sc_droplets.api import call
+
+            target = call(adata, method, layer=layer, feature_types=_feature_types(feature_type), genome=genome).key
+        import matplotlib
+
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+
+        from sc_droplets.pl import diagnostics
+
+        figure = diagnostics(adata, target)
+        figure.savefig(output, dpi=150)
+        plt.close(figure)
+        console.print(f"Wrote {escape(str(output))}")
+    except typer.Exit:
+        raise
+    except Exception as e:
+        raise _fail(e)
+
+
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------

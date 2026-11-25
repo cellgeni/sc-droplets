@@ -19,9 +19,8 @@ known, and the one most tools fall back on when told it (Cell Ranger `--force-ce
 
 ## At a glance
 
-| | |
-|---|---|
 | Id | `top-n` |
+|---|---|
 | Tool | none (generic) |
 | Category | rank-threshold |
 | Counts | UMIs, reads or genes detected |

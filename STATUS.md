@@ -29,12 +29,16 @@ Milestones, each its own pull request after the scaffold:
   `threshold`, `pl.knee` and the terminal knee, CLI (`methods`, `inspect`, `call`, `compare`,
   `plot knee`), simulator, docs skeleton with the Overview and the review of earlier
   comparisons, CI.
-- [ ] 1. Shared primitives (Good-Turing variants, multinomial and Dirichlet-multinomial
-  likelihoods, Monte Carlo engines per tool, BH variants, R compatibility helpers) + Cell Ranger
-  (OrdMag v1/v2/v7, EmptyDrops v3/v7.2/v8/v9/v10.0/v10.1, targeted gradient, antibody and
-  high-occupancy filters) + STARsolo (CellRanger2.2 v1/v2, TopCells, EmptyDrops_CR, the awk
-  filter). Oracles: 10x public datasets per Cell Ranger version; `STAR --runMode
-  soloCellFiltering` 2.7.10a+.
+- [x] 1. Shared primitives + Cell Ranger + STARsolo (PR from `milestone-1-cellranger-starsolo`).
+  - Cell Ranger 2.x/3.x ported from 3.0.2 (MIT); 7.2–10.1 written from the clean-room
+    specification in `docs/_research/cellranger-7.2-plus-spec.md`.
+  - Validated exactly against 10x's filtered matrices for 2.1, 3.0, 7.2 (4 Flex samples with
+    the high-occupancy filter), 8.0, 9.0; 10.0 within 15 borderline barcodes (tie order of
+    numpy's SIMD sort on 10x's machine).
+  - STARsolo exact against STAR 2.7.10a and 2.7.11b (`oracles/starsolo/run.sh`, run by
+    `.github/workflows/oracles.yml`).
+  - Not done, moved to follow-ups: targeted (gradient) calling; the antigen aggregate rule;
+    zero-target-UMI removal; per-sample splitting of a whole multiplexed Flex matrix.
 - [ ] 2. DropletUtils: barcodeRanks v1–v4 (port of R `smooth.spline`), emptyDrops at 1.0, 1.2,
   1.8, 1.10, 1.12, 1.20, 1.28, 1.30, emptyDropsCellRanger, defaultDrops. Oracle: R in pinned
   Bioconductor containers.
@@ -51,6 +55,17 @@ publisher for `sc-droplets` (workflow `publish.yml`, environment `pypi`), the
 GitHub Pages from `main`, `/docs`.
 
 ## Follow-ups noticed
+
+- Cell Ranger 10.0's ambient tie order: 10x's run sorts with numpy's SIMD argsort. Check whether
+  numpy on an AVX-512 runner reproduces it (`np.argsort` default there), and if so offer it as a
+  tie-order option.
+- Cell Ranger targeted (gradient) calling (7.2–9.0 for hybrid-capture panels; hidden mode in
+  10.1): the specification is in `docs/_research/cellranger-7.2-plus-spec.md` §11; no public
+  dataset from those releases runs it, so it waits for one.
+- Splitting a whole multiplexed Flex raw matrix into samples (probe barcode → sample map) and
+  running the high-occupancy filter from the CLI.
+- Cell Ranger 1.x: pbmc3k (1.1.0) and pbmc4k (1.2.0, 1.3.0) have raw and filtered MEX files; they
+  could show whether 1.x bootstrapped OrdMag, turning the 1.x gap into a variant.
 
 - anndata 0.13 lists `X` as the layer `None` in `adata.layers.keys()`; filter it wherever layer
   names are listed.

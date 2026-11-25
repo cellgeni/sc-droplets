@@ -18,8 +18,14 @@ come.
 <!-- methods-table:start -->
 | Method | Tool | Category | Versions | Page |
 |---|---|---|---|---|
+| `cellranger` | Cell Ranger | statistical-test | v2: ≥2.0, <3.0; v3: ≥3.0, <4.0; v7.2: ≥7.2, <8.0; v8.0: ≥8.0, <8.0.1; v8.0.1: ≥8.0.1, <9.0; v9.0: ≥9.0, <10.0; v10.0: ≥10.0, <10.1; v10.1: ≥10.1 | [Cell Ranger cell calling](cellranger/cellranger.md) |
+| `cellranger-ordmag` | Cell Ranger | rank-threshold | v2: ≥2.0, <4.0; v7.2: ≥7.2, <8.0; v8.0: ≥8.0, <8.0.1; v8.0.1: ≥8.0.1, <9.0; v9.0: ≥9.0, <10.0; v10.0: ≥10.0, <10.1; v10.1: ≥10.1 | [Cell Ranger OrdMag](cellranger/ordmag.md) |
 | `threshold` | Generic | rank-threshold | — | [Fixed threshold](generic/threshold.md) |
 | `top-n` | Generic | rank-threshold | — | [Top N barcodes](generic/top-n.md) |
+| `starsolo-basic-awk` | STARsolo | rank-threshold | v1: ≥2.7.2a | [STARsolo soloBasicCellFilter.awk](starsolo/basic-awk.md) |
+| `starsolo-cellranger2.2` | STARsolo | rank-threshold | v1: ≥2.7.3a, <2.7.5a; v2: ≥2.7.5a, <2.7.8a; v3: ≥2.7.8a | [STARsolo CellRanger2.2](starsolo/cellranger2-2.md) |
+| `starsolo-emptydrops-cr` | STARsolo | statistical-test | v1: ≥2.7.8a | [STARsolo EmptyDrops_CR](starsolo/emptydrops-cr.md) |
+| `starsolo-topcells` | STARsolo | rank-threshold | v1: ≥2.7.3a, <2.7.5a; v2: ≥2.7.5a, <2.7.6a; v3: ≥2.7.6a | [STARsolo TopCells](starsolo/topcells.md) |
 <!-- methods-table:end -->
 
 ## Reading a method name

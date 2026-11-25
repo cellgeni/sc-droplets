@@ -65,6 +65,7 @@ def read_10x_h5(path: Path, genome: Optional[str] = None):
 
     path = Path(path)
     with h5py.File(path, "r") as f:
+        attrs = {key: _attr(value) for key, value in f.attrs.items()}
         if "matrix" in f:
             group = f["matrix"]
             matrix = _csr(group)
@@ -116,5 +117,19 @@ def read_10x_h5(path: Path, genome: Optional[str] = None):
     var.index = pd.Index(names.astype(str), name=None)
     adata = ad.AnnData(X=matrix, obs=pd.DataFrame(index=pd.Index(barcodes.astype(str))), var=var)
     adata.var_names_make_unique()
-    adata.uns["sc_droplets_input"] = {"path": str(path), "format": layout}
+    from sc_droplets.result import h5ad_safe
+
+    adata.uns["sc_droplets_input"] = h5ad_safe({"path": str(path), "format": layout, "attrs": attrs})
     return adata
+
+
+def _attr(value):
+    """An HDF5 attribute as plain text or numbers (Cell Ranger writes bytes and arrays)."""
+    if isinstance(value, bytes):
+        return value.decode("utf-8", "replace")
+    if isinstance(value, np.ndarray):
+        items = [v.decode("utf-8", "replace") if isinstance(v, bytes) else v for v in value.tolist()]
+        return items
+    if isinstance(value, np.generic):
+        return value.item()
+    return value

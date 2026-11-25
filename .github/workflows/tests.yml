@@ -210,6 +210,59 @@ jobs:
           version=$(grep -m1 '^version = ' pyproject.toml | cut -d'"' -f2)
           bash .github/scripts/smoke-image.sh sc-droplets:candidate "$version"
 
+  # Every method against its original tool on public data (tests/test_validation.py):
+  # Cell Ranger against 10x's own filtered matrices, STARsolo against STAR's calls
+  # (tests/oracles). The datasets (about 1 GB) are cached between runs.
+  validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    name: validation against the original tools
+
+    permissions:
+      contents: read
+
+    env:
+      SC_DROPLETS_DATA: ${{ github.workspace }}/.cache/datasets
+      MPLBACKEND: Agg
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3.2.4
+        with:
+          version: "0.13.1"
+          enable-cache: false
+
+      - name: Restore the public datasets
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: .cache/datasets
+          key: datasets-${{ hashFiles('tests/datasets.py') }}
+
+      - name: Install dependencies (frozen)
+        run: uv sync --extra dev --frozen
+
+      - name: Download what is missing
+        run: uv run python tests/datasets.py
+
+      - name: Run the validation tests
+        run: uv run pytest -v -W default tests/test_validation.py -m integration --junitxml=validation-results.xml
+
+      - name: Confirm the cases actually ran
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import sys, xml.etree.ElementTree as ET
+          root = ET.parse("validation-results.xml").getroot()
+          suite = root.find("testsuite") if root.tag == "testsuites" else root
+          ran = int(suite.get("tests", 0)) - int(suite.get("skipped", 0))
+          print(f"{ran} validation cases ran")
+          if ran < 21:
+              sys.exit(f"expected at least 21 validation cases, got {ran}")
+          PY
+
   # The unit suite once more, on the lowest version of each direct dependency
   # that pyproject.toml allows. Without it a floor is a number nobody has
   # installed.

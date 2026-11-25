@@ -44,6 +44,13 @@ Markers: `integration` (downloads public data or builds oracle environments; nee
   (10x HDF5 v2/v3), `mtx.py` (Cell Ranger, STARsolo, Velocyto, kb incl. nac, alevin-fry incl.
   USA); `write.py` stages every output beside its name and renames it into place.
 - `methods/`: one module per tool page, listed in `methods/__init__.py::_MODULES`.
+  `cellranger.py` holds the chemistry tables (ambient range and FDR per release and kit family),
+  OrdMag v2/v7, the EmptyDrops steps, and the aggregate and high-occupancy filters.
+- `primitives/`: the arithmetic of each tool, reused across methods: `goodturing` (Cell Ranger's
+  and STAR's), `legacysort` (numpy's classic quicksort, with a `window` so a slice is cheap: tie
+  order decides Cell Ranger's ambient droplets), `stdrandom` (C++ `mt19937` and libstdc++'s
+  `discrete_distribution`), `simulate` (Monte Carlo engines: Cell Ranger 3.x–8.x with its block
+  refills, 9.0+ PCG64, STAR), `multinomial`, `pvalues`, `rounding`.
 - `pl/`: plots take an AnnData, draw stored calls or run specs, return the Axes, accept `ax=`.
   `terminal.py` draws the knee in braille for `inspect`.
 - `cli.py`: typer. `call <id>` subcommands are generated from the registry
@@ -76,6 +83,11 @@ Markers: `integration` (downloads public data or builds oracle environments; nee
   writers for every input layout (`write_10x_h5_v3`, `write_10x_h5_v2`, `write_10x_mtx`,
   `write_starsolo`, `write_kb`, `write_alevin_fry`).
 - Readers are checked against scanpy (`scanpy.read_10x_h5`, `read_10x_mtx`).
+- `tests/test_validation.py` (marker `integration`) is the oracle suite: Cell Ranger against 10x's
+  own filtered matrices (`tests/datasets.py` downloads and caches them in `$SC_DROPLETS_DATA`),
+  STARsolo against STAR's calls in `tests/oracles/starsolo/` (made by `oracles/starsolo/run.sh`
+  in the `Oracles` workflow, which runs on branch pushes that touch `oracles/`). A new method
+  adds its cases here.
 - CLI tests use a module-level `CliRunner`; strip ANSI codes and collapse whitespace before
   matching (`_out`).
 - `tests/test_docs_are_accurate.py`: every `sc-droplets …` line in README and `docs/` parses
@@ -97,7 +109,8 @@ this file, for people; keep the two in step.
 - Method pages: front matter `method_ids: [id, ...]` and `status: implemented | planned |
   docs-only`; sections in order: At a glance, How it works, Versions, Parameters, Run it,
   Differences from the original, Validation, References.
-- Formulas: `$$...$$` (kramdown turns them into `\(..\)` / `\[..\]`, KaTeX renders them).
+- Formulas: `$$...$$`, inline and display alike (kramdown turns them into `\(..\)` / `\[..\]`, which
+  KaTeX renders). A literal `\(` in a page shows as "("; the docs test refuses it.
 - Link between pages as relative `page.md`.
 - Preview: `cd docs && bundle install && bundle exec jekyll serve`.
 
