@@ -1,1 +1,1 @@
-x86_64-apple-darwin13.4.0
+x86_64-conda-linux-gnu
