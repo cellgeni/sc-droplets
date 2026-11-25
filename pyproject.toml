@@ -1,0 +1,95 @@
+[project]
+name = "sc-droplets"
+version = "0.0.1"
+description = "Every cell vs empty-droplet calling method for droplet single-cell data, version by version, on AnnData"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Aljes Binkevich", email = "ab76@sanger.ac.uk" },
+]
+maintainers = [
+    { name = "Aljes Binkevich", email = "ab76@sanger.ac.uk" },
+]
+keywords = [
+    "single-cell",
+    "scRNA-seq",
+    "empty droplets",
+    "cell calling",
+    "knee plot",
+    "emptydrops",
+    "anndata",
+    "bioinformatics",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+
+# Every module src/sc_droplets imports is declared here with a floor. CI's
+# floors job installs each one at its floor and runs the unit suite on it.
+# The floors are the first releases with wheels for Python 3.13.
+dependencies = [
+    "anndata>=0.11.0",
+    "h5py>=3.12.1",
+    # Plots are part of what the package is for, not an extra: every method
+    # has a diagnostic view, and the CLI writes figures and reports.
+    "matplotlib>=3.9.2",
+    "numpy>=2.1.0",
+    "packaging>=24.1",
+    "pandas>=2.2.3",
+    "rich>=14.2.0",
+    # Gaussian mixtures (generic `gmm`, cellsweep's mx_filter).
+    "scikit-learn>=1.5.2",
+    "scipy>=1.14.1",
+    # typer is still 0.x and can break in a minor; capped at the next major.
+    "typer>=0.20.0,<1",
+]
+
+[project.urls]
+Homepage = "https://github.com/cellgeni/sc-droplets"
+Repository = "https://github.com/cellgeni/sc-droplets"
+Documentation = "https://cellgeni.github.io/sc-droplets/"
+Issues = "https://github.com/cellgeni/sc-droplets/issues"
+Changelog = "https://cellgeni.github.io/sc-droplets/changelog/"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=9.0.3",
+    "pytest-cov>=6.0.0",
+    # Turns a hang into a failure with a traceback.
+    "pytest-timeout>=2.3.1",
+    # The oracle for the readers: scanpy's read_10x_h5 / read_10x_mtx.
+    # Tests only; the package never imports it.
+    "scanpy>=1.10.3",
+]
+
+[project.scripts]
+sc-droplets = "sc_droplets.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.9.0,<0.14.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "sc_droplets"
+
+[tool.coverage.run]
+source = ["src/sc_droplets"]
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*",
+]
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false

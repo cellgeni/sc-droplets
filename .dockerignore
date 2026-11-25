@@ -1,0 +1,18 @@
+# Keep the build context to what `uv sync --locked` needs. Do NOT add
+# README.md or LICENSE: pyproject.toml references them.
+.venv/
+.git/
+.claude/
+.cache/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+.coverage
+coverage.xml
+htmlcov/
+build/
+dist/
+*.egg-info/
+docs/
+tests/
+oracles/

@@ -1,0 +1,20 @@
+__pycache__/
+*.py[cod]
+.venv/
+build/
+dist/
+*.egg-info/
+.coverage
+coverage.xml
+htmlcov/
+.pytest_cache/
+pytest-results*.xml
+perf-results*.xml
+
+# Jekyll preview of docs/
+docs/_site/
+docs/.jekyll-cache/
+docs/Gemfile.lock
+
+# Downloaded fixture datasets (tests/datasets.py caches them here by default)
+.cache/
