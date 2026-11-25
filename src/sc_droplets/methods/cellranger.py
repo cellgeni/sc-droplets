@@ -869,7 +869,8 @@ class CellRanger(Method):
             listed = _read_barcode_list(params.aggregate_barcodes)
             kept &= ~np.isin(droplets.barcodes.astype(str), list(listed))
             diagnostics["aggregates_removed"] = int((~kept).sum())
-        elif params.filter_aggregates and (types == ANTIBODY).any() and not antibody_only:
+        elif params.filter_aggregates and (types == ANTIBODY).any():
+            # Antibody-only runs too: Cell Ranger filters aggregates whenever there is an antibody library.
             aggregates, info = antibody_aggregates(droplets.counts[:, np.flatnonzero(types == ANTIBODY)], params.n_probe_barcodes)
             kept &= ~aggregates
             diagnostics["aggregates_removed"] = int(aggregates.sum())
@@ -942,14 +943,28 @@ class CellRanger(Method):
                         run_one(genome, mask, group, originals)
             tested.thresholds["fdr"] = fdr
 
-        # 8.0+ filters on the called cells, per genome and GEM group
+        # 8.0+ filters on the called cells, per genome and GEM group. They count the genome's
+        # Gene Expression features only, whatever the cells were called on: in an antibody-only
+        # run every total is 0, so a positive global minimum removes every cell (as Cell Ranger does).
         if settings["post_filters"] and not params.force_cells:
             removed_min = removed_mito = 0
-            for genome, mask in genome_list:
-                columns = np.flatnonzero(mask)
-                totals = _row_sums(counts[:, columns])
-                mito_columns = columns[[str(i).rpartition("_")[2] in MITO_IDS for i in ids[columns]]]
-                mito = _row_sums(counts[:, mito_columns]) if mito_columns.size else np.zeros(n_kept, dtype=np.int64)
+            kept_counts = droplets.counts[index]
+            all_ids = (
+                droplets.features["gene_ids"].astype(str).to_numpy()
+                if "gene_ids" in droplets.features.columns
+                else droplets.features.index.astype(str).to_numpy()
+            )
+            all_genomes = (
+                droplets.features["genome"].astype(str).to_numpy() if "genome" in droplets.features.columns else None
+            )
+            for genome, _ in genome_list:
+                in_genome = types == GEX
+                if all_genomes is not None:
+                    in_genome &= all_genomes == genome
+                columns = np.flatnonzero(in_genome)
+                totals = _row_sums(kept_counts[:, columns]) if columns.size else np.zeros(n_kept, dtype=np.int64)
+                mito_columns = columns[[str(i).rpartition("_")[2] in MITO_IDS for i in all_ids[columns]]]
+                mito = _row_sums(kept_counts[:, mito_columns]) if mito_columns.size else np.zeros(n_kept, dtype=np.int64)
                 for (g, group), called in per_call.items():
                     if g != genome:
                         continue

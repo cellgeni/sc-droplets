@@ -378,3 +378,41 @@ def test_batched_refills_follow_cell_ranger_7_2():
         state = np.random.RandomState(0)
         sim.cellranger_v1(profile, np.array([3, 25, 49, 50, 51]), np.full(5, -1e9), 2, state, block_size=30, batch_small=batch)
         assert state.random_sample() == after
+
+
+def _antibody_only(n_barcodes=3000, n_antibodies=6, seed=0):
+    """Antibody-only counts: 200 cells bright in all antibodies, one aggregate, the rest background."""
+    rng = np.random.default_rng(seed)
+    counts = rng.poisson(1, size=(n_barcodes, n_antibodies))
+    counts[:200] += rng.poisson(300, size=(200, n_antibodies))
+    counts[300] = 20000  # an aggregate: far brighter than any cell, in every antibody
+    adata = ad.AnnData(X=sp.csr_matrix(counts))
+    adata.obs_names = [f"B{i:05d}-1" for i in range(n_barcodes)]
+    adata.var_names = [f"AB{i}" for i in range(n_antibodies)]
+    adata.var["feature_types"] = "Antibody Capture"
+    adata.var["gene_ids"] = adata.var_names
+    adata.var["genome"] = ""
+    return adata
+
+
+def test_antibody_only_runs_remove_aggregates_before_ordmag():
+    """Used to skip the aggregate filter when there was no Gene Expression, so the
+    aggregate went into OrdMag and was called a cell."""
+    adata = _antibody_only()
+    result = scd.call(adata, "cellranger@9.0", inplace=False)
+    assert result.diagnostics["aggregates_removed"] >= 1
+    assert not result.is_cell[300]
+    assert np.asarray(result.classes)[300] == "removed"
+    assert result.is_cell[:200].sum() > 150
+
+
+def test_the_global_minimum_counts_gene_expression_even_in_antibody_only_runs():
+    """Used to count the antibody features the cells were called on; Cell Ranger
+    counts the genome's Gene Expression features, none here, so a positive minimum
+    removes every cell."""
+    adata = _antibody_only()
+    plain = scd.call(adata, "cellranger@9.0", inplace=False)
+    assert plain.n_cells > 0
+    strict = scd.call(adata, "cellranger@9.0", global_minimum_umis=1, inplace=False)
+    assert strict.n_cells == 0
+    assert strict.diagnostics["removed_global_minimum"] == plain.n_cells
