@@ -1,0 +1,2 @@
+x86_64-conda-linux-gnu
+/home/runner/work/_temp/du/.pixi/envs/du130/lib/libblas.so.3.11.0

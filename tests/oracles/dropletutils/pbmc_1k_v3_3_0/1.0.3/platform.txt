@@ -1,0 +1,2 @@
+x86_64-conda_cos6-linux-gnu
+/home/runner/work/_temp/du/.pixi/envs/du100/lib/R/lib/libRlapack.so
