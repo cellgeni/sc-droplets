@@ -1,15 +1,16 @@
 # One R environment per DropletUtils release with a change sc-droplets reproduces, from bioconda.
 # Used by run.sh; see README there. The osx-64 pins keep old builds loadable (they need the
-# libc++ and libgfortran they were built against). Every environment uses the reference BLAS, as
-# R ships it and Bioconductor's containers run it: OpenBLAS on a CPU with FMA changes
-# smooth.spline in the last bits.
+# libc++ and libgfortran they were built against). 1.30's environment, which also makes the
+# primitives' fixtures, uses the reference BLAS, as R ships it and Bioconductor's containers run
+# it: OpenBLAS on a CPU with FMA changes smooth.spline in the last bits. The older environments
+# keep the BLAS their builds resolve to (pinning the reference one breaks 1.0's Fortran runtime);
+# their knees, data points, are the same either way. oracle.R records the BLAS beside each output.
 [workspace]
 name = "dropletutils-oracles"
 channels = ["conda-forge", "bioconda"]
 platforms = ["linux-64", "osx-64"]
 
 [feature.du100.dependencies]
-libblas = { version = "*", build = "*netlib" }
 bioconductor-dropletutils = "==1.0.3"
 
 [feature.du100.target.osx-64.dependencies]
@@ -17,35 +18,30 @@ libcxx = "<15"
 libgfortran = "3.*"
 
 [feature.du102.dependencies]
-libblas = { version = "*", build = "*netlib" }
 bioconductor-dropletutils = "==1.2.1"
 
 [feature.du102.target.osx-64.dependencies]
 libcxx = "<15"
 
 [feature.du104.dependencies]
-libblas = { version = "*", build = "*netlib" }
 bioconductor-dropletutils = "==1.4.2"
 
 [feature.du104.target.osx-64.dependencies]
 libcxx = "<15"
 
 [feature.du106.dependencies]
-libblas = { version = "*", build = "*netlib" }
 bioconductor-dropletutils = "==1.6.1"
 
 [feature.du106.target.osx-64.dependencies]
 libcxx = "<15"
 
 [feature.du108.dependencies]
-libblas = { version = "*", build = "*netlib" }
 bioconductor-dropletutils = "==1.8.0"
 
 [feature.du108.target.osx-64.dependencies]
 libcxx = "<15"
 
 [feature.du110.dependencies]
-libblas = { version = "*", build = "*netlib" }
 bioconductor-dropletutils = "==1.10.3"
 openssl = "1.1.*"  # its rhdf5 links libcrypto 1.1, on both platforms
 
@@ -53,26 +49,21 @@ openssl = "1.1.*"  # its rhdf5 links libcrypto 1.1, on both platforms
 libcxx = "<15"
 
 [feature.du112.dependencies]
-libblas = { version = "*", build = "*netlib" }
 bioconductor-dropletutils = "==1.12.1"
 
 [feature.du112.target.osx-64.dependencies]
 libcxx = "<15"
 
 [feature.du114.dependencies]
-libblas = { version = "*", build = "*netlib" }
 bioconductor-dropletutils = "==1.14.2"
 
 [feature.du118.dependencies]
-libblas = { version = "*", build = "*netlib" }
 bioconductor-dropletutils = "==1.18.0"
 
 [feature.du120.dependencies]
-libblas = { version = "*", build = "*netlib" }
 bioconductor-dropletutils = "==1.20.0"
 
 [feature.du126.dependencies]
-libblas = { version = "*", build = "*netlib" }
 bioconductor-dropletutils = "==1.26.0"
 
 [feature.du130.dependencies]
