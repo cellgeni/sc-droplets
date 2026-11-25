@@ -70,10 +70,6 @@ GitHub Pages from `main`, `/docs`.
 - DropletUtils 1.2's default (Dirichlet-multinomial with R's `rgamma`): needs R's `rgamma`,
   `exp_rand` and `norm_rand` (inversion, `qnorm`) ported and drawn one value at a time from the
   single R stream; about 3·10^8 draws per run, too slow in pure Python without a compiled helper.
-- The `Oracles` workflow's DropletUtils job runs R on Linux; the committed outputs came from
-  osx-64 R (Rosetta). If the job's outputs ever differ, the C libraries' `log`/`exp` differ in the
-  last bit somewhere in R's path: compare, then decide which platform the oracle follows.
-
 - Cell Ranger 10.0's ambient tie order: 10x's run sorts with numpy's SIMD argsort. Check whether
   numpy on an AVX-512 runner reproduces it (`np.argsort` default there), and if so offer it as a
   tie-order option.
