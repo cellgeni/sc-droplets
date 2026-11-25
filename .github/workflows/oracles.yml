@@ -1,0 +1,52 @@
+name: Oracles
+
+# Runs the original tools on public data and uploads what they called, for the
+# validation tests (tests/oracles/). Run by hand, or when a branch or pull
+# request changes an oracle script; a maintainer downloads the artifact and
+# commits it.
+on:
+  workflow_dispatch:
+  push:
+    branches-ignore: [main]
+    paths:
+      - "oracles/**"
+      - ".github/workflows/oracles.yml"
+  pull_request:
+    paths:
+      - "oracles/**"
+      - ".github/workflows/oracles.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  starsolo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    name: STARsolo soloCellFiltering
+
+    env:
+      SC_DROPLETS_DATA: ${{ github.workspace }}/.cache/datasets
+      MPLBACKEND: Agg
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3.2.4
+        with:
+          version: "0.13.1"
+          enable-cache: false
+
+      - name: Install
+        run: uv sync --frozen
+
+      - name: Run STAR
+        run: bash oracles/starsolo/run.sh oracle-out/starsolo
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: oracles-starsolo
+          path: oracle-out/
+          retention-days: 30
