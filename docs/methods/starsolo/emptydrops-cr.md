@@ -40,8 +40,8 @@ and the order of ties.
 3. **Ambient profile.** Sum the counts of the barcodes at ranks `indMin` to `indMax − 1` (45,000
    to 89,999, 0-based) per feature. With $$n_r$$ features summing to $$r$$ (features detected in
    no barcode at all are not counted among the zeros), STAR's Simple Good-Turing gives each
-   feature with sum $$r > 0$$ the probability of one item seen $$r$$ times, and shares \(P_0 =
-   n_1/N\) equally among the detected features with sum 0. The profile is normalised to sum to 1.
+   feature with sum $$r > 0$$ the probability of one item seen $$r$$ times, and shares
+   $$P_0 = n_1/N$$ equally among the detected features with sum 0. The profile is normalised to sum to 1.
    STAR's Good-Turing switches from the Turing estimate to the smoothed one at the first
    frequency whose successor is missing, or where the two agree within 1.96 standard deviations;
    it needs at least 5 distinct frequencies.

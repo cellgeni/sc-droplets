@@ -109,7 +109,8 @@ this file, for people; keep the two in step.
 - Method pages: front matter `method_ids: [id, ...]` and `status: implemented | planned |
   docs-only`; sections in order: At a glance, How it works, Versions, Parameters, Run it,
   Differences from the original, Validation, References.
-- Formulas: `$$...$$` (kramdown turns them into `\(..\)` / `\[..\]`, KaTeX renders them).
+- Formulas: `$$...$$`, inline and display alike (kramdown turns them into `\(..\)` / `\[..\]`, which
+  KaTeX renders). A literal `\(` in a page shows as "("; the docs test refuses it.
 - Link between pages as relative `page.md`.
 - Preview: `cd docs && bundle install && bundle exec jekyll serve`.
 
