@@ -204,3 +204,82 @@ class SimpleGoodTuringStar:
         if observation == 0:
             return self.p_zero
         return self._estimate.get(int(observation), 0.0)
+
+
+# ---------------------------------------------------------------------------
+# edgeR
+# ---------------------------------------------------------------------------
+
+
+def good_turing_edger(counts: np.ndarray, conf: float = 1.96) -> Tuple[np.ndarray, np.ndarray, float, int]:
+    """edgeR's `goodTuring(x, conf)`: (count, proportion, P0, n0).
+
+    `count` holds the distinct positive counts (after `as.integer`, which
+    truncates), `proportion` the probability of one item seen that often, P0
+    the probability of the unseen, n0 the number of zeros. Port of edgeR's
+    `R/goodTuring.R` and `src/good_turing.c` (GPL-2 or later, Copyright (C)
+    Aaron Lun and Gordon Smyth), which differs from Gale and Sampson's code
+    in two ways: the last Z_r uses 2(r - r_prev) as its denominator, and once
+    the smoothed estimate is chosen it is kept for every larger count.
+    """
+    x = np.trunc(np.asarray(counts, dtype=np.float64)).astype(np.int64)
+    values, freqs = np.unique(x, return_counts=True)
+    n0 = int(freqs[0]) if values.size and values[0] == 0 else 0
+    if n0:
+        values, freqs = values[1:], freqs[1:]
+    obs = values.tolist()
+    freq = freqs.tolist()
+    rows = len(obs)
+    out = [0.0] * rows
+    if rows == 0:
+        return values, np.zeros(0), 0.0, n0
+    big_n = 0.0
+    xys = mean_x = mean_y = xsquares = 0.0
+    log_obs = [math.log(o) for o in obs]
+    last = rows - 1
+    for i in range(rows):
+        big_n += float(obs[i] * freq[i])
+        prev = 0 if i == 0 else obs[i - 1]
+        xx = 2 * (obs[i] - prev) if i == last else obs[i + 1] - prev
+        log_o = log_obs[i]
+        log_z = math.log(2 * freq[i]) - math.log(xx)
+        mean_x += log_o
+        mean_y += log_z
+        xys += log_o * log_z
+        xsquares += log_o * log_o
+    mean_x /= rows
+    mean_y /= rows
+    xys -= mean_x * mean_y * rows
+    xsquares -= mean_x * mean_x * rows
+    slope = xys / xsquares if xsquares != 0 else float("nan")
+    p_zero = 0.0 if obs[0] != 1 else freq[0] / big_n
+    big_n_prime = 0.0
+    indiff = False
+    for i in range(rows):
+        next_obs = obs[i] + 1
+        y = next_obs * math.exp(slope * (math.log(next_obs) - log_obs[i]))
+        if i == last or obs[i + 1] != next_obs:
+            indiff = True
+        if not indiff:
+            xv = float(next_obs) * freq[i + 1] / freq[i]
+            if abs(xv - y) <= conf * xv * math.sqrt(1.0 / freq[i + 1] + 1.0 / freq[i]):
+                indiff = True
+            else:
+                out[i] = xv
+        if indiff:
+            out[i] = y
+        big_n_prime += out[i] * freq[i]
+    factor = (1.0 - p_zero) / big_n_prime
+    return values, np.array(out) * factor, p_zero, n0
+
+
+def good_turing_proportions_edger(profile: np.ndarray) -> np.ndarray:
+    """edgeR's `goodTuringProportions` for one column: each zero gets P0 / n0."""
+    profile = np.asarray(profile, dtype=np.float64)
+    values, proportion, p_zero, n0 = good_turing_edger(profile)
+    out = np.empty(profile.size)
+    zero = profile == 0
+    out[zero] = p_zero / n0 if n0 else float("nan")
+    as_int = np.trunc(profile[~zero]).astype(np.int64)
+    out[~zero] = proportion[np.searchsorted(values, as_int)]
+    return out
