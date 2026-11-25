@@ -75,12 +75,21 @@ def cellranger_v1(
     `state` is the legacy numpy stream (Cell Ranger seeds the global one with
     0). For each distinct total in increasing order, a simulation either
     draws the whole gap with one multinomial (gaps of `jump` or more) or adds
-    one pre-drawn feature at a time, refilling the block of `block_size`
-    features when it runs out.
+    pre-drawn features from a block of `block_size`. The feature stream is
+    continuous; what differs between releases is when the block is refilled,
+    and so where the random stream goes:
 
-    `batch_small` (Cell Ranger 7.2+) adds the features of gaps of at least
-    that many in one step; the stream is the same, only the arithmetic of the
-    log-likelihood differs.
+    - one feature at a time (3.x, and 7.2+ for gaps below `batch_small`):
+      the moment the last feature of the block is used, a whole new block is
+      drawn;
+    - a batched gap (7.2+, `batch_small` <= gap < `jump`): if the gap would
+      reach or pass the end of the block, the block becomes its unused tail
+      followed by as many fresh features as were used, before the gap is
+      taken.
+
+    The log-likelihood is accumulated feature by feature either way; 7.2+
+    sums a batched gap with log-gamma terms, which is the same quantity to the
+    last bits of a double.
     """
     totals = np.asarray(totals, dtype=np.int64)
     distinct = np.flatnonzero(np.bincount(totals))
@@ -90,22 +99,40 @@ def cellranger_v1(
     log_p = np.log(profile)
     simulated = np.empty((len(distinct), num_sims))
 
-    block = state.choice(n_profile, size=block_size, p=profile, replace=True)
+    def fresh(size: int) -> np.ndarray:
+        return state.choice(n_profile, size=size, p=profile, replace=True)
+
+    block = fresh(block_size)
     position = 0
 
-    def take(n: int) -> np.ndarray:
+    def take(run_steps: np.ndarray) -> np.ndarray:
+        """The features a run of small gaps uses, refilling the block as Cell Ranger does."""
         nonlocal block, position
-        out = np.empty(n, dtype=np.int64)
-        filled = 0
-        while filled < n:
-            available = min(n - filled, block_size - position)
-            out[filled : filled + available] = block[position : position + available]
-            filled += available
-            position += available
-            if position >= block_size:
-                block = state.choice(n_profile, size=block_size, p=profile, replace=True)
-                position = 0
-        return out
+        total = int(run_steps.sum())
+        if position + total < block_size:
+            # The common case: no refill can happen within this run.
+            out = block[position : position + total]
+            position += total
+            return out
+        pieces = []
+        for step in run_steps.tolist():
+            if batch_small is not None and step >= batch_small:
+                if position + step >= block_size:
+                    block = np.concatenate((block[position:], fresh(position)))
+                    position = 0
+                pieces.append(block[position : position + step])
+                position += step
+                continue
+            remaining = step
+            while remaining:
+                available = min(remaining, block_size - position)
+                pieces.append(block[position : position + available])
+                position += available
+                remaining -= available
+                if position >= block_size:
+                    block = fresh(block_size)
+                    position = 0
+        return np.concatenate(pieces) if pieces else np.zeros(0, dtype=np.int64)
 
     small = steps < jump
     for sim in range(num_sims):
@@ -124,50 +151,17 @@ def cellranger_v1(
             while j < len(distinct) and small[j - 1]:
                 j += 1
             run_steps = steps[i - 1 : j - 1]
-            features = take(int(run_steps.sum()))
+            features = take(run_steps)
             n_values = np.arange(distinct[i - 1] + 1, distinct[j - 1] + 1, dtype=np.float64)
             after = occurrence_rank(features, offset=counts)
-            if batch_small is None:
-                terms = log_p[features] + np.log(n_values / after)
-                path = np.cumsum(np.concatenate(([loglik], terms)))[1:]
-                ends = np.cumsum(run_steps) - 1
-                simulated[i:j, sim] = path[ends]
-                loglik = float(path[-1])
-            else:
-                loglik = _batched_run(loglik, counts, features, distinct, i, j, run_steps, log_p, batch_small, simulated[:, sim])
+            terms = log_p[features] + np.log(n_values / after)
+            path = np.cumsum(np.concatenate(([loglik], terms)))[1:]
+            ends = np.cumsum(run_steps) - 1
+            simulated[i:j, sim] = path[ends]
+            loglik = float(path[-1])
             np.add.at(counts, features, 1)
             i = j
     return _ranks_lower(distinct, simulated, totals, observed)
-
-
-def _batched_run(loglik, counts, features, distinct, i, j, run_steps, log_p, batch_small, column) -> float:
-    """Cell Ranger 7.2+: gaps of `batch_small` or more are added in one step."""
-    from scipy.special import gammaln
-
-    working = counts.copy()
-    start = 0
-    for k, step in enumerate(run_steps):
-        chunk = features[start : start + step]
-        n_before = distinct[i - 1 + k]
-        if step >= batch_small:
-            added = np.bincount(chunk, minlength=working.size)
-            touched = np.flatnonzero(added)
-            c = added[touched].astype(np.float64)
-            x = working[touched].astype(np.float64)
-            loglik += float(
-                np.sum(c * log_p[touched])
-                + gammaln(n_before + step + 1.0)
-                - gammaln(n_before + 1.0)
-                - np.sum(gammaln(x + c + 1.0) - gammaln(x + 1.0))
-            )
-            working[touched] += added[touched]
-        else:
-            for offset, feature in enumerate(chunk):
-                working[feature] += 1
-                loglik += log_p[feature] + np.log(float(n_before + offset + 1) / working[feature])
-        column[i + k] = loglik
-        start += step
-    return loglik
 
 
 def _ranks_lower(distinct: np.ndarray, simulated: np.ndarray, totals: np.ndarray, observed: np.ndarray) -> np.ndarray:

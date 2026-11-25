@@ -32,6 +32,8 @@ uv run pytest -m "not integration"
 | `src/sc_droplets/api.py` | `call`, `compare`, `agreement`, `list_methods` |
 | `src/sc_droplets/io/` | readers (10x HDF5, MTX folders, pipeline folders) and writers |
 | `src/sc_droplets/methods/` | one module per tool page |
+| `src/sc_droplets/primitives/` | each tool's arithmetic, shared: Good-Turing variants, numpy's classic quicksort, C++ random numbers, the Monte Carlo engines |
+| `oracles/` | scripts that run the original tools on public data (`.github/workflows/oracles.yml`); their output goes to `tests/oracles/` |
 | `src/sc_droplets/pl/` | plots |
 | `src/sc_droplets/cli.py` | the command; `call <id>` subcommands are built from the registry |
 | `docs/` | this site; `docs/_research/` holds the source-reading notes the pages start from |
@@ -54,7 +56,8 @@ written from.
    Decorate it with `@register` and add the module to `methods/__init__.py`.
 3. **Oracle.** Check it against the original tool on the same matrix: exact for deterministic
    methods, within Monte Carlo noise for the rest. Correctness is never shown by the
-   implementation agreeing with itself.
+   implementation agreeing with itself. Add the cases to `tests/test_validation.py`: public data
+   goes in `tests/datasets.py`; a tool that has to be run goes in `oracles/`.
 4. **Table.** Regenerate the table on the Methods page:
 
    ```bash
@@ -70,6 +73,8 @@ the table is current.
 uv run pytest -m "not integration"
 uv run pytest tests/test_registry.py::test_specs_split_into_id_version_and_parameters
 uv run pytest -m "not integration and not perf" --cov=sc_droplets --cov-fail-under=90
+uv run python tests/datasets.py                       # download the public datasets (about 1 GB)
+uv run pytest -m integration tests/test_validation.py # every method against its original tool
 ```
 
 House style: test names read as sentences; a regression test's docstring says what used to go

@@ -49,6 +49,9 @@ class Droplets:
     feature_types: Optional[tuple] = None
     layer: Optional[str] = None
     genome: Optional[str] = None
+    #: What the reader recorded about the file (format, 10x HDF5 attributes such as
+    #: `chemistry_description`); empty for an AnnData made elsewhere.
+    source: dict = field(default_factory=dict)
 
     @property
     def n_barcodes(self) -> int:
@@ -154,6 +157,7 @@ class Droplets:
             feature_types=chosen_types,
             layer=layer,
             genome=genome,
+            source=dict(adata.uns.get("sc_droplets_input", {})),
         )
 
 

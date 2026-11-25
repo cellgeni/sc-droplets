@@ -151,3 +151,16 @@ def test_plot_knee_runs_methods_or_draws_stored_calls(h5, tmp_path):
     assert result.exit_code == 0, result.output
     result = runner.invoke(app, ["plot", "knee", str(tmp_path / "c.h5ad"), "--key", "nope", "-o", str(tmp_path / "x.png")])
     assert result.exit_code == 1 and "no stored call" in _out(result)
+
+
+def test_plot_diagnostics_runs_a_method_or_draws_a_stored_call(h5, tmp_path):
+    result = runner.invoke(app, ["plot", "diagnostics", str(h5), "-m", "starsolo-cellranger2.2", "-o", str(tmp_path / "d.png")])
+    assert result.exit_code == 0, result.output
+    assert (tmp_path / "d.png").stat().st_size > 1000
+    runner.invoke(app, ["call", "top-n", str(h5), "--n-cells", "300", "-o", str(tmp_path / "c.h5ad")])
+    result = runner.invoke(app, ["plot", "diagnostics", str(tmp_path / "c.h5ad"), "--key", "top_n", "-o", str(tmp_path / "e.png")])
+    assert result.exit_code == 0, result.output
+    result = runner.invoke(app, ["plot", "diagnostics", str(h5), "-o", str(tmp_path / "f.png")])
+    assert result.exit_code == 1 and "exactly one of --method and --key" in _out(result)
+    result = runner.invoke(app, ["plot", "diagnostics", str(tmp_path / "c.h5ad"), "--key", "nope", "-o", str(tmp_path / "g.png")])
+    assert result.exit_code == 1 and "no stored call nope" in _out(result)

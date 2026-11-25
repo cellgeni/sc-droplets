@@ -46,18 +46,22 @@ def _averaging_transform(r: np.ndarray, nr: np.ndarray) -> np.ndarray:
     return nr.astype(float) / dr
 
 
-def simple_good_turing_cellranger(xr: np.ndarray, xnr: np.ndarray) -> Tuple[np.ndarray, float]:
+def simple_good_turing_cellranger(xr: np.ndarray, xnr: np.ndarray, clamp_slope: bool = False) -> Tuple[np.ndarray, float]:
     """Cell Ranger's `simple_good_turing`: adjusted frequencies r* and P0.
 
     `xr` are the distinct nonzero frequencies, ascending; `xnr` how many items
-    have each.
+    have each. A log-log slope above -1 is an error up to Cell Ranger 8.x;
+    from 9.0 (`clamp_slope`) a slope of -1 or more is set to -1.
     """
     xr = xr.astype(float)
     xnr = xnr.astype(float)
     xN = np.sum(xr * xnr)
     xnrz = _averaging_transform(xr, xnr)
     slope, _intercept, _, _, _ = stats.linregress(np.log(xr), np.log(xnrz))
-    if slope > -1:
+    if clamp_slope:
+        if slope >= -1:
+            slope = -1.0
+    elif slope > -1:
         raise GoodTuringError(
             f"the log-log slope is {slope:.3f} > -1; Simple Good-Turing does not apply to these data"
         )
@@ -88,7 +92,7 @@ def simple_good_turing_cellranger(xr: np.ndarray, xnr: np.ndarray) -> Tuple[np.n
     return xr * xrstcmbrel, float(p0)
 
 
-def sgt_cellranger(frequencies: np.ndarray) -> Tuple[np.ndarray, float]:
+def sgt_cellranger(frequencies: np.ndarray, clamp_slope: bool = False) -> Tuple[np.ndarray, float]:
     """Cell Ranger's `sgt_proportions`: a proportion for each item, and P0.
 
     `frequencies` are the items' counts, all positive. Raises GoodTuringError
@@ -104,7 +108,7 @@ def sgt_cellranger(frequencies: np.ndarray) -> Tuple[np.ndarray, float]:
     use_freqs = np.flatnonzero(freqfreqs)
     if len(use_freqs) < 10:
         raise GoodTuringError(f"too few distinct nonzero frequencies ({len(use_freqs)}); Cell Ranger needs 10")
-    rstar, p0 = simple_good_turing_cellranger(use_freqs, freqfreqs[use_freqs])
+    rstar, p0 = simple_good_turing_cellranger(use_freqs, freqfreqs[use_freqs], clamp_slope=clamp_slope)
     rstar_by_freq: Dict[int, float] = dict(zip(use_freqs.tolist(), rstar.tolist()))
     rstar_sum = np.sum(freqfreqs[use_freqs] * rstar)
     rstar_i = np.fromiter((rstar_by_freq[f] for f in frequencies.tolist()), dtype=float, count=len(frequencies))

@@ -31,9 +31,9 @@ barcodes ranked by counts
 
 {: .important }
 sc-droplets is in early development. The first release, 0.1.0, will implement every knee and
-threshold heuristic and every statistical test, each checked against its original tool. Until
-then the package has the generic [top N](methods/generic/top-n.md) and
-[fixed threshold](methods/generic/threshold.md) rules, and the
+threshold heuristic and every statistical test, each checked against its original tool. So far:
+[Cell Ranger](methods/cellranger/index.md) (2.x, 3.x, 7.2 – 10.1),
+[STARsolo](methods/starsolo/index.md) and the [generic rules](methods/generic/index.md); the
 [Overview](overview/index.md) lists what is coming.
 
 ## Install

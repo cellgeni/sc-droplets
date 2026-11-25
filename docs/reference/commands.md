@@ -121,3 +121,24 @@ The barcode-rank curve with each call's cut-off. Given an `.h5ad` with stored ca
 | `--cumulative` | Cumulative share of counts against rank |
 | `--title` | Figure title |
 | `--feature-type`, `--layer`, `--genome`, `--solo-feature` | As for `inspect` |
+
+## `plot diagnostics`
+
+```bash
+sc-droplets plot diagnostics raw_feature_bc_matrix.h5 -m starsolo-emptydrops-cr -o diagnostics.png
+sc-droplets plot diagnostics calls.h5ad --key cellranger_3_0_0 -o diagnostics.pdf
+```
+
+One call's own view. For a threshold method: the rank curve, its cells, its cut and the robust
+maximum the cut came from (with the spread of OrdMag's bootstraps). For a test against the ambient
+profile: three panels, the classes on the rank curve with the ambient ranks shaded, the
+candidates' log-likelihood against their total, and the histogram of their p-values.
+
+| Option | Meaning |
+|---|---|
+| `--output`, `-o` | The figure; required |
+| `--method`, `-m` | Run this method spec and draw it |
+| `--key` | Draw this stored call |
+| `--feature-type`, `--layer`, `--genome`, `--solo-feature` | As for `inspect` |
+
+Exactly one of `--method` and `--key`.

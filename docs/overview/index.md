@@ -55,8 +55,8 @@ closed).
 |---|---|---|
 | Generic | [top N](../methods/generic/top-n.md), [fixed threshold](../methods/generic/threshold.md) | implemented |
 | Generic | MAD, Otsu, multi-Otsu, KDE valley, Gaussian mixtures (1-D, 2-D), negative-binomial mixture | planned, 0.1.0 |
-| Cell Ranger | OrdMag (1.x, 2.x, 7.2+), EmptyDrops step (3.0, 7.2, 8.0, 9.0, 10.0, 10.1), targeted gradient, antibody and high-occupancy filters | planned, 0.1.0; 4.0–7.1 are a documented gap (no public source) |
-| STARsolo | CellRanger2.2, TopCells, EmptyDrops_CR, `soloBasicCellFilter.awk` | planned, 0.1.0 |
+| Cell Ranger | [cell calling](../methods/cellranger/cellranger.md) (2.x, 3.x, 7.2, 8.0, 8.0.1, 9.0, 10.0, 10.1, with the antibody-aggregate, 8.0+ and high-occupancy filters), [OrdMag](../methods/cellranger/ordmag.md) | implemented; 1.x and 4.0–7.1 are documented gaps (no public source); targeted (gradient) calling planned |
+| STARsolo | [CellRanger2.2](../methods/starsolo/cellranger2-2.md), [TopCells](../methods/starsolo/topcells.md), [EmptyDrops_CR](../methods/starsolo/emptydrops-cr.md), [`soloBasicCellFilter.awk`](../methods/starsolo/basic-awk.md) | implemented |
 | DropletUtils | barcodeRanks (four knee definitions), emptyDrops (eight behaviours), emptyDropsCellRanger, defaultDrops | planned, 0.1.0 |
 | CellBender | prior estimates of expected cells and total droplets (0.1, 0.2, 0.3–0.4) | planned, 0.1.0; the VAE is docs only |
 | cellsweep | empty-droplet step: autoknee, kneed, mx_filter | planned, 0.1.0 |

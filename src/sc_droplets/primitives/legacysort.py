@@ -19,22 +19,40 @@ vectors never reach it.
 
 from __future__ import annotations
 
+from typing import Optional, Tuple
+
 import numpy as np
 
 SMALL_QUICKSORT = 15
 
 
-def legacy_argsort(values: np.ndarray) -> np.ndarray:
-    """`np.argsort(values, kind="quicksort")` as numpy < 1.25 computed it."""
+def legacy_argsort(values: np.ndarray, window: Optional[Tuple[int, int]] = None) -> np.ndarray:
+    """`np.argsort(values, kind="quicksort")` as numpy < 1.25 computed it.
+
+    With `window=(lo, hi)`, only positions lo..hi-1 of the result are
+    guaranteed (the rest are left partly sorted): quicksort sorts each
+    partition independently, so partitions outside the window are skipped.
+    Callers that use a slice of the order (the top N, ranks 45,000–90,000)
+    pass it and get the same slice, much faster.
+    """
     v = np.asarray(values)
     n = v.shape[0]
     tosort = np.arange(n, dtype=np.int64)
     if n < 2:
         return tosort
+    lo, hi = (0, n) if window is None else (max(0, window[0]), min(n, window[1]))
+    if lo >= hi:
+        return tosort
+
+    def wanted(left: int, right: int) -> bool:
+        return left <= right and right >= lo and left < hi
+
     small_segments = []
     stack = [(0, n - 1)]
     while stack:
         pl, pr = stack.pop()
+        if not wanted(pl, pr):
+            continue
         while pr - pl > SMALL_QUICKSORT:
             pm = pl + ((pr - pl) >> 1)
             if v[tosort[pm]] < v[tosort[pl]]:
@@ -62,13 +80,23 @@ def legacy_argsort(values: np.ndarray) -> np.ndarray:
             # the last swapped right position (which now holds a value >= pivot).
             pi = int(left[k]) if k == 0 else int(min(left[k], right[k - 1]))
             tosort[pi], tosort[pj_start] = tosort[pj_start], tosort[pi]
-            if pi - pl < pr - pi:
-                stack.append((pi + 1, pr))
+            left_wanted = wanted(pl, pi - 1)
+            right_wanted = wanted(pi + 1, pr)
+            if left_wanted and right_wanted:
+                if pi - pl < pr - pi:
+                    stack.append((pi + 1, pr))
+                    pr = pi - 1
+                else:
+                    stack.append((pl, pi - 1))
+                    pl = pi + 1
+            elif left_wanted:
                 pr = pi - 1
-            else:
-                stack.append((pl, pi - 1))
+            elif right_wanted:
                 pl = pi + 1
-        if pr > pl:
+            else:
+                pl, pr = 0, -1
+                break
+        if pr > pl and wanted(pl, pr):
             small_segments.append((pl, pr))
     if small_segments:
         starts = np.array([s for s, _ in small_segments])
