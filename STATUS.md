@@ -18,6 +18,8 @@ original tool, with a page per algorithm and the review pages. Decisions (Novemb
 - A method spec is `id[@tool_version][:name=value,...]`; each `Variant` covers a half-open range
   of tool releases; `Gap` marks releases whose code is not public (Cell Ranger 4.0–7.1).
 - Heavy models are documented, not implemented: CellBender's VAE, EmptyNN, dropkick.
+- Branches (November 2026): `dev` collects merged work in progress, `main` only releases; each
+  milestone is a pull request into `dev`, which the agent may merge once checks pass.
 - Validation: exact against the original for deterministic methods; for Monte Carlo methods,
   ≥ 99.5 % agreement of called barcodes with every disagreement inside the noise band.
 - Visualisation is part of the package: knee, density, per-method diagnostics, compare, QC,

@@ -121,9 +121,14 @@ follow-ups noticed along the way, and the next candidates. Update it as work mov
 
 ## Git and releases
 
-- After the scaffold, each milestone is a branch and a pull request.
-- Release: branch `release/X.Y.Z`; version in `pyproject.toml` and `uv.lock`; a `## X.Y.Z`
-  section in `docs/changelog.md`; merge; push tag `X.Y.Z` (no `v`). `publish.yml` checks the tag
+- `dev` collects work in progress; `main` holds releases only. Each milestone or fix is a branch
+  from `dev` and a pull request into `dev`, merged (by the agent too) once its checks pass and
+  its review comments are dealt with.
+- GitHub Pages builds the site from `main`, so documentation changes reach the site with a
+  release.
+- Release: branch `release/X.Y.Z` from `dev`; version in `pyproject.toml` and `uv.lock`; a
+  `## X.Y.Z` section in `docs/changelog.md`; a pull request into `main`; merge; push tag `X.Y.Z`
+  (no `v`); merge `main` back into `dev`. `publish.yml` checks the tag
   against `pyproject.toml`, runs `tests.yml`, publishes to PyPI (trusted publishing), then
   `quay-on-tag.yml` builds, smoke-tests and pushes `quay.io/cellgeni/sc-droplets`.
 - Workflows pin third-party actions by commit SHA with the version in a comment, and pass tags
