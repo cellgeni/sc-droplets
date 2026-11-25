@@ -215,7 +215,7 @@ jobs:
   # (tests/oracles). The datasets (about 1 GB) are cached between runs.
   validation:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 75
     name: validation against the original tools
 
     permissions:
@@ -259,8 +259,8 @@ jobs:
           suite = root.find("testsuite") if root.tag == "testsuites" else root
           ran = int(suite.get("tests", 0)) - int(suite.get("skipped", 0))
           print(f"{ran} validation cases ran")
-          if ran < 21:
-              sys.exit(f"expected at least 21 validation cases, got {ran}")
+          if ran < 50:
+              sys.exit(f"expected at least 50 validation cases, got {ran}")
           PY
 
   # The unit suite once more, on the lowest version of each direct dependency

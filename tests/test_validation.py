@@ -13,6 +13,11 @@ STARsolo: our call must give exactly the barcodes `STAR --runMode
 soloCellFiltering` kept, saved in tests/oracles/starsolo by
 oracles/starsolo/run.sh (STAR's static Linux binaries).
 
+DropletUtils: knee, inflection, defaultDrops' cells and every emptyDrops and
+emptyDropsCellRanger p-value, FDR and call must be those of DropletUtils itself,
+release by release, saved in tests/oracles/dropletutils by
+oracles/dropletutils/run.sh (bioconda's builds, R's set.seed(100)).
+
 The datasets are downloaded once (tests/datasets.py) into $SC_DROPLETS_DATA.
 """
 
@@ -122,3 +127,78 @@ def test_cell_ranger_7_2_flex_calls_every_sample_after_the_high_occupancy_filter
         ours = calls[name] - set(removed)
         expected = set(filtered_barcodes(name))
         assert ours == expected, f"{name}: missing {sorted(expected - ours)[:5]}, extra {sorted(ours - expected)[:5]}"
+
+
+# ---------------------------------------------------------------------------
+# DropletUtils
+# ---------------------------------------------------------------------------
+
+DU_ORACLES = sorted(p for p in (ORACLES / "dropletutils").glob("*/*") if p.is_dir() and p.parent.name != "fixtures")
+
+
+def _du_case(path: Path):
+    """(dataset, --tool-version, extra emptyDrops arguments) for one oracle folder."""
+    release = path.name
+    header = (path / "barcoderanks.txt").read_text().split("\n", 1)[0].split()
+    extra = header[2:]
+    return path.parent.name, release, extra
+
+
+def _du_test(path: Path):
+    lines = gzip.open(path, "rt").read().splitlines()
+    meta = {line.split()[1]: " ".join(line.split()[2:]) for line in lines if line.startswith("#")}
+    rows = np.array([line.split("\t") for line in lines if not line.startswith("#")])
+    return meta, rows
+
+
+def test_there_are_dropletutils_oracles_to_check():
+    assert len(DU_ORACLES) >= 13
+
+
+@pytest.mark.parametrize("path", DU_ORACLES, ids=[f"{p.parent.name}-{p.name}" for p in DU_ORACLES])
+def test_dropletutils_knees_and_defaultdrops_are_rs(path):
+    name, release, extra = _du_case(path)
+    adata = _read(name)
+    lines = dict(line.split(" ", 1) for line in (path / "barcoderanks.txt").read_text().splitlines()[1:])
+    ranks = scd.call(adata, f"dropletutils-barcoderanks@{release}", inplace=False)
+    assert ranks.thresholds["knee"] == float(lines["knee"])
+    assert ranks.thresholds["inflection"] == float(lines["inflection"])
+    cells = np.array(gzip.open(path / "defaultdrops.txt.gz", "rt").read().split(), dtype=int)
+    default = scd.call(adata, f"dropletutils-defaultdrops@{release}", inplace=False)
+    assert np.array_equal(np.flatnonzero(default.is_cell), np.sort(cells))
+
+
+DU_TESTS = [
+    (p, method) for p in DU_ORACLES
+    for method, file in (("dropletutils-emptydrops", "emptydrops.tsv.gz"), ("dropletutils-emptydropscellranger", "emptydropscellranger.tsv.gz"))
+    if (p / file).exists()
+]
+
+
+@pytest.mark.parametrize("path, method", DU_TESTS, ids=[f"{p.parent.name}-{m.split('-')[1]}-{p.name}" for p, m in DU_TESTS])
+def test_dropletutils_tests_give_rs_p_values_and_cells(path, method):
+    name, release, extra = _du_case(path)
+    meta, rows = _du_test(path / ("emptydrops.tsv.gz" if method.endswith("emptydrops") else "emptydropscellranger.tsv.gz"))
+    params = {}
+    if method.endswith("emptydrops") and "alphainf" in extra:
+        params["alpha"] = "inf"  # 1.2's Dirichlet draws use R's rgamma, which is not reproduced
+    result = scd.call(_read(name), f"{method}@{release}", inplace=False, **params)
+    index = rows[:, 0].astype(int)
+    pvalue = result.columns["pvalue"]
+    assert np.array_equal(np.flatnonzero(~np.isnan(pvalue)), index)
+    n_above = np.rint(pvalue[index] * 10001 - 1).astype(int)
+    assert np.array_equal(n_above, rows[:, 2].astype(int))
+    assert np.array_equal(result.columns["fdr"][index], rows[:, 3].astype(float))
+    if meta.get("alpha") not in (None, "NA", "Inf"):
+        assert result.diagnostics["alpha"] == float(meta["alpha"])
+    if meta.get("retain") in (None, "NA"):
+        # 1.0 keeps no metadata; its retain is barcodeRanks' knee, which the oracle records
+        knee = dict(line.split(" ", 1) for line in (path / "barcoderanks.txt").read_text().splitlines()[1:])["knee"]
+        retain = float(knee)
+    else:
+        retain = float(meta["retain"])
+    assert result.diagnostics["retain"] == retain
+    fdr = rows[:, 3].astype(float)
+    cut = 0.001 if method.endswith("emptydrops") else 0.01
+    expected = set(index[fdr <= cut]) | set(np.flatnonzero(np.rint(np.asarray(result.totals)) >= retain))
+    assert set(np.flatnonzero(result.is_cell)) == expected

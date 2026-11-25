@@ -50,3 +50,40 @@ jobs:
           name: oracles-starsolo
           path: oracle-out/
           retention-days: 30
+
+  dropletutils:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    name: DropletUtils, every release
+
+    env:
+      SC_DROPLETS_DATA: ${{ github.workspace }}/.cache/datasets
+      MPLBACKEND: Agg
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3.2.4
+        with:
+          version: "0.13.1"
+          enable-cache: false
+
+      - uses: prefix-dev/setup-pixi@9936258fee697aff89b3fed6ca1f80a382ef694e # v0.11.3
+        with:
+          pixi-version: v0.80.0
+          run-install: false
+          cache: false
+
+      - name: Install
+        run: uv sync --frozen
+
+      - name: Run DropletUtils
+        run: bash oracles/dropletutils/run.sh oracle-out/dropletutils
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: oracles-dropletutils
+          path: oracle-out/
+          retention-days: 30
