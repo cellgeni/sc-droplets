@@ -74,7 +74,7 @@ uv run pytest -m "not integration"
 uv run pytest tests/test_registry.py::test_specs_split_into_id_version_and_parameters
 uv run pytest -m "not integration and not perf" --cov=sc_droplets --cov-fail-under=90
 uv run python tests/datasets.py                       # download the public datasets (about 1 GB)
-uv run pytest -m integration -n auto tests/test_validation.py # every method against its original tool, on every core
+uv run pytest -m integration -n auto --dist worksteal tests/test_validation.py # every method against its original tool, on every core
 ```
 
 CI runs the validation suite as two jobs (`--shard 1/2`, `--shard 2/2`), each on every core of its

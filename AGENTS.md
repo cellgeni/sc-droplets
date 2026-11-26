@@ -20,7 +20,7 @@ uv run sc-droplets --help                            # run the CLI from source
 uv run pytest -m "not integration"                   # unit suite; what CI gates on
 uv run pytest tests/test_api.py::test_top_n_breaks_ties_by_input_order_or_keeps_them_all
 uv run pytest -m "not integration and not perf" --cov=sc_droplets --cov-fail-under=90
-uv run pytest -m integration -n auto tests/test_validation.py  # the oracle suite, on every core
+uv run pytest -m integration -n auto --dist worksteal tests/test_validation.py  # the oracle suite, on every core
 uv run python docs/_scripts/methods_table.py         # regenerate the table on docs/methods/index.md
 ```
 

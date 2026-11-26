@@ -217,7 +217,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     # Two jobs, each running its half of the cases (round robin, so each gets half of the slow
-    # emptyDrops cases) on every core of the runner: about 5 minutes instead of 30.
+    # emptyDrops cases) on every core of the runner; idle workers take queued cases from busy ones
+    # (worksteal), since a few cases take far longer than the rest.
     strategy:
       fail-fast: false
       matrix:
@@ -256,7 +257,7 @@ jobs:
       - name: Run the validation tests
         env:
           SHARD: ${{ matrix.shard }}/2
-        run: uv run pytest -v -W default -n auto --shard "$SHARD" tests/test_validation.py -m integration --junitxml=validation-results.xml
+        run: uv run pytest -v -W default -n auto --dist worksteal --shard "$SHARD" tests/test_validation.py -m integration --junitxml=validation-results.xml
 
       - name: Confirm the cases actually ran
         if: always()
