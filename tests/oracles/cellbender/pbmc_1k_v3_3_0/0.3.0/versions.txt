@@ -1,0 +1,8 @@
+cellbender 0.3.0
+python 3.11.18
+numpy 1.24.4
+scipy 1.15.2
+torch 2.14.1
+platform linux x86_64
+simd AVX512F AVX512_SKX AVX2
+source 4990df713f296256577c92cab3314daeeca0f3d7

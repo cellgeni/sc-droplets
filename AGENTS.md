@@ -49,7 +49,8 @@ Markers: `integration` (downloads public data or builds oracle environments; nee
   `dropletutils.py` holds barcodeRanks (four knee rules), emptyDrops, emptyDropsCellRanger and
   defaultDrops. `umitools.py` holds `whitelist`'s distance knee and density valley; `kneedle.py`
   runs kneed's Kneedle (`primitives/kneed.py`, one behaviour per release) on the rank curve;
-  `cellsweep.py` holds cellsweep's empty-droplet step.
+  `cellsweep.py` holds cellsweep's empty-droplet step; `cellbender.py` CellBender's priors (the
+  mode and median of 0.1–0.2, the Otsu and kernel-density heuristics of 0.3+).
 - `primitives/`: the arithmetic of each tool, reused across methods: `goodturing` (Cell Ranger's,
   STAR's and edgeR's), `legacysort` (numpy's classic quicksort, with a `window` so a slice is
   cheap: tie order decides Cell Ranger's ambient droplets), `stdrandom` (C++ `mt19937` and
@@ -104,7 +105,9 @@ Markers: `integration` (downloads public data or builds oracle environments; nee
   whitelist functions in `tests/oracles/umitools/` (made by `oracles/umitools/run.sh`: one pixi
   environment per release, given the matrix's totals), Kneedle against kneed's `KneeLocator` in
   `tests/oracles/kneedle/` (`oracles/kneedle/run.sh`), cellsweep against its `infer_empty_droplets`
-  in `tests/oracles/cellsweep/` (`oracles/cellsweep/run.sh`). A new method adds its cases here.
+  in `tests/oracles/cellsweep/` (`oracles/cellsweep/run.sh`), CellBender against its own
+  `SingleCellRNACountsDataset` in `tests/oracles/cellbender/` (`oracles/cellbender/run.sh`: each
+  release's tagged source, with torch and numpy before 1.25). A new method adds its cases here.
 - `tests/oracles/dropletutils/fixtures/` (from `oracles/dropletutils/fixtures.R`): R's own values
   for the primitives (`smooth.spline`, `lgamma`, `sum`, Good-Turing, Monte Carlo counts).
 - CLI tests use a module-level `CliRunner`; strip ANSI codes and collapse whitespace before

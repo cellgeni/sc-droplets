@@ -58,7 +58,7 @@ closed).
 | Cell Ranger | [cell calling](../methods/cellranger/cellranger.md) (2.x, 3.x, 7.2, 8.0, 8.0.1, 9.0, 10.0, 10.1, with the antibody-aggregate, 8.0+ and high-occupancy filters), [OrdMag](../methods/cellranger/ordmag.md) | implemented; 1.x and 4.0–7.1 are documented gaps (no public source); targeted (gradient) calling planned |
 | STARsolo | [CellRanger2.2](../methods/starsolo/cellranger2-2.md), [TopCells](../methods/starsolo/topcells.md), [EmptyDrops_CR](../methods/starsolo/emptydrops-cr.md), [`soloBasicCellFilter.awk`](../methods/starsolo/basic-awk.md) | implemented |
 | DropletUtils | [barcodeRanks](../methods/dropletutils/barcoderanks.md) (four knee definitions), [emptyDrops](../methods/dropletutils/emptydrops.md) (ten behaviours), [emptyDropsCellRanger](../methods/dropletutils/emptydropscellranger.md), [defaultDrops](../methods/dropletutils/defaultdrops.md) | implemented; 1.0–1.2's Dirichlet-multinomial (R's `rgamma`) refused |
-| CellBender | prior estimates of expected cells and total droplets (0.1, 0.2, 0.3–0.4) | planned, 0.1.0; the VAE is docs only |
+| CellBender | [priors](../methods/cellbender/prior.md): probable cells, analysed and surely-empty droplets, from mode and median (0.1, 0.2) or Otsu and a kernel density (0.3–0.4) | implemented; the VAE is docs only |
 | cellsweep | [empty-droplet step](../methods/cellsweep/empty.md): second derivative (to 1.0.1), kneed (1.0.2), mx_filter | implemented |
 | UMI-tools | whitelist [distance](../methods/umitools/distance.md) and [density](../methods/umitools/density.md) | implemented |
 | alevin (salmon 1.x) | knee with Gauss correction, expect cells, force cells | planned, 0.1.0 |

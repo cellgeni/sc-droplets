@@ -32,6 +32,14 @@ cellsweep: the cutoff of cellsweep's own infer_empty_droplets (1.0.1, and 1.0.2
 with each kneed it may run with) on a float32 AnnData of the matrix's UMI totals;
 saved in tests/oracles/cellsweep by oracles/cellsweep/run.sh.
 
+CellBender: the priors and the barcodes of every class (probable cells, other
+analysed droplets, surely-empty droplets; as a count and a SHA-256) of CellBender's own
+SingleCellRNACountsDataset (0.1.0, 0.2.2, 0.3.0, 0.3.2, 0.4.0, each from its
+tagged source with torch, pyro and numpy before 1.25) on the raw matrix; saved in
+tests/oracles/cellbender by oracles/cellbender/run.sh. Counts and classes are exact;
+log and exp results to the last bits, which depend on the processor (see
+_assert_cellbender_value).
+
 The datasets are downloaded once (tests/datasets.py) into $SC_DROPLETS_DATA.
 """
 
@@ -372,3 +380,82 @@ def test_cellsweep_finds_cellsweeps_cutoff(name, release, kneed_version, case, c
     result = scd.call(adata, f"cellsweep-empty@{release}", inplace=False, **params)
     assert result.thresholds["umis"] == float(cutoff)
     assert result.n_cells == int(cells)
+
+
+# ---------------------------------------------------------------------------
+# CellBender
+# ---------------------------------------------------------------------------
+
+# The cases of oracles/cellbender/oracle.py as sc-droplets parameters (None: the dataset's expected cells).
+CELLBENDER_CASES = {
+    "default": {},
+    "expected": {"expected_cells": None},
+    "total": {"total_droplets_included": 15000},
+    "low30": {"low_count_threshold": 30},
+    "forced": {"force_cell_umi_prior": 3000.0, "force_empty_umi_prior": 30.0},
+    "expected_total": {"expected_cells": None, "total_droplets_included": 15000},
+}
+CELLBENDER_EXPECTED = {"pbmc_1k_v3_3_0": 1000, "pbmc4k_2_1": 5000}
+# CellBender's names for what sc-droplets stores under another name; None: checked through the classes,
+# or not kept (0.1-0.2's uncapped n_cells and cell_prob, 0.3's transition_point before user values).
+CELLBENDER_NAMES = {"empty_UMI_threshold": "empty_umi_threshold", "n_cells": None, "cell_prob": None,
+                    "transition_point": None, "n_analysed": None, "n_empty": None}
+
+
+def _cellbender_rows():
+    rows = []
+    for path in sorted((ORACLES / "cellbender").glob("*/*/priors.tsv")):
+        cases = {}
+        for line in path.read_text().splitlines():
+            case, name, value = line.split("\t")
+            cases.setdefault(case, {})[name] = value
+        rows += [(path.parent.parent.name, path.parent.name, case, values) for case, values in cases.items()]
+    return rows
+
+
+CELLBENDER_ROWS = _cellbender_rows()
+
+
+def test_there_are_cellbender_oracles_to_check():
+    assert len(CELLBENDER_ROWS) >= 52
+
+
+@pytest.mark.parametrize("name, release, case, values", CELLBENDER_ROWS,
+                         ids=[f"{r[0]}-{r[1]}-{r[2]}" for r in CELLBENDER_ROWS])
+def test_cellbender_prior_reproduces_cellbenders_dataset(name, release, case, values):
+    params = {k: CELLBENDER_EXPECTED[name] if v is None else v for k, v in CELLBENDER_CASES[case].items()}
+    adata = _read(name)
+    if "error" in values:
+        with pytest.raises(ValueError):
+            scd.call(adata, f"cellbender-prior@{release}", inplace=False, **params)
+        return
+    result = scd.call(adata, f"cellbender-prior@{release}", inplace=False, **params)
+    for theirs, value in values.items():
+        ours = CELLBENDER_NAMES.get(theirs, theirs)
+        if ours is not None and not theirs.startswith("class:"):
+            _assert_cellbender_value(result.thresholds[ours], float(value), theirs)
+    classes = np.asarray(result.classes.astype(str))
+    barcodes = np.asarray(result.barcodes)
+    for kind in ("cell", "transition", "empty"):
+        assert _digest(barcodes[classes == kind]) == values[f"class:{kind}"], kind
+
+
+def _assert_cellbender_value(ours: float, theirs: float, name: str) -> None:
+    """Counts exactly; other values to 4 units in the last place. numpy computes float64 log and
+    exp with SVML on Linux processors with AVX-512, which can differ from the C library in the
+    last bit, so CellBender's own priors depend on the machine (2 ulps between a Linux runner and
+    macOS for pbmc4k's empty prior, 36.234075926476564 against ...56)."""
+    import math
+
+    if theirs.is_integer() or ours == theirs:
+        assert ours == theirs, name
+    else:
+        assert abs(ours - theirs) <= 4 * math.ulp(max(abs(ours), abs(theirs))), (name, ours, theirs)
+
+
+def _digest(barcodes) -> str:
+    """oracles/cellbender/oracle.py's `count:sha256` of the barcodes, sorted, one per line."""
+    import hashlib
+
+    text = "\n".join(sorted(str(b) for b in barcodes)).encode()
+    return f"{len(barcodes)}:{hashlib.sha256(text).hexdigest()}"
