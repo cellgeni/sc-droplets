@@ -207,8 +207,11 @@ probable cell barcodes, plus an additional … barcodes, and … empty droplets"
 source in its own environment (torch, pyro and numpy before 1.25), on 10x's raw pbmc_1k_v3
 (Cell Ranger 3.0) and pbmc4k (Cell Ranger 2.1) matrices. The cases are the defaults,
 `--expected-cells`, `--total-droplets-included`, `--low-count-threshold 30`, and, from 0.3,
-forced priors and $$E$$ with $$T$$. The priors match exactly, and so do the barcodes of every
-class.
+forced priors and $$E$$ with $$T$$. The barcodes of every class and every count match exactly.
+The priors that come from `log` and `exp` match to the last bits. CellBender's own values
+depend on the processor here: on Linux with AVX-512, numpy computes float64 `log` and `exp`
+with Intel's SVML, which can differ from the C library by a unit in the last place. A Linux
+runner and macOS gave pbmc4k's empty prior as 36.234075926476564 and 36.23407592647656.
 
 ## References
 
