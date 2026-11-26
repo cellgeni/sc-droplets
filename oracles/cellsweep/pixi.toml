@@ -1,0 +1,37 @@
+# One Python environment per cellsweep release (and, for 1.0.2, per kneed it may be installed
+# with), cellsweep from PyPI and the rest from conda-forge. Used by run.sh.
+[workspace]
+name = "cellsweep-oracles"
+channels = ["conda-forge"]
+platforms = ["linux-64", "osx-64"]
+
+[dependencies]
+python = "3.12.*"
+numpy = "*"
+scipy = "*"
+pandas = "*"
+anndata = "*"
+numba = ">=0.56.2"
+pydantic = ">=2.5,<3.0"
+scikit-learn = "*"
+
+[feature.cs101.pypi-dependencies]
+cellsweep = "==1.0.1"
+
+[feature.cs102.pypi-dependencies]
+cellsweep = "==1.0.2"
+
+[feature.kn085.dependencies]
+kneed = "==0.8.5"
+
+[feature.kn086.dependencies]
+kneed = "==0.8.6"
+
+[feature.kn090.dependencies]
+kneed = "==0.9.0"
+
+[environments]
+cs101 = { features = ["cs101"] }
+cs102-kneed085 = { features = ["cs102", "kn085"] }
+cs102-kneed086 = { features = ["cs102", "kn086"] }
+cs102-kneed090 = { features = ["cs102", "kn090"] }

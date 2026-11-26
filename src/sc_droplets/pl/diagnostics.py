@@ -8,7 +8,9 @@ inflection and what found them (the fitted spline, the chord, or the knee's
 window). UMI-tools adds a second panel: for distance, the cumulative curve of
 the last pass with its chord and each pass's knee; for density, the kernel
 density of log10 counts with every valley and the chosen one. Kneedle adds its
-difference curve with the maxima, their thresholds and the knee.
+difference curve with the maxima, their thresholds and the knee; cellsweep its
+rule's own curve (the second derivative, the Kneedle difference curve, or the
+two Gaussian components and their entropy).
 
 Test methods (Cell Ranger 3+, STARsolo EmptyDrops_CR, DropletUtils emptyDrops
 and emptyDropsCellRanger): three panels. The rank curve with each barcode's
@@ -42,7 +44,8 @@ def diagnostics(adata: Any, call: str, *, fig: Any = None):
     record = adata.uns[UNS_KEY][key]
     has_test = f"{key}_pvalue" in adata.obs.columns
     diag = dict(record.get("diagnostics", {}))
-    second = (_cumulative_panel if "passes" in diag else _density_panel if "density" in diag
+    second = (_cellsweep_panel if diag.get("rule") in ("threshold", "kneed", "mx_filter")
+              else _cumulative_panel if "passes" in diag else _density_panel if "density" in diag
               else _difference_panel if "difference_x" in diag else None)
     if fig is None:
         fig = plt.figure(figsize=(13, 4.2) if has_test else (12.8, 4.8) if second else (6.4, 4.8))
@@ -180,6 +183,49 @@ def _difference_panel(ax, record, curve) -> None:
     ax.set_title("Kneedle difference curve", fontsize="medium")
     ax.set_xlabel("x, scaled to [0, 1]")
     ax.set_ylabel("y − x, scaled")
+    ax.legend(frameon=False, fontsize="small")
+    ax.grid(True, alpha=0.3)
+
+
+def _cellsweep_panel(ax, record, curve) -> None:
+    """cellsweep: the curve its automatic rule cut on, and the cut."""
+    diag = dict(record.get("diagnostics", {}))
+    cutoff = float(dict(record.get("thresholds", {})).get("umis", float("nan")))
+    rule = str(diag["rule"])
+    if rule == "threshold":
+        ranks = np.asarray(diag["curve_index"], dtype=float) + 1
+        d2 = np.asarray(diag["second_derivative"], dtype=float)
+        ax.plot(ranks, d2, color=CURVE_COLOUR, lw=1.2, label="second derivative of smoothed log10 counts")
+        totals = np.asarray(diag["rank_curve"], dtype=float)
+        at = ranks[np.argmin(np.abs(totals - cutoff))]
+        ax.axvline(at, color=PALETTE[1], ls="--", lw=1, label=f"cut: {cutoff:g}")
+        ax.set_xscale("log")
+        ax.set_xlabel("Barcode rank")
+        ax.set_ylabel("second derivative")
+    elif rule == "kneed":
+        ax.plot(np.asarray(diag["difference_x"], dtype=float), np.asarray(diag["difference_y"], dtype=float),
+                color=CURVE_COLOUR, lw=1.2, label="Kneedle difference curve")
+        ax.plot([float(diag["knee_x"])], [float(diag["knee_y"])], marker="o", ms=7, color=PALETTE[1], ls="none",
+                label=f"knee: cut {cutoff:g}", zorder=3)
+        ax.set_xlabel("rank, scaled to [0, 1]")
+        ax.set_ylabel("y − x, scaled")
+    else:
+        from scipy.stats import norm
+
+        means = np.asarray(diag["mixture_means"], dtype=float)
+        sds = np.asarray(diag["mixture_sds"], dtype=float)
+        weights = np.asarray(diag["mixture_weights"], dtype=float)
+        v = np.log1p(np.asarray(diag["mixture_totals"], dtype=float))
+        grid = np.linspace(v.min(), v.max(), 400)
+        for k in range(means.size):
+            ax.plot(grid, weights[k] * norm.pdf(grid, means[k], sds[k]), lw=1.2, color=PALETTE[2 + k], label=f"component {k + 1}")
+        twin = ax.twinx()
+        twin.plot(v, np.asarray(diag["mixture_entropy"], dtype=float), color="#999999", lw=0.8)
+        twin.set_ylabel("entropy of the posterior", color="#777777")
+        ax.axvline(np.log1p(cutoff), color=PALETTE[1], ls="--", lw=1, label=f"cut (highest entropy): {cutoff:g}")
+        ax.set_xlabel("log(1 + count)")
+        ax.set_ylabel("weighted density")
+    ax.set_title(f"cellsweep: {rule}", fontsize="medium")
     ax.legend(frameon=False, fontsize="small")
     ax.grid(True, alpha=0.3)
 
