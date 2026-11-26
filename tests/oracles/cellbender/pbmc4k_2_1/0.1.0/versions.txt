@@ -1,0 +1,7 @@
+cellbender 0.1.0
+python 3.7.12
+numpy 1.21.6
+scipy 1.7.3
+torch 1.12.1
+platform darwin x86_64
+source 20bab467408d6822874dd6dadbd9c368b580721f
