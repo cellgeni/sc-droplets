@@ -65,4 +65,12 @@ Then cellsweep:
   behaviour of whichever kneed is installed), `mx_filter` and the manual cutoffs, in the dtype of
   cellsweep's matrix. Identical cutoffs to cellsweep 1.0.1 and 1.0.2 (with kneed 0.8.5, 0.8.6,
   0.9.0) themselves on pbmc_1k_v3 and pbmc4k.
+
+Then CellBender:
+
+- `cellbender-prior`: what `cellbender remove-background` decides before training, in each
+  release's form (0.1.0; 0.2.x; 0.3.0 to 0.4.0): the priors on counts in cells and in empty
+  droplets, and the probable cells, the other analysed droplets and the surely-empty droplets.
+  Identical priors and classes to CellBender 0.1.0, 0.2.2, 0.3.0, 0.3.2 and 0.4.0 themselves on
+  pbmc_1k_v3 and pbmc4k.
 - A validation suite on public data (`-m integration`), and an oracle workflow that runs STAR.

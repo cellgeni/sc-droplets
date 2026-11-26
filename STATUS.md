@@ -75,7 +75,14 @@ Milestones, each its own pull request after the scaffold:
     AnnData of pbmc_1k_v3 and pbmc4k: identical cutoffs in all 40 cases. On raw 10x matrices its
     automatic rules are poor (to 1.0.1 the cut is at rank 1 or 2; `mx_filter` with zeros calls
     every barcode): the review should say so.
-  - [ ] CellBender priors (Python, needs torch in the oracle).
+  - [x] CellBender (`milestone-3-cellbender`): `cellbender-prior`, what `remove-background`
+    decides before training, in three forms (0.1.0; 0.2.x; 0.3.0 – 0.4.0, whose prior code is
+    unchanged): the priors, and four classes (probable cells, other analysed droplets,
+    surely-empty droplets, excluded). Ties ranked as numpy's classic quicksort. Oracle:
+    `oracles/cellbender/run.sh` builds CellBender's own `SingleCellRNACountsDataset` from each
+    release's tagged source (torch, pyro, numpy before 1.25) on pbmc_1k_v3 and pbmc4k: identical
+    priors and classes in all 52 cases. Not offered: 0.3.0_rc's pyro mixture, `--model simple`,
+    `--ignore-features`.
   - [ ] alevin, alevin-fry, bustools (C++ / Rust).
   - [ ] Drop-seq dropbead, dropEst, zUMIs (R).
 - [ ] 4. Generic MAD / Otsu / multi-Otsu / KDE valley / GMM (1-D, 2-D) / NB mixture; splicing
