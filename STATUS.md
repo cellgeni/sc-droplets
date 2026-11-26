@@ -68,7 +68,14 @@ Milestones, each its own pull request after the scaffold:
     0.8.6, 0.9.0) found by diffing every release; yascp's search for the sensitivity as the
     default. Oracle: `oracles/kneedle/run.sh` runs kneed 0.6.0, 0.8.5, 0.8.6, 0.9.0 (conda-forge)
     on pbmc_1k_v3 and pbmc4k, 5 settings each: identical knees in all 40.
-  - [ ] cellsweep, CellBender priors (Python).
+  - [x] cellsweep (`milestone-3-cellsweep`): `cellsweep-empty`, two releases' rules (0.1.0 –
+    1.0.1, 1.0.2) plus `mx_filter` and manual cutoffs; 1.0.2 takes the installed kneed's
+    behaviour (`--kneed-version`); computed in the matrix's dtype (float32 by default). Oracle:
+    `oracles/cellsweep/run.sh` calls cellsweep's own `infer_empty_droplets` (PyPI) on float32
+    AnnData of pbmc_1k_v3 and pbmc4k: identical cutoffs in all 40 cases. On raw 10x matrices its
+    automatic rules are poor (to 1.0.1 the cut is at rank 1 or 2; `mx_filter` with zeros calls
+    every barcode): the review should say so.
+  - [ ] CellBender priors (Python, needs torch in the oracle).
   - [ ] alevin, alevin-fry, bustools (C++ / Rust).
   - [ ] Drop-seq dropbead, dropEst, zUMIs (R).
 - [ ] 4. Generic MAD / Otsu / multi-Otsu / KDE valley / GMM (1-D, 2-D) / NB mixture; splicing

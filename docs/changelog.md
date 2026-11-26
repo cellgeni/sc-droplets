@@ -57,4 +57,12 @@ Then Kneedle:
   have had (0.5.1, 0.7.0, 0.8.6, 0.9.0), by default as Sanger's yascp runs it (convex, decreasing,
   at least 1,000 UMIs, sensitivity lowered from 5,000 until a knee appears). Identical knees to
   kneed 0.6.0, 0.8.5, 0.8.6 and 0.9.0 themselves on pbmc_1k_v3 and pbmc4k.
+
+Then cellsweep:
+
+- `cellsweep-empty`: cellsweep's empty-droplet step, with the rule of each release (the second
+  derivative of the smoothed log curve to 1.0.1, kneed's online knee from 1.0.2, with the
+  behaviour of whichever kneed is installed), `mx_filter` and the manual cutoffs, in the dtype of
+  cellsweep's matrix. Identical cutoffs to cellsweep 1.0.1 and 1.0.2 (with kneed 0.8.5, 0.8.6,
+  0.9.0) themselves on pbmc_1k_v3 and pbmc4k.
 - A validation suite on public data (`-m integration`), and an oracle workflow that runs STAR.
