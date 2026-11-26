@@ -20,7 +20,31 @@ permissions:
   contents: read
 
 jobs:
+  # Each oracle job runs only when its tool's scripts (or a helper it uses) changed: a change to
+  # one oracle should not rebuild every R environment of DropletUtils. By hand, every job runs.
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    name: which oracles changed
+    outputs:
+      tools: ${{ steps.diff.outputs.tools }}
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - id: diff
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.sha }}
+        run: bash .github/scripts/changed-oracles.sh
+
   starsolo:
+    needs: changes
+    if: contains(needs.changes.outputs.tools, ' starsolo ')
     runs-on: ubuntu-latest
     timeout-minutes: 60
     name: STARsolo soloCellFiltering
@@ -52,6 +76,8 @@ jobs:
           retention-days: 30
 
   dropletutils:
+    needs: changes
+    if: contains(needs.changes.outputs.tools, ' dropletutils ')
     runs-on: ubuntu-latest
     timeout-minutes: 120
     name: DropletUtils, every release
@@ -90,6 +116,8 @@ jobs:
           retention-days: 30
 
   umitools:
+    needs: changes
+    if: contains(needs.changes.outputs.tools, ' umitools ')
     runs-on: ubuntu-latest
     timeout-minutes: 60
     name: UMI-tools whitelist
@@ -128,6 +156,8 @@ jobs:
           retention-days: 30
 
   kneedle:
+    needs: changes
+    if: contains(needs.changes.outputs.tools, ' kneedle ')
     runs-on: ubuntu-latest
     timeout-minutes: 60
     name: kneed KneeLocator
@@ -166,6 +196,8 @@ jobs:
           retention-days: 30
 
   cellsweep:
+    needs: changes
+    if: contains(needs.changes.outputs.tools, ' cellsweep ')
     runs-on: ubuntu-latest
     timeout-minutes: 60
     name: cellsweep empty droplets
@@ -204,6 +236,8 @@ jobs:
           retention-days: 30
 
   cellbender:
+    needs: changes
+    if: contains(needs.changes.outputs.tools, ' cellbender ')
     # torch 1.12.1, the last build for Python 3.7 (CellBender 0.1 and 0.2), asks for an executable
     # stack, which the glibc of Ubuntu 26.04 refuses to load; 24.04's still allows it.
     runs-on: ubuntu-24.04
@@ -244,6 +278,8 @@ jobs:
           retention-days: 30
 
   bustools:
+    needs: changes
+    if: contains(needs.changes.outputs.tools, ' bustools ')
     runs-on: ubuntu-latest
     timeout-minutes: 60
     name: bustools allowlist
@@ -282,6 +318,8 @@ jobs:
           retention-days: 30
 
   alevinfry:
+    needs: changes
+    if: contains(needs.changes.outputs.tools, ' alevinfry ')
     runs-on: ubuntu-latest
     timeout-minutes: 60
     name: alevin-fry permit lists
