@@ -83,7 +83,15 @@ Milestones, each its own pull request after the scaffold:
     release's tagged source (torch, pyro, numpy before 1.25) on pbmc_1k_v3 and pbmc4k: identical
     priors and classes in all 52 cases. Not offered: 0.3.0_rc's pyro mixture, `--model simple`,
     `--ignore-features`.
-  - [ ] alevin, alevin-fry, bustools (C++ / Rust).
+  - [x] alevin-fry and bustools (`milestone-3-bustools-alevinfry`): `alevinfry-permit-list`
+    (single-barcode rules unchanged since 0.1.0; unfiltered floor from 0.4.2; Flex input's own
+    rules in 0.12–0.17) and `bustools-allowlist` (one rule since 0.39.3; the sample is every
+    barcode in the first 100,000 records, not 200). Oracles: programs built from alevin-fry's
+    source at 0.1.0, 0.11.2, 0.17.1, 0.19.0 (Rust from conda-forge), 32 cases; bioconda's
+    bustools 0.39.3, 0.41.0, 0.43.2, 0.45.1 on BUS files written from the matrix, 16 cases; all
+    identical. Findings: alevin-fry's `--expect-cells` keeps 75,014 barcodes on pbmc4k (E =
+    5,000); its 0.12–0.17 Flex rule keeps every barcode with a count.
+  - [ ] alevin (salmon 0.14 – 1.12; C++ harness from `Alevin.cpp`).
   - [ ] Drop-seq dropbead, dropEst, zUMIs (R).
 - [ ] 4. Generic MAD / Otsu / multi-Otsu / KDE valley / GMM (1-D, 2-D) / NB mixture; splicing
   readers, `pl.splicing`, knee tracks, separation scores; `pl.density`, `pl.compare`, `pl.qc`,
