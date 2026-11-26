@@ -50,7 +50,9 @@ Markers: `integration` (downloads public data or builds oracle environments; nee
   defaultDrops. `umitools.py` holds `whitelist`'s distance knee and density valley; `kneedle.py`
   runs kneed's Kneedle (`primitives/kneed.py`, one behaviour per release) on the rank curve;
   `cellsweep.py` holds cellsweep's empty-droplet step; `cellbender.py` CellBender's priors (the
-  mode and median of 0.1–0.2, the Otsu and kernel-density heuristics of 0.3+).
+  mode and median of 0.1–0.2, the Otsu and kernel-density heuristics of 0.3+); `alevinfry.py`
+  alevin-fry's permit-list rules; `bustools.py` bustools' allowlist (the sample of the first BUS
+  blocks simulated from the matrix).
 - `primitives/`: the arithmetic of each tool, reused across methods: `goodturing` (Cell Ranger's,
   STAR's and edgeR's), `legacysort` (numpy's classic quicksort, with a `window` so a slice is
   cheap: tie order decides Cell Ranger's ambient droplets), `stdrandom` (C++ `mt19937` and
@@ -107,7 +109,11 @@ Markers: `integration` (downloads public data or builds oracle environments; nee
   `tests/oracles/kneedle/` (`oracles/kneedle/run.sh`), cellsweep against its `infer_empty_droplets`
   in `tests/oracles/cellsweep/` (`oracles/cellsweep/run.sh`), CellBender against its own
   `SingleCellRNACountsDataset` in `tests/oracles/cellbender/` (`oracles/cellbender/run.sh`: each
-  release's tagged source, with torch and numpy before 1.25). A new method adds its cases here.
+  release's tagged source, with torch and numpy before 1.25), bustools against its own
+  `whitelist` in `tests/oracles/bustools/` (`oracles/bustools/run.sh`: a BUS file written from the
+  matrix, bioconda's builds), alevin-fry against programs built from its own source in
+  `tests/oracles/alevinfry/` (`oracles/alevinfry/run.sh`: `harness.py` copies the knee and the
+  rules out of each tag). A new method adds its cases here.
 - `tests/oracles/dropletutils/fixtures/` (from `oracles/dropletutils/fixtures.R`): R's own values
   for the primitives (`smooth.spline`, `lgamma`, `sum`, Good-Turing, Monte Carlo counts).
 - CLI tests use a module-level `CliRunner`; strip ANSI codes and collapse whitespace before

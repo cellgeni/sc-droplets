@@ -62,9 +62,9 @@ closed).
 | cellsweep | [empty-droplet step](../methods/cellsweep/empty.md): second derivative (to 1.0.1), kneed (1.0.2), mx_filter | implemented |
 | UMI-tools | whitelist [distance](../methods/umitools/distance.md) and [density](../methods/umitools/density.md) | implemented |
 | alevin (salmon 1.x) | knee with Gauss correction, expect cells, force cells | planned, 0.1.0 |
-| alevin-fry | knee distance, expect cells, force cells, unfiltered permit list | planned, 0.1.0 |
+| alevin-fry | [permit list](../methods/alevinfry/permit-list.md): knee distance, expect cells, force cells, unfiltered permit list; 0.12–0.17's own rules for Flex | implemented |
 | Drop-seq | dropbead knee | planned, 0.1.0 |
-| bustools / kb | allowlist (`kb --filter bustools`) | planned, 0.1.0 |
+| bustools / kb | [allowlist](../methods/bustools/allowlist.md) (`kb --filter bustools`) | implemented |
 | dropEst | cell-number bounds | planned, 0.1.0 |
 | zUMIs | UIK knee; Gaussian mixture (before Nov 2019) | planned, 0.1.0 |
 | Kneedle | [kneed's KneeLocator](../methods/kneedle/kneedle.md) on the rank curve (0.5.1 – 0.9.0), with yascp's sensitivity search | implemented |

@@ -138,7 +138,7 @@ def _cumulative_panel(ax, record, curve) -> None:
     """UMI-tools distance: the last pass's cumulative curve, its chord, and each pass's knee."""
     diag = dict(record.get("diagnostics", {}))
     passes = np.asarray(diag["passes"], dtype=np.int64).reshape(-1, 2)
-    ax.set_title("Cumulative counts (UMI-tools distance)", fontsize="medium")
+    ax.set_title(diag.get("curve_title", "Cumulative counts (UMI-tools distance)"), fontsize="medium")
     ax.set_xlabel("Barcode rank (0-based)")
     ax.set_ylabel(f"Cumulative {diag.get('unit', 'umis')}")
     # Drawn from the stored curve, not the AnnData's barcodes: those may be only the cells.

@@ -40,6 +40,15 @@ tests/oracles/cellbender by oracles/cellbender/run.sh. Counts and classes are ex
 log and exp results to the last bits, which depend on the processor (see
 _assert_cellbender_value).
 
+bustools: the list of bioconda's bustools whitelist (0.39.3, 0.41.0, 0.43.2,
+0.45.1) on a BUS file written from the matrix, one record per UMI; saved in
+tests/oracles/bustools by oracles/bustools/run.sh.
+
+alevin-fry: the permit lists of programs built from alevin-fry's own source at
+0.1.0, 0.11.2, 0.17.1 and 0.19.0 (its knee and rules copied out of each tag by
+oracles/alevinfry/harness.py), on the matrix's per-barcode UMI totals; saved in
+tests/oracles/alevinfry by oracles/alevinfry/run.sh.
+
 The datasets are downloaded once (tests/datasets.py) into $SC_DROPLETS_DATA.
 """
 
@@ -459,3 +468,83 @@ def _digest(barcodes) -> str:
 
     text = "\n".join(sorted(str(b) for b in barcodes)).encode()
     return f"{len(barcodes)}:{hashlib.sha256(text).hexdigest()}"
+
+
+# ---------------------------------------------------------------------------
+# bustools
+# ---------------------------------------------------------------------------
+
+BUSTOOLS_CASES = {"default": {}, "threshold500": {"threshold": 500}}
+
+
+def _bustools_rows():
+    rows = []
+    for path in sorted((ORACLES / "bustools").glob("*/*/cases.tsv")):
+        for line in path.read_text().splitlines():
+            case, threshold, _lines, unique = line.split("\t")
+            rows.append((path.parent.parent.name, path.parent.name, case, int(threshold), int(unique)))
+    return rows
+
+
+BUSTOOLS_ROWS = _bustools_rows()
+
+
+def test_there_are_bustools_oracles_to_check():
+    assert len(BUSTOOLS_ROWS) >= 16
+
+
+@pytest.mark.parametrize("name, release, case, threshold, cells", BUSTOOLS_ROWS,
+                         ids=[f"{r[0]}-{r[1]}-{r[2]}" for r in BUSTOOLS_ROWS])
+def test_bustools_allowlist_lists_bustools_barcodes(name, release, case, threshold, cells):
+    result = scd.call(_read(name), f"bustools-allowlist@{release}", inplace=False, **BUSTOOLS_CASES[case])
+    assert result.thresholds["umis"] == threshold
+    with gzip.open(ORACLES / "bustools" / name / release / f"{case}.txt.gz", "rt") as handle:
+        expected = set(handle.read().split())
+    ours = {str(b).split("-", 1)[0] for b in np.asarray(result.barcodes)[result.is_cell]}
+    assert len(expected) == cells
+    assert ours == expected
+
+
+# ---------------------------------------------------------------------------
+# alevin-fry
+# ---------------------------------------------------------------------------
+
+# The cases of oracles/alevinfry/oracle.py as sc-droplets parameters (None: the dataset's expected cells).
+ALEVINFRY_CASES = {
+    "knee": {},
+    "expect": {"expect_cells": None},
+    "force": {"force_cells": None},
+    "unfiltered": {"unfiltered": True},
+    "flex_knee": {"flex": True},
+    "flex_expect": {"flex": True, "expect_cells": None},
+    "flex_force": {"flex": True, "force_cells": None},
+}
+ALEVINFRY_EXPECTED = {"pbmc_1k_v3_3_0": 1000, "pbmc4k_2_1": 5000}
+
+
+def _alevinfry_rows():
+    rows = []
+    for path in sorted((ORACLES / "alevinfry").glob("*/*/cases.tsv")):
+        for line in path.read_text().splitlines():
+            rows.append((path.parent.parent.name, path.parent.name, *line.split("\t")))
+    return rows
+
+
+ALEVINFRY_ROWS = _alevinfry_rows()
+
+
+def test_there_are_alevinfry_oracles_to_check():
+    assert len(ALEVINFRY_ROWS) >= 32
+
+
+@pytest.mark.parametrize("name, release, case, cells, smallest, threshold", ALEVINFRY_ROWS,
+                         ids=[f"{r[0]}-{r[1]}-{r[2]}" for r in ALEVINFRY_ROWS])
+def test_alevinfry_permit_list_keeps_alevinfrys_barcodes(name, release, case, cells, smallest, threshold):
+    params = {k: ALEVINFRY_EXPECTED[name] if v is None else v for k, v in ALEVINFRY_CASES[case].items()}
+    result = scd.call(_read(name), f"alevinfry-permit-list@{release}", inplace=False, **params)
+    # every rule keeps the barcodes with count >= a threshold: the number kept and the smallest
+    # count kept fix them
+    assert result.n_cells == int(cells)
+    assert np.asarray(result.totals)[result.is_cell].min() == int(smallest)
+    if threshold != "-":
+        assert result.thresholds["umis"] == int(threshold)

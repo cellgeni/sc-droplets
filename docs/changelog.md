@@ -73,4 +73,14 @@ Then CellBender:
   droplets, and the probable cells, the other analysed droplets and the surely-empty droplets.
   Identical priors and classes to CellBender 0.1.0, 0.2.2, 0.3.0, 0.3.2 and 0.4.0 themselves on
   pbmc_1k_v3 and pbmc4k.
+
+Then alevin-fry and bustools:
+
+- `alevinfry-permit-list`: alevin-fry's `generate-permit-list` rules (the knee, expected cells,
+  forced cells, the unfiltered floor), with the rules 0.12–0.17 apply to multi-barcode (Flex)
+  input. Identical cells to programs built from alevin-fry 0.1.0, 0.11.2, 0.17.1 and 0.19.0's own
+  source on pbmc_1k_v3 and pbmc4k.
+- `bustools-allowlist`: bustools' allowlist (`kb --filter bustools`), with its sample of the first
+  blocks of the BUS file. Identical lists to bustools 0.39.3, 0.41.0, 0.43.2 and 0.45.1 on BUS
+  files written from pbmc_1k_v3 and pbmc4k.
 - A validation suite on public data (`-m integration`), and an oracle workflow that runs STAR.
