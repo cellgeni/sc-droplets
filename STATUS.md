@@ -41,9 +41,20 @@ Milestones, each its own pull request after the scaffold:
     `.github/workflows/oracles.yml`).
   - Not done, moved to follow-ups: targeted (gradient) calling; the antigen aggregate rule;
     zero-target-UMI removal; per-sample splitting of a whole multiplexed Flex matrix.
-- [ ] 2. DropletUtils: barcodeRanks v1–v4 (port of R `smooth.spline`), emptyDrops at 1.0, 1.2,
-  1.8, 1.10, 1.12, 1.20, 1.28, 1.30, emptyDropsCellRanger, defaultDrops. Oracle: R in pinned
-  Bioconductor containers.
+- [x] 2. DropletUtils (PR from `milestone-2-dropletutils`): `dropletutils-barcoderanks` (knee rules
+  of 1.0, 1.10, 1.12, 1.28, 1.30), `dropletutils-emptydrops` (ten variants, 1.0 – 1.30),
+  `dropletutils-emptydropscellranger` (1.14, 1.18.1), `dropletutils-defaultdrops`.
+  - Decisions: the Monte Carlo is reproduced bit for bit (R's `set.seed` stream, dqrng seeds,
+    PCG32, Boost's alias table, ziggurat exponential and gamma), not statistically; default seed
+    100 (the vignette's). The DM alpha needs R's `lgamma` and x87 long-double sums, emulated where
+    numpy has no 80-bit type, so results are those of R on x86-64 on every platform.
+  - Oracle: `oracles/dropletutils/run.sh`, one pixi environment per release from bioconda
+    (1.0.3 … 1.30.0; 1.28 by evaluating its `barcodeRanks.R` inside 1.30), on pbmc_1k_v3 (6.8 M
+    barcodes): knee, inflection, defaultDrops, every emptyDrops / emptyDropsCellRanger p-value,
+    alpha, FDR and call identical. R's `smooth.spline`, `lgamma`, `sum` and the Monte Carlo are
+    each checked against R in `tests/test_primitives_dropletutils.py`.
+  - Not done: 1.0 – 1.2's Dirichlet-multinomial (R's `rgamma` in R's single stream; refused, the
+    multinomial runs); `known.empty`.
 - [ ] 3. UMI-tools, alevin, alevin-fry, Drop-seq (dropbead), bustools, dropEst bounds, zUMIs,
   Kneedle (kneed 0.8.5 / 0.8.6 / 0.9.0, vendored), cellsweep empty step, CellBender priors.
 - [ ] 4. Generic MAD / Otsu / multi-Otsu / KDE valley / GMM (1-D, 2-D) / NB mixture; splicing
@@ -58,6 +69,9 @@ GitHub Pages from `main`, `/docs`.
 
 ## Follow-ups noticed
 
+- DropletUtils 1.2's default (Dirichlet-multinomial with R's `rgamma`): needs R's `rgamma`,
+  `exp_rand` and `norm_rand` (inversion, `qnorm`) ported and drawn one value at a time from the
+  single R stream; about 3·10^8 draws per run, too slow in pure Python without a compiled helper.
 - Cell Ranger 10.0's ambient tie order: 10x's run sorts with numpy's SIMD argsort. Check whether
   numpy on an AVX-512 runner reproduces it (`np.argsort` default there), and if so offer it as a
   tie-order option.

@@ -20,6 +20,10 @@ come.
 |---|---|---|---|---|
 | `cellranger` | Cell Ranger | statistical-test | v2: ≥2.0, <3.0; v3: ≥3.0, <4.0; v7.2: ≥7.2, <8.0; v8.0: ≥8.0, <8.0.1; v8.0.1: ≥8.0.1, <9.0; v9.0: ≥9.0, <10.0; v10.0: ≥10.0, <10.1; v10.1: ≥10.1 | [Cell Ranger cell calling](cellranger/cellranger.md) |
 | `cellranger-ordmag` | Cell Ranger | rank-threshold | v2: ≥2.0, <4.0; v7.2: ≥7.2, <8.0; v8.0: ≥8.0, <8.0.1; v8.0.1: ≥8.0.1, <9.0; v9.0: ≥9.0, <10.0; v10.0: ≥10.0, <10.1; v10.1: ≥10.1 | [Cell Ranger OrdMag](cellranger/ordmag.md) |
+| `dropletutils-barcoderanks` | DropletUtils | knee | v1.0: ≥1.0, <1.10; v1.10: ≥1.10, <1.12; v1.12: ≥1.12, <1.28; v1.28: ≥1.28, <1.30; v1.30: ≥1.30 | [DropletUtils barcodeRanks](dropletutils/barcoderanks.md) |
+| `dropletutils-defaultdrops` | DropletUtils | rank-threshold | v1.0: ≥1.0 | [DropletUtils defaultDrops](dropletutils/defaultdrops.md) |
+| `dropletutils-emptydrops` | DropletUtils | statistical-test | v1.0: ≥1.0, <1.2; v1.2: ≥1.2, <1.4; v1.4: ≥1.4, <1.6; v1.6: ≥1.6, <1.8; v1.8: ≥1.8, <1.10; v1.10: ≥1.10, <1.12; v1.12: ≥1.12, <1.20; v1.20: ≥1.20, <1.28; v1.28: ≥1.28, <1.30; v1.30: ≥1.30 | [DropletUtils emptyDrops](dropletutils/emptydrops.md) |
+| `dropletutils-emptydropscellranger` | DropletUtils | statistical-test | v1.14: ≥1.14, <1.18.1; v1.18.1: ≥1.18.1 | [DropletUtils emptyDropsCellRanger](dropletutils/emptydropscellranger.md) |
 | `threshold` | Generic | rank-threshold | — | [Fixed threshold](generic/threshold.md) |
 | `top-n` | Generic | rank-threshold | — | [Top N barcodes](generic/top-n.md) |
 | `starsolo-basic-awk` | STARsolo | rank-threshold | v1: ≥2.7.2a | [STARsolo soloBasicCellFilter.awk](starsolo/basic-awk.md) |

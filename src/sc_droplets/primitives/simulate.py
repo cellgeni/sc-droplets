@@ -20,6 +20,7 @@ log-likelihood at the candidate's own total (`n_lower`).
 
 from __future__ import annotations
 
+import math
 from typing import Callable, Optional
 
 import numpy as np
@@ -272,3 +273,121 @@ def starsolo(
         if progress is not None:
             progress(done)
     return n_lower
+
+
+# ---------------------------------------------------------------------------
+# DropletUtils
+# ---------------------------------------------------------------------------
+
+
+def _first_occurrence_rank(draws: np.ndarray, size: int) -> np.ndarray:
+    """`occurrence_rank` with numpy's radix sort when the values fit 16 bits."""
+    if size <= 1 << 16:
+        return occurrence_rank(draws.astype(np.uint16))
+    return occurrence_rank(draws)
+
+
+def dropletutils(
+    ambient: np.ndarray,
+    totals: np.ndarray,
+    observed: np.ndarray,
+    niters: int,
+    seed: int,
+    *,
+    alpha: float = math.inf,
+    sampler: str = "alias",
+    chunk: int = 1000,
+    progress: Optional[Callable[[int], None]] = None,
+) -> np.ndarray:
+    """DropletUtils' `montecarlo_pval`: per tested droplet, how many simulations are <= it.
+
+    `seed` is what R's `set.seed` was given; `generateSeedVectors` draws one
+    64-bit seed per iteration from it, and iteration i (1-based) uses
+    `pcg32(seed_i, i)`. With finite `alpha` each iteration first draws a
+    Dirichlet profile, one `gamma(alpha·ambient_g, 1)` per feature in order.
+    A path of max(totals) features is then drawn, from Boost's
+    `discrete_distribution` (`sampler="alias"`, 1.6 on) or by inverting the
+    cumulative profile (`sampler="inverse"`, 1.4), and its log-probability is
+    accumulated draw by draw: + log a_g (or log(alpha·a_g + c_g)), then
+    - log(c_g + 1), c_g being how often g was drawn before. The count for a
+    droplet with total T is the number of iterations whose path at T is <= its
+    observed value (C++ `lower_bound` over the sorted observed values).
+
+    `sampler="r"` is 1.0-1.2: one R stream for every iteration, u = unif_rand()
+    times the profile's sum, inverted through the cumulative profile.
+    """
+    from sc_droplets.primitives import boostrandom as br
+    from sc_droplets.primitives.rmath import clog
+    from sc_droplets.primitives.rrandom import RMersenneTwister, generate_seed_vectors
+
+    ambient = np.asarray(ambient, dtype=np.float64)
+    totals = np.asarray(totals, dtype=np.int64)
+    observed = np.asarray(observed, dtype=np.float64)
+    n_above = np.zeros(totals.size, dtype=np.int64)
+    if totals.size == 0 or ambient.size == 0 or niters <= 0:
+        return n_above
+    distinct, where = np.unique(totals, return_inverse=True)
+    checkpoints = 2 * distinct - 1  # the path value after T draws sits at 2T - 1
+    longest = int(distinct[-1])
+    size = ambient.size
+    use_alpha = math.isfinite(alpha)
+    # std::log, as the C library computes it (numpy's own log can differ in the last bit)
+    log_ambient = clog(ambient)  # a zero probability's log is -inf, as in C
+    log_count = np.array([0.0] + [math.log(k) for k in range(1, longest + 1)])
+    scaled = ambient * alpha if use_alpha else None
+    rng = RMersenneTwister(seed)
+
+    def path_counts(draws: np.ndarray) -> np.ndarray:
+        rank = _first_occurrence_rank(draws, size)
+        terms = np.empty(2 * draws.size)
+        if use_alpha:
+            terms[0::2] = np.log(scaled[draws] + (rank - 1))
+        else:
+            terms[0::2] = log_ambient[draws]
+        terms[1::2] = -log_count[rank]
+        path = np.cumsum(terms)
+        return (path[checkpoints][where] <= observed).astype(np.int64)
+
+    if sampler == "r":
+        if use_alpha:
+            raise NotImplementedError("DropletUtils 1.2's Dirichlet-multinomial draws (R::rgamma) are not reproduced")
+        cumulative = np.cumsum(ambient)  # std::partial_sum
+        total = cumulative[-1]
+        for it in range(niters):
+            u = rng.unif_rand(longest) * total
+            draws = np.searchsorted(cumulative, u, side="left")
+            np.minimum(draws, size - 1, out=draws)
+            n_above += path_counts(draws)
+            if progress is not None and (it + 1) % chunk == 0:
+                progress(it + 1)
+        return n_above
+
+    seeds = generate_seed_vectors(rng, niters)
+    states, incs = br.pcg32_start(seeds, np.arange(1, niters + 1, dtype=np.uint64))
+    jumps = br.Pcg32Jumps(2 * longest + 2)
+    if not use_alpha:
+        if sampler == "alias":
+            threshold, alias_of = br.alias_table(ambient)
+        else:
+            cumulative = np.cumsum(ambient)
+    for start in range(0, niters, chunk):
+        stop = min(niters, start + chunk)
+        if use_alpha:
+            engine = br.Lockstep(states[start:stop], incs[start:stop])
+            profiles = br.gamma_profile(engine, scaled)
+            after_gamma = engine.state
+        for row, it in enumerate(range(start, stop)):
+            state, inc = (after_gamma[row] if use_alpha else states[it]), incs[it]
+            if use_alpha:
+                if sampler == "alias":
+                    threshold, alias_of = br.alias_table_fast(profiles[row])
+                else:
+                    cumulative = np.cumsum(profiles[row])
+            if sampler == "alias":
+                draws, _ = br.sample_alias(jumps, state, inc, longest, threshold, alias_of)
+            else:
+                draws, _ = br.sample_inverse(jumps, state, inc, longest, cumulative)
+            n_above += path_counts(draws)
+        if progress is not None:
+            progress(stop)
+    return n_above

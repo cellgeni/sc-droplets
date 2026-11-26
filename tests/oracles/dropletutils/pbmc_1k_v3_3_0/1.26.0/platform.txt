@@ -1,0 +1,2 @@
+x86_64-conda-linux-gnu
+/home/runner/work/_temp/du/.pixi/envs/du126/lib/libopenblasp-r0.3.34.so
