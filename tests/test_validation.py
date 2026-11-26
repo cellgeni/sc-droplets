@@ -40,6 +40,10 @@ tests/oracles/cellbender by oracles/cellbender/run.sh. Counts and classes are ex
 log and exp results to the last bits, which depend on the processor (see
 _assert_cellbender_value).
 
+bustools: the list of bioconda's bustools whitelist (0.39.3, 0.41.0, 0.43.2,
+0.45.1) on a BUS file written from the matrix, one record per UMI; saved in
+tests/oracles/bustools by oracles/bustools/run.sh.
+
 The datasets are downloaded once (tests/datasets.py) into $SC_DROPLETS_DATA.
 """
 
@@ -459,3 +463,38 @@ def _digest(barcodes) -> str:
 
     text = "\n".join(sorted(str(b) for b in barcodes)).encode()
     return f"{len(barcodes)}:{hashlib.sha256(text).hexdigest()}"
+
+
+# ---------------------------------------------------------------------------
+# bustools
+# ---------------------------------------------------------------------------
+
+BUSTOOLS_CASES = {"default": {}, "threshold500": {"threshold": 500}}
+
+
+def _bustools_rows():
+    rows = []
+    for path in sorted((ORACLES / "bustools").glob("*/*/cases.tsv")):
+        for line in path.read_text().splitlines():
+            case, threshold, _lines, unique = line.split("\t")
+            rows.append((path.parent.parent.name, path.parent.name, case, int(threshold), int(unique)))
+    return rows
+
+
+BUSTOOLS_ROWS = _bustools_rows()
+
+
+def test_there_are_bustools_oracles_to_check():
+    assert len(BUSTOOLS_ROWS) >= 16
+
+
+@pytest.mark.parametrize("name, release, case, threshold, cells", BUSTOOLS_ROWS,
+                         ids=[f"{r[0]}-{r[1]}-{r[2]}" for r in BUSTOOLS_ROWS])
+def test_bustools_allowlist_lists_bustools_barcodes(name, release, case, threshold, cells):
+    result = scd.call(_read(name), f"bustools-allowlist@{release}", inplace=False, **BUSTOOLS_CASES[case])
+    assert result.thresholds["umis"] == threshold
+    with gzip.open(ORACLES / "bustools" / name / release / f"{case}.txt.gz", "rt") as handle:
+        expected = set(handle.read().split())
+    ours = {str(b).split("-", 1)[0] for b in np.asarray(result.barcodes)[result.is_cell]}
+    assert len(expected) == cells
+    assert ours == expected
