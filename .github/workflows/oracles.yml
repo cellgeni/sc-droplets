@@ -11,10 +11,12 @@ on:
     paths:
       - "oracles/**"
       - ".github/workflows/oracles.yml"
+      - ".github/scripts/changed-oracles.sh"
   pull_request:
     paths:
       - "oracles/**"
       - ".github/workflows/oracles.yml"
+      - ".github/scripts/changed-oracles.sh"
 
 permissions:
   contents: read
