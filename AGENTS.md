@@ -20,11 +20,13 @@ uv run sc-droplets --help                            # run the CLI from source
 uv run pytest -m "not integration"                   # unit suite; what CI gates on
 uv run pytest tests/test_api.py::test_top_n_breaks_ties_by_input_order_or_keeps_them_all
 uv run pytest -m "not integration and not perf" --cov=sc_droplets --cov-fail-under=90
+uv run pytest -m integration -n auto --dist worksteal tests/test_validation.py  # the oracle suite, on every core
 uv run python docs/_scripts/methods_table.py         # regenerate the table on docs/methods/index.md
 ```
 
 Markers: `integration` (downloads public data or builds oracle environments; needs the network),
-`perf` (cost guards, their own CI job), `slow`.
+`perf` (cost guards, their own CI job), `slow`. `--shard I/N` runs every N-th selected test (CI
+splits the validation suite into two jobs, each on every core with pytest-xdist's `-n auto`).
 
 ## Architecture
 
@@ -101,7 +103,9 @@ Markers: `integration` (downloads public data or builds oracle environments; nee
 - `tests/test_validation.py` (marker `integration`) is the oracle suite: Cell Ranger against 10x's
   own filtered matrices (`tests/datasets.py` downloads and caches them in `$SC_DROPLETS_DATA`),
   STARsolo against STAR's calls in `tests/oracles/starsolo/` (made by `oracles/starsolo/run.sh`
-  in the `Oracles` workflow, which runs on branch pushes that touch `oracles/`), DropletUtils
+  in the `Oracles` workflow, which runs on branch pushes that touch `oracles/`, each tool's job
+  only when its scripts or a helper they use changed: `.github/scripts/changed-oracles.sh`;
+  started by hand, every job runs), DropletUtils
   against R's outputs in `tests/oracles/dropletutils/` (made by `oracles/dropletutils/run.sh`:
   one pixi environment per release from bioconda, `set.seed(100)`), UMI-tools against its own
   whitelist functions in `tests/oracles/umitools/` (made by `oracles/umitools/run.sh`: one pixi

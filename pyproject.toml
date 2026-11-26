@@ -67,6 +67,8 @@ dev = [
     "pytest-cov>=6.0.0",
     # Turns a hang into a failure with a traceback.
     "pytest-timeout>=2.3.1",
+    # Runs the validation cases on every core (-n auto).
+    "pytest-xdist>=3.8.0",
     # The oracle for the readers: scanpy's read_10x_h5 / read_10x_mtx.
     # Tests only; the package never imports it.
     "scanpy>=1.10.3",

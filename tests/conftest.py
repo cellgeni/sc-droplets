@@ -14,6 +14,29 @@ import scipy.sparse as sp
 import sc_droplets as scd
 
 
+def pytest_addoption(parser):
+    parser.addoption(
+        "--shard",
+        default=None,
+        metavar="I/N",
+        help="run every N-th selected test, starting at the I-th (1-based), so N CI jobs share a suite",
+    )
+
+
+@pytest.hookimpl(trylast=True)  # after -m and -k have deselected
+def pytest_collection_modifyitems(config, items):
+    shard = config.getoption("--shard")
+    if not shard:
+        return
+    index, count = (int(part) for part in shard.split("/"))
+    if not 1 <= index <= count:
+        raise pytest.UsageError(f"--shard {shard}: I must be between 1 and N")
+    # Round robin in collection order, so each shard gets a share of every slow test function.
+    keep = [item for i, item in enumerate(items) if i % count == index - 1]
+    config.hook.pytest_deselected(items=[item for i, item in enumerate(items) if i % count != index - 1])
+    items[:] = keep
+
+
 @pytest.fixture(scope="session")
 def sim():
     """A small raw matrix: 300 cells, 2,000 empty droplets, 5,000 low barcodes."""
