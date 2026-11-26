@@ -1,0 +1,23 @@
+# One environment per bustools release, from bioconda. Used by run.sh.
+[workspace]
+name = "bustools-oracles"
+channels = ["conda-forge", "bioconda"]
+platforms = ["linux-64", "osx-64"]
+
+[feature.bt0393.dependencies]
+bustools = "==0.39.3"
+
+[feature.bt0410.dependencies]
+bustools = "==0.41.0"
+
+[feature.bt0432.dependencies]
+bustools = "==0.43.2"
+
+[feature.bt0451.dependencies]
+bustools = "==0.45.1"
+
+[environments]
+bt0393 = { features = ["bt0393"], no-default-feature = true }
+bt0410 = { features = ["bt0410"], no-default-feature = true }
+bt0432 = { features = ["bt0432"], no-default-feature = true }
+bt0451 = { features = ["bt0451"], no-default-feature = true }
