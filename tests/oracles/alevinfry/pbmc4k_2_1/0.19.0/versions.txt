@@ -1,0 +1,4 @@
+alevin-fry 0.19.0
+source 1117219ec9cbd070293df0a329a37d9fc44be44a
+rustc 1.91.1 (ed61e7d7e 2025-11-07)
+platform Darwin arm64
