@@ -1,4 +1,4 @@
 salmon 0.14.0
 source 82cc0d2cf5a6c1a66f5ecca3b6fa4e81795a2b7b
-clang version 21.1.8
-platform Darwin arm64
+x86_64-conda-linux-gnu-c++ (conda-forge gcc 15.3.0-7) 15.3.0
+platform Linux x86_64
