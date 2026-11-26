@@ -67,7 +67,7 @@ closed).
 | bustools / kb | allowlist (`kb --filter bustools`) | planned, 0.1.0 |
 | dropEst | cell-number bounds | planned, 0.1.0 |
 | zUMIs | UIK knee; Gaussian mixture (before Nov 2019) | planned, 0.1.0 |
-| Kneedle | kneed 0.8.5, 0.8.6, 0.9.0 | planned, 0.1.0 |
+| Kneedle | [kneed's KneeLocator](../methods/kneedle/kneedle.md) on the rank curve (0.5.1 – 0.9.0), with yascp's sensitivity search | implemented |
 | CB2, DIEM, DropletQC, DropSift, dropEst classifier, alevin naive Bayes, valiDrops, SiftCell | statistical tests and classifiers | planned, 0.2 |
 | Cell Ranger ATAC and ARC, EmptyDropsMultiome, BAP, SADE | ATAC and multiome | planned, 0.3 |
 | CellBender VAE, EmptyNN, dropkick, BD Rhapsody, ScaleBio, CeleScope, Ambimux, AmbientMapper | | docs only |
