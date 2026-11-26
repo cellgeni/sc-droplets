@@ -1,10 +1,13 @@
 """Each method's own view of a call, drawn from what the call stored.
 
 Threshold methods (OrdMag, CellRanger2.2, TopCells, the awk script, top N,
-fixed threshold, DropletUtils barcodeRanks and defaultDrops): the rank curve,
-the cells, and the cut, with the robust maximum it came from and, for OrdMag,
-the spread of its bootstraps; for barcodeRanks, the knee, the inflection and
-what found them (the fitted spline, the chord, or the knee's window).
+fixed threshold, DropletUtils barcodeRanks and defaultDrops, UMI-tools): the
+rank curve, the cells, and the cut, with the robust maximum it came from and,
+for OrdMag, the spread of its bootstraps; for barcodeRanks, the knee, the
+inflection and what found them (the fitted spline, the chord, or the knee's
+window). UMI-tools adds a second panel: for distance, the cumulative curve of
+the last pass with its chord and each pass's knee; for density, the kernel
+density of log10 counts with every valley and the chosen one.
 
 Test methods (Cell Ranger 3+, STARsolo EmptyDrops_CR, DropletUtils emptyDrops
 and emptyDropsCellRanger): three panels. The rank curve with each barcode's
@@ -37,14 +40,20 @@ def diagnostics(adata: Any, call: str, *, fig: Any = None):
     key = resolve_calls(adata, [call])[0]
     record = adata.uns[UNS_KEY][key]
     has_test = f"{key}_pvalue" in adata.obs.columns
+    diag = dict(record.get("diagnostics", {}))
+    second = _cumulative_panel if "passes" in diag else _density_panel if "density" in diag else None
     if fig is None:
-        fig = plt.figure(figsize=(13, 4.2) if has_test else (6.4, 4.8))
+        fig = plt.figure(figsize=(13, 4.2) if has_test else (12.8, 4.8) if second else (6.4, 4.8))
     curve = curve_for(adata, [key])
     if has_test:
         axes = fig.subplots(1, 3)
         _classes_on_curve(axes[0], adata, key, record, curve)
         _loglik_panel(axes[1], adata, key)
         _pvalue_panel(axes[2], adata, key, record)
+    elif second is not None:
+        axes = fig.subplots(1, 2)
+        _threshold_on_curve(axes[0], adata, key, record, curve)
+        second(axes[1], record, curve)
     else:
         ax = fig.subplots(1, 1)
         _threshold_on_curve(ax, adata, key, record, curve)
@@ -104,6 +113,55 @@ def _knee_geometry(ax, thresholds: Dict[str, float], diag: Dict[str, Any]) -> No
     if "knee_window" in diag:
         left, right = (10 ** float(v) for v in diag["knee_window"])
         ax.axvspan(left, right, color=PALETTE[3], alpha=0.15, label="knee's window")
+
+
+def _cumulative_panel(ax, record, curve) -> None:
+    """UMI-tools distance: the last pass's cumulative curve, its chord, and each pass's knee."""
+    diag = dict(record.get("diagnostics", {}))
+    passes = np.asarray(diag["passes"], dtype=np.int64).reshape(-1, 2)
+    ax.set_title("Cumulative counts (UMI-tools distance)", fontsize="medium")
+    ax.set_xlabel("Barcode rank (0-based)")
+    ax.set_ylabel("Cumulative UMIs")
+    if str(diag.get("unit", "umis")) != "umis":
+        ax.text(0.5, 0.5, "drawn for UMI counts only", ha="center", va="center", transform=ax.transAxes)
+        return
+    totals = np.sort(np.asarray(curve.totals, dtype=float))[::-1]
+    cumulative = np.cumsum(totals[totals > 0])
+    points = int(passes[-1, 0])
+    x = np.arange(points)
+    ax.plot(x, cumulative[:points], color=CURVE_COLOUR, lw=1.5, label=f"last pass: first {points:,} barcodes")
+    ax.plot([0, points - 1], [cumulative[0], cumulative[points - 1]], color=PALETTE[3], ls="-.", lw=1, label="chord")
+    for i, (_, knee) in enumerate(passes):
+        if knee < points:
+            last = i == passes.shape[0] - 1
+            ax.plot([knee], [cumulative[knee]], marker="o", ms=7 if last else 4, color=PALETTE[1] if last else "#999999",
+                    ls="none", label=f"knee: {knee + 1:,} cells" if last else None, zorder=3)
+    ax.legend(frameon=False, fontsize="small")
+    ax.grid(True, alpha=0.3)
+
+
+def _density_panel(ax, record, curve) -> None:
+    """UMI-tools density: the kernel density of log10 counts, its valleys, and the chosen one."""
+    diag = dict(record.get("diagnostics", {}))
+    grid = np.asarray(diag["grid"], dtype=float)
+    ax.plot(grid, np.asarray(diag["density"], dtype=float), color=CURVE_COLOUR, lw=1.5, label="kernel density")
+    valleys = np.asarray(diag.get("valleys", []), dtype=float)
+    passing = np.asarray(diag.get("valley_passing", []), dtype=np.int64)
+    chosen = diag.get("chosen")
+    other_labelled = False
+    for t, n_pass in zip(valleys, passing):
+        picked = chosen is not None and t == float(chosen)
+        if picked:
+            label = f"chosen valley: {n_pass:,} cells"
+        else:
+            label = None if other_labelled else "other valleys"
+            other_labelled = True
+        ax.axvline(t, color=PALETTE[1] if picked else "#999999", ls="--", lw=1.2 if picked else 0.8, label=label)
+    ax.set_title("Density of log10 counts (UMI-tools density)", fontsize="medium")
+    ax.set_xlabel("log10 count per barcode")
+    ax.set_ylabel("density")
+    ax.legend(frameon=False, fontsize="small")
+    ax.grid(True, alpha=0.3)
 
 
 def _first_group(diag: Dict[str, Any]) -> Optional[Dict[str, Any]]:
