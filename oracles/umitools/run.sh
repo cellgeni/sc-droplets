@@ -28,7 +28,7 @@ runs=(ut055:0.5.5 ut100:1.0.0 ut116:1.1.6)
 for entry in "${datasets[@]}"; do
   IFS=: read -r dataset expect <<< "$entry"
   counts="$work/counts/$dataset.tsv"
-  (cd "$repo" && uv run python oracles/umitools/make_counts.py "$dataset" "$counts")
+  (cd "$repo" && uv run python oracles/make_counts.py "$dataset" "$counts")
   for run in "${runs[@]}"; do
     IFS=: read -r env release <<< "$run"
     (cd "$work" && pixi run -e "$env" python "$here/oracle.py" "$counts" "$out/$dataset/$release" "$expect")
