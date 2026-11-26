@@ -49,6 +49,11 @@ alevin-fry: the permit lists of programs built from alevin-fry's own source at
 oracles/alevinfry/harness.py), on the matrix's per-barcode UMI totals; saved in
 tests/oracles/alevinfry by oracles/alevinfry/run.sh.
 
+alevin: the initial whitelist of programs built from salmon's own Alevin.cpp at
+0.11.3, 0.13.1, 0.14.0, 1.1.0 and 1.10.3, on the matrix's per-barcode UMI totals;
+saved in tests/oracles/alevin by oracles/alevin/run.sh. The cells are checked up to
+the barcodes tied at the knee, whose order in alevin comes from its hash map.
+
 The datasets are downloaded once (tests/datasets.py) into $SC_DROPLETS_DATA.
 """
 
@@ -548,3 +553,64 @@ def test_alevinfry_permit_list_keeps_alevinfrys_barcodes(name, release, case, ce
     assert np.asarray(result.totals)[result.is_cell].min() == int(smallest)
     if threshold != "-":
         assert result.thresholds["umis"] == int(threshold)
+
+
+# ---------------------------------------------------------------------------
+# alevin
+# ---------------------------------------------------------------------------
+
+# The cases of oracles/alevin/oracle.py as sc-droplets parameters (None: the dataset's expected cells).
+ALEVIN_CASES = {
+    "knee": {},
+    "expect": {"expect_cells": None},
+    "force": {"force_cells": None},
+    "keep": {"keep_cb_fraction": 0.005},
+}
+ALEVIN_EXPECTED = {"pbmc_1k_v3_3_0": 1000, "pbmc4k_2_1": 5000}
+
+
+def _alevin_rows():
+    rows = []
+    for path in sorted((ORACLES / "alevin").glob("*/*/cases.tsv")):
+        cases = {}
+        for line in path.read_text().splitlines():
+            case, name, value = line.split("\t")
+            cases.setdefault(case, {})[name] = value
+        rows += [(path.parent.parent.name, path.parent.name, case, values) for case, values in cases.items()]
+    return rows
+
+
+ALEVIN_ROWS = _alevin_rows()
+
+
+def test_there_are_alevin_oracles_to_check():
+    assert len(ALEVIN_ROWS) >= 34
+
+
+@pytest.mark.parametrize("name, release, case, values", ALEVIN_ROWS, ids=[f"{r[0]}-{r[1]}-{r[2]}" for r in ALEVIN_ROWS])
+def test_alevin_initial_whitelist_is_alevins(name, release, case, values):
+    import hashlib
+
+    params = {k: ALEVIN_EXPECTED[name] if v is None else v for k, v in ALEVIN_CASES[case].items()}
+    adata = _read(name)
+    if "error" in values:
+        with pytest.raises(ValueError):
+            scd.call(adata, f"alevin-initial-whitelist@{release}", inplace=False, **params)
+        return
+    result = scd.call(adata, f"alevin-initial-whitelist@{release}", inplace=False, **params)
+    if "knee" in values:
+        assert result.thresholds["knee_rank"] == int(values["knee"])
+        assert result.thresholds.get("gauss_rank", 0) == int(values["gauss"])
+    assert result.thresholds["cells"] == int(values["cells"])
+    assert result.thresholds["low_confidence"] == int(values["low"])
+    totals = np.asarray(result.totals)
+    classes = np.asarray(result.classes.astype(str))
+    # the cells, up to the barcodes tied at the knee: as many, the same smallest count, and every
+    # barcode above it
+    cells = totals[classes == "cell"]
+    assert cells.size == int(values["cells"])
+    assert cells.min() == int(values["cells_min"])
+    assert np.sum(totals > cells.min()) == int(values["cells_above"])
+    white = np.asarray(result.barcodes)[classes != "background"]
+    assert white.size == int(values["whitelist"])
+    assert hashlib.sha256("\n".join(sorted(map(str, white))).encode()).hexdigest() == values["whitelist_digest"]

@@ -1,0 +1,4 @@
+salmon 1.1.0
+source f32b6912233573c322b2c3cd2a5023a8470ca9c9
+clang version 21.1.8
+platform Darwin arm64
