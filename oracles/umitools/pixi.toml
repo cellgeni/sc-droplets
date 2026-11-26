@@ -1,0 +1,30 @@
+# One Python environment per UMI-tools release sc-droplets is checked against, from bioconda, each
+# with the numpy and scipy its build resolves to. Used by run.sh. On osx-64 the old builds need the
+# libc++ they were built against.
+[workspace]
+name = "umitools-oracles"
+channels = ["conda-forge", "bioconda"]
+platforms = ["linux-64", "osx-64"]
+
+[feature.ut055.dependencies]
+umi_tools = "==0.5.5"
+python = "3.6.*"
+
+[feature.ut055.target.osx-64.dependencies]
+libcxx = "<15"
+
+[feature.ut100.dependencies]
+umi_tools = "==1.0.0"
+python = "3.7.*"
+
+[feature.ut100.target.osx-64.dependencies]
+libcxx = "<15"
+
+[feature.ut116.dependencies]
+umi_tools = "==1.1.6"
+python = "3.12.*"
+
+[environments]
+ut055 = { features = ["ut055"], no-default-feature = true }
+ut100 = { features = ["ut100"], no-default-feature = true }
+ut116 = { features = ["ut116"], no-default-feature = true }
