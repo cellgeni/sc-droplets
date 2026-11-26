@@ -50,4 +50,11 @@ Then UMI-tools:
   1.0.0 and 1.1.6's own functions on pbmc_1k_v3 and pbmc4k.
 - `sc-droplets plot diagnostics` draws their cumulative curve and chord, or their density and
   valleys.
+
+Then Kneedle:
+
+- `kneedle`: kneed's `KneeLocator` on the barcode-rank curve, in each behaviour its releases
+  have had (0.5.1, 0.7.0, 0.8.6, 0.9.0), by default as Sanger's yascp runs it (convex, decreasing,
+  at least 1,000 UMIs, sensitivity lowered from 5,000 until a knee appears). Identical knees to
+  kneed 0.6.0, 0.8.5, 0.8.6 and 0.9.0 themselves on pbmc_1k_v3 and pbmc4k.
 - A validation suite on public data (`-m integration`), and an oracle workflow that runs STAR.
