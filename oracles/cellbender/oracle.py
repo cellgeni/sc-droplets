@@ -90,9 +90,9 @@ def values_of(release, dataset):
 def main(release, path, out, expected):
     os.makedirs(out, exist_ok=True)
     with open(os.path.join(out, "versions.txt"), "w") as handle:
-        handle.write("cellbender %s\npython %s\nnumpy %s\nscipy %s\ntorch %s\nplatform %s %s\n" % (
+        handle.write("cellbender %s\npython %s\nnumpy %s\nscipy %s\ntorch %s\nplatform %s %s\nsimd %s\n" % (
             release, platform.python_version(), np.__version__, scipy.__version__, torch.__version__,
-            sys.platform, platform.machine()))
+            sys.platform, platform.machine(), simd_units()))
     with open(os.path.join(out, "priors.tsv"), "w") as handle:
         for name, options in cases(release, expected):
             try:
@@ -111,6 +111,16 @@ def main(release, path, out, expected):
             for kind, members in (("cell", analysed[:n_cells]), ("transition", analysed[n_cells:]), ("empty", empty)):
                 handle.write("%s\tclass:%s\t%s\n" % (name, kind, digest([_text(barcodes[i]) for i in members])))
             print("%s %s: %d cells, %d analysed, %d empty" % (release, name, n_cells, len(analysed), len(empty)))
+
+
+def simd_units():
+    """The processor's units numpy dispatches to. With AVX-512 on Linux, numpy's float64 log and
+    exp use SVML, which can differ from the C library in the last bit."""
+    try:
+        from numpy.core._multiarray_umath import __cpu_features__ as features
+    except ImportError:
+        return "-"
+    return " ".join(k for k in ("AVX512F", "AVX512_SKX", "AVX2", "NEON") if features.get(k)) or "-"
 
 
 def digest(barcodes):
