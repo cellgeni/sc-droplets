@@ -5,16 +5,17 @@
 CellBender's source for RELEASE must be on PYTHONPATH (run.sh checks out the tag). The dataset
 object is what `cellbender remove-background` builds before training: it loads the file, works
 out the priors and chooses the droplets to analyse. Writes OUT_DIR/priors.tsv
-(`case<TAB>name<TAB>value`, or `case<TAB>error<TAB>message`), OUT_DIR/<case>.classes.txt.gz
-(`barcode<TAB>class` for the probable cells, the other analysed droplets and the surely-empty
-droplets, in CellBender's order) and OUT_DIR/versions.txt.
+(`case<TAB>name<TAB>value`, or `case<TAB>error<TAB>message`) and OUT_DIR/versions.txt. Each
+class (the probable cells, the other analysed droplets, the surely-empty droplets) is a line
+`case<TAB>class:<name><TAB><count>:<SHA-256 of its barcodes, sorted, one per line>`: an exact
+check without tens of thousands of barcodes per case.
 
 Cases: default; expected (--expected-cells); total (--total-droplets-included 15000); low30
 (--low-count-threshold 30); from 0.3.0 also forced (--force-cell-umi-prior 3000
 --force-empty-umi-prior 30) and expected_total (both of the first two).
 """
 
-import gzip
+import hashlib
 import logging
 import os
 import platform
@@ -107,12 +108,15 @@ def main(release, path, out, expected):
             barcodes = dataset.data["barcodes"]
             analysed = np.asarray(dataset.analyzed_barcode_inds, dtype=int)
             empty = np.asarray(dataset.empty_barcode_inds, dtype=int)
-            with gzip.open(os.path.join(out, "%s.classes.txt.gz" % name), "wt") as classes:
-                for rank, index in enumerate(analysed):
-                    classes.write("%s\t%s\n" % (_text(barcodes[index]), "cell" if rank < n_cells else "transition"))
-                for index in empty:
-                    classes.write("%s\tempty\n" % _text(barcodes[index]))
+            for kind, members in (("cell", analysed[:n_cells]), ("transition", analysed[n_cells:]), ("empty", empty)):
+                handle.write("%s\tclass:%s\t%s\n" % (name, kind, digest([_text(barcodes[i]) for i in members])))
             print("%s %s: %d cells, %d analysed, %d empty" % (release, name, n_cells, len(analysed), len(empty)))
+
+
+def digest(barcodes):
+    """`count:sha256` of the barcodes, sorted, one per line."""
+    text = "\n".join(sorted(barcodes)).encode()
+    return "%d:%s" % (len(barcodes), hashlib.sha256(text).hexdigest())
 
 
 def _text(barcode):

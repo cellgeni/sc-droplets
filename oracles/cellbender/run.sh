@@ -5,8 +5,8 @@
 #   bash oracles/cellbender/run.sh OUT_DIR
 #
 # Needs pixi, uv and git. The environments and the checkouts go to $CELLBENDER_ORACLE_WORK (default
-# $RUNNER_TEMP/cb or /tmp/cb). Writes OUT_DIR/<dataset>/<release>/{priors.tsv,*.classes.txt.gz,
-# versions.txt} (see oracle.py). The committed outputs are linux-64's, as CI's.
+# $RUNNER_TEMP/cb or /tmp/cb). Writes OUT_DIR/<dataset>/<release>/{priors.tsv,versions.txt}
+# (see oracle.py). The committed outputs are linux-64's, as CI's.
 set -euo pipefail
 
 mkdir -p "$1"
