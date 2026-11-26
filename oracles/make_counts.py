@@ -1,6 +1,6 @@
-"""Write a dataset's per-barcode UMI totals as the counts UMI-tools' whitelist functions take.
+"""Write a dataset's per-barcode UMI totals, as UMI-tools' and kneed's oracles read them.
 
-    python oracles/umitools/make_counts.py DATASET OUT.tsv
+    python oracles/make_counts.py DATASET OUT.tsv
 
 One line per barcode with a count, `barcode<TAB>count`, in the matrix's order (the order a
 `collections.Counter` keeps for ties). Gene Expression features only, as sc-droplets counts them.
@@ -13,7 +13,7 @@ from pathlib import Path
 
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tests"))
 
 import sc_droplets as scd  # noqa: E402
 from datasets import raw_path  # noqa: E402

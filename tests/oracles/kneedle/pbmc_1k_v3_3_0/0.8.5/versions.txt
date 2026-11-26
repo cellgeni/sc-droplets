@@ -1,0 +1,6 @@
+kneed 0.8.5
+python 3.11.18
+numpy 2.4.6
+scipy 1.17.1
+scikit-learn -
+platform linux

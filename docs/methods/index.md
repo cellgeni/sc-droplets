@@ -26,6 +26,7 @@ come.
 | `dropletutils-emptydropscellranger` | DropletUtils | statistical-test | v1.14: ≥1.14, <1.18.1; v1.18.1: ≥1.18.1 | [DropletUtils emptyDropsCellRanger](dropletutils/emptydropscellranger.md) |
 | `threshold` | Generic | rank-threshold | — | [Fixed threshold](generic/threshold.md) |
 | `top-n` | Generic | rank-threshold | — | [Top N barcodes](generic/top-n.md) |
+| `kneedle` | Kneedle (kneed) | knee | v0.5.1: ≥0.5.1, <0.7.0; v0.7: ≥0.7.0, <0.8.6; v0.8.6: ≥0.8.6, <0.9.0; v0.9: ≥0.9.0 | [Kneedle on the barcode-rank curve](kneedle/kneedle.md) |
 | `starsolo-basic-awk` | STARsolo | rank-threshold | v1: ≥2.7.2a | [STARsolo soloBasicCellFilter.awk](starsolo/basic-awk.md) |
 | `starsolo-cellranger2.2` | STARsolo | rank-threshold | v1: ≥2.7.3a, <2.7.5a; v2: ≥2.7.5a, <2.7.8a; v3: ≥2.7.8a | [STARsolo CellRanger2.2](starsolo/cellranger2-2.md) |
 | `starsolo-emptydrops-cr` | STARsolo | statistical-test | v1: ≥2.7.8a | [STARsolo EmptyDrops_CR](starsolo/emptydrops-cr.md) |

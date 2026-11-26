@@ -64,7 +64,11 @@ Milestones, each its own pull request after the scaffold:
     (bioconda, each with its numpy and scipy) on the matrix's per-barcode totals of pbmc_1k_v3
     and pbmc4k: identical barcodes in all 32 cases. Not offered: `--ed-above-threshold`
     (needs the barcode sequences).
-  - [ ] Kneedle, cellsweep, CellBender priors (Python).
+  - [x] Kneedle (`milestone-3-kneedle`): `kneedle`, four behaviours of kneed (0.5.1, 0.7.0,
+    0.8.6, 0.9.0) found by diffing every release; yascp's search for the sensitivity as the
+    default. Oracle: `oracles/kneedle/run.sh` runs kneed 0.6.0, 0.8.5, 0.8.6, 0.9.0 (conda-forge)
+    on pbmc_1k_v3 and pbmc4k, 5 settings each: identical knees in all 40.
+  - [ ] cellsweep, CellBender priors (Python).
   - [ ] alevin, alevin-fry, bustools (C++ / Rust).
   - [ ] Drop-seq dropbead, dropEst, zUMIs (R).
 - [ ] 4. Generic MAD / Otsu / multi-Otsu / KDE valley / GMM (1-D, 2-D) / NB mixture; splicing

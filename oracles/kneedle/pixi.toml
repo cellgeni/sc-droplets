@@ -1,0 +1,33 @@
+# One Python environment per kneed behaviour sc-droplets reproduces, from conda-forge, each with
+# the numpy, scipy and scikit-learn its release resolves to. Used by run.sh. On osx-64 the old
+# builds need the libc++ they were built against.
+[workspace]
+name = "kneed-oracles"
+channels = ["conda-forge"]
+platforms = ["linux-64", "osx-64"]
+
+[feature.kn060.dependencies]
+kneed = "==0.6.0"
+python = "3.7.*"
+scikit-learn = "*"
+
+[feature.kn060.target.osx-64.dependencies]
+libcxx = "<15"
+
+[feature.kn085.dependencies]
+kneed = "==0.8.5"
+python = "3.11.*"
+
+[feature.kn086.dependencies]
+kneed = "==0.8.6"
+python = "3.12.*"
+
+[feature.kn090.dependencies]
+kneed = "==0.9.0"
+python = "3.12.*"
+
+[environments]
+kn060 = { features = ["kn060"], no-default-feature = true }
+kn085 = { features = ["kn085"], no-default-feature = true }
+kn086 = { features = ["kn086"], no-default-feature = true }
+kn090 = { features = ["kn090"], no-default-feature = true }

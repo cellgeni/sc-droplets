@@ -23,6 +23,11 @@ UMI-tools: the whitelist of UMI-tools' own functions, release by release (0.5.5,
 matrix's per-barcode UMI totals; saved in tests/oracles/umitools by
 oracles/umitools/run.sh.
 
+Kneedle: the knee and sensitivity of kneed's own KneeLocator (0.6.0, 0.8.5, 0.8.6,
+0.9.0, one per behaviour, each with its numpy, scipy and scikit-learn) on the
+rank curves of the matrix's UMI totals, with yascp's search and with fixed
+settings on log axes; saved in tests/oracles/kneedle by oracles/kneedle/run.sh.
+
 The datasets are downloaded once (tests/datasets.py) into $SC_DROPLETS_DATA.
 """
 
@@ -263,3 +268,46 @@ def test_umitools_whitelist_calls_umitools_barcodes(path):
     result = scd.call(_read(name), f"{method}@{release}", inplace=False, **params)
     ours = _called(result)
     assert ours == set(expected), f"missing {sorted(set(expected) - ours)[:10]}, extra {sorted(ours - set(expected))[:10]}"
+
+
+# ---------------------------------------------------------------------------
+# Kneedle (kneed)
+# ---------------------------------------------------------------------------
+
+# The cases of oracles/kneedle/oracle.py, as parameters of `kneedle`.
+KNEEDLE_CASES = {
+    "yascp_interp1d": {"lower": 1000},
+    "yascp_polynomial": {"lower": 1000, "interp_method": "polynomial"},
+    "loglog_concave": {"lower": 10, "log_x": True, "log_y": True, "curve": "concave", "sensitivity": 1.0},
+    "loglog_concave_online": {"lower": 100, "log_x": True, "log_y": True, "curve": "concave", "sensitivity": 1.0, "online": True},
+    "loglog_convex": {"lower": 100, "log_x": True, "log_y": True, "curve": "convex", "sensitivity": 1.0},
+}
+
+
+def _kneedle_rows():
+    rows = []
+    for path in sorted((ORACLES / "kneedle").glob("*/*/knees.tsv")):
+        for line in path.read_text().splitlines():
+            case, rank, sensitivity = line.split("\t")
+            rows.append((path.parent.parent.name, path.parent.name, case, rank, float(sensitivity)))
+    return rows
+
+
+KNEEDLE_ROWS = _kneedle_rows()
+
+
+def test_there_are_kneedle_oracles_to_check():
+    assert len(KNEEDLE_ROWS) >= 40
+
+
+@pytest.mark.parametrize("name, release, case, rank, sensitivity", KNEEDLE_ROWS, ids=[f"{r[0]}-{r[1]}-{r[2]}" for r in KNEEDLE_ROWS])
+def test_kneedle_finds_kneeds_knee(name, release, case, rank, sensitivity):
+    params = KNEEDLE_CASES[case]
+    if rank == "none":
+        with pytest.raises(ValueError, match="no knee"):
+            scd.call(_read(name), f"kneedle@{release}", inplace=False, **params)
+        return
+    result = scd.call(_read(name), f"kneedle@{release}", inplace=False, **params)
+    assert result.thresholds["knee_rank"] == int(rank)
+    assert result.thresholds["sensitivity"] == sensitivity
+    assert result.n_cells == int(rank)
