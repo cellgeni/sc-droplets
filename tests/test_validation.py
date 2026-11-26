@@ -28,6 +28,10 @@ Kneedle: the knee and sensitivity of kneed's own KneeLocator (0.6.0, 0.8.5, 0.8.
 rank curves of the matrix's UMI totals, with yascp's search and with fixed
 settings on log axes; saved in tests/oracles/kneedle by oracles/kneedle/run.sh.
 
+cellsweep: the cutoff of cellsweep's own infer_empty_droplets (1.0.1, and 1.0.2
+with each kneed it may run with) on a float32 AnnData of the matrix's UMI totals;
+saved in tests/oracles/cellsweep by oracles/cellsweep/run.sh.
+
 The datasets are downloaded once (tests/datasets.py) into $SC_DROPLETS_DATA.
 """
 
@@ -311,3 +315,60 @@ def test_kneedle_finds_kneeds_knee(name, release, case, rank, sensitivity):
     assert result.thresholds["knee_rank"] == int(rank)
     assert result.thresholds["sensitivity"] == sensitivity
     assert result.n_cells == int(rank)
+
+
+# ---------------------------------------------------------------------------
+# cellsweep
+# ---------------------------------------------------------------------------
+
+# The cases of oracles/cellsweep/oracle.py: parameters, and the smallest total of the barcodes given.
+CELLSWEEP_CASES = {
+    "default": ({}, 0),
+    "mx_filter": ({"empty_method": "mx_filter"}, 0),
+    "expected": ({}, 0),  # expected_cells added from the dataset
+    "mx_filter_detected": ({"empty_method": "mx_filter"}, 1),
+    "mx_filter_over100": ({"empty_method": "mx_filter"}, 100),
+}
+CELLSWEEP_EXPECTED = {"pbmc_1k_v3_3_0": 1000, "pbmc4k_2_1": 5000}
+
+
+def _cellsweep_rows():
+    rows = []
+    for path in sorted((ORACLES / "cellsweep").glob("*/*/cutoffs.tsv")):
+        release, _, kneed_version = path.parent.name.partition("-kneed")
+        for line in path.read_text().splitlines():
+            case, cutoff, cells = line.split("\t")
+            rows.append((path.parent.parent.name, release, kneed_version or None, case, cutoff, cells))
+    return rows
+
+
+CELLSWEEP_ROWS = _cellsweep_rows()
+
+
+def test_there_are_cellsweep_oracles_to_check():
+    assert len(CELLSWEEP_ROWS) >= 40
+
+
+@pytest.mark.parametrize(
+    "name, release, kneed_version, case, cutoff, cells",
+    CELLSWEEP_ROWS,
+    ids=[f"{r[0]}-{r[1]}{'-kneed' + r[2] if r[2] else ''}-{r[3]}" for r in CELLSWEEP_ROWS],
+)
+def test_cellsweep_finds_cellsweeps_cutoff(name, release, kneed_version, case, cutoff, cells):
+    params, lowest = CELLSWEEP_CASES[case]
+    params = dict(params)
+    if case == "expected":
+        params["expected_cells"] = CELLSWEEP_EXPECTED[name]
+    if kneed_version:
+        params["kneed_version"] = kneed_version
+    adata = _read(name)
+    if lowest:
+        totals = np.asarray(adata.X.sum(axis=1)).ravel()
+        adata = adata[totals >= lowest]
+    if cutoff == "error":
+        with pytest.raises(ValueError):
+            scd.call(adata, f"cellsweep-empty@{release}", inplace=False, **params)
+        return
+    result = scd.call(adata, f"cellsweep-empty@{release}", inplace=False, **params)
+    assert result.thresholds["umis"] == float(cutoff)
+    assert result.n_cells == int(cells)
