@@ -174,7 +174,7 @@ def _density_panel(ax, record, curve) -> None:
             label = None if other_labelled else "other valleys"
             other_labelled = True
         ax.axvline(t, color=PALETTE[1] if picked else "#999999", ls="--", lw=1.2 if picked else 0.8, label=label)
-    ax.set_title("Density of log10 counts (UMI-tools density)", fontsize="medium")
+    ax.set_title(diag.get("density_title", "Density of log10 counts (UMI-tools density)"), fontsize="medium")
     ax.set_xlabel("log10 count per barcode")
     ax.set_ylabel("density")
     ax.legend(frameon=False, fontsize="small")
