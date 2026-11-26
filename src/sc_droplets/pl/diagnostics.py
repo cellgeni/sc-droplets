@@ -12,6 +12,11 @@ difference curve with the maxima, their thresholds and the knee; cellsweep its
 rule's own curve (the second derivative, the Kneedle difference curve, or the
 two Gaussian components and their entropy).
 
+CellBender's priors: the rank curve with the ranks of its classes (probable cells, the other
+analysed droplets, the surely-empty droplets) and the priors, and the distribution the priors
+came from (the rounded log counts whose mode is the empty prior; or, from 0.3, the log counts,
+Otsu's cut and the last kernel density).
+
 Test methods (Cell Ranger 3+, STARsolo EmptyDrops_CR, DropletUtils emptyDrops
 and emptyDropsCellRanger): three panels. The rank curve with each barcode's
 class (initial or retained, rescued, tested and kept empty) and the ambient
@@ -44,6 +49,15 @@ def diagnostics(adata: Any, call: str, *, fig: Any = None):
     record = adata.uns[UNS_KEY][key]
     has_test = f"{key}_pvalue" in adata.obs.columns
     diag = dict(record.get("diagnostics", {}))
+    if diag.get("prior_rule") in ("mode-median", "otsu-kde"):
+        if fig is None:
+            fig = plt.figure(figsize=(12.8, 4.8))
+        axes = fig.subplots(1, 2)
+        _cellbender_curve(axes[0], record, curve_for(adata, [key]))
+        _cellbender_prior_panel(axes[1], record)
+        fig.suptitle(f"{record.get('title', key)}: {int(record.get('n_cells', 0)):,} probable cells\n{key}", fontsize="medium")
+        fig.tight_layout()
+        return fig
     second = (_cellsweep_panel if diag.get("rule") in ("threshold", "kneed", "mx_filter")
               else _cumulative_panel if "passes" in diag else _density_panel if "density" in diag
               else _difference_panel if "difference_x" in diag else None)
@@ -226,6 +240,61 @@ def _cellsweep_panel(ax, record, curve) -> None:
         ax.set_xlabel("log(1 + count)")
         ax.set_ylabel("weighted density")
     ax.set_title(f"cellsweep: {rule}", fontsize="medium")
+    ax.legend(frameon=False, fontsize="small")
+    ax.grid(True, alpha=0.3)
+
+
+CELLBENDER_BANDS = (("cell", PALETTE[0]), ("transition", PALETTE[3]), ("empty", "#999999"))
+
+
+def _cellbender_curve(ax, record, curve) -> None:
+    """CellBender: the rank curve with the ranks of its classes and the priors."""
+    _curve(ax, curve)
+    diag = dict(record.get("diagnostics", {}))
+    thresholds = dict(record.get("thresholds", {}))
+    # The class ranks are stored, not read from the AnnData: it may hold only the cells.
+    ends = [0] + [int(v) for v in np.asarray(diag["class_ranks"], dtype=np.int64)]
+    for (name, colour), start, end in zip(CELLBENDER_BANDS, ends[:-1], ends[1:]):
+        if end > start:
+            ax.axvspan(start + 1, end, color=colour, alpha=0.15, label=f"{name}: {end - start:,}")
+    for name, label, colour, style in (("cell_counts", "cell prior", PALETTE[0], "--"),
+                                       ("empty_counts", "empty prior", PALETTE[1], "--"),
+                                       ("low_count_cutoff", "low cut", "#777777", ":")):
+        if name in thresholds:
+            ax.axhline(thresholds[name], color=colour, ls=style, lw=1, label=f"{label}: {thresholds[name]:.6g}")
+    ax.legend(frameon=False, fontsize="small")
+
+
+def _cellbender_prior_panel(ax, record) -> None:
+    """CellBender: the distribution the priors came from (0.1, 0.2: the rounded log counts whose
+    mode is the empty prior; 0.3: log counts, the last kernel density, Otsu's cut)."""
+    diag = dict(record.get("diagnostics", {}))
+    thresholds = dict(record.get("thresholds", {}))
+    if diag["prior_rule"] == "mode-median":
+        ax.bar(np.asarray(diag["mode_values"], dtype=float), np.asarray(diag["mode_counts"], dtype=float),
+               width=0.08, color=CURVE_COLOUR, label="barcodes above the low-count threshold")
+        lines = (("empty_counts", "empty prior (mode)", PALETTE[1]), ("cell_counts", "cell prior", PALETTE[0]))
+        ax.set_xlabel("log(1 + count), rounded to 0.1")
+        for name, label, colour in lines:
+            ax.axvline(np.log1p(thresholds[name]), color=colour, ls="--", lw=1, label=f"{label}: {thresholds[name]:g}")
+        ax.set_title("CellBender 0.1–0.2: mode and median", fontsize="medium")
+    else:
+        x = np.asarray(diag["log_histogram_x"], dtype=float)
+        ax.step(x, np.asarray(diag["log_histogram_y"], dtype=float), where="mid", color=CURVE_COLOUR,
+                label="barcodes above the low-count threshold")
+        twin = ax.twinx()
+        twin.plot(np.asarray(diag["kde_x"], dtype=float), np.asarray(diag["kde_density"], dtype=float),
+                  color=PALETTE[2], lw=1.2)
+        twin.set_ylabel("kernel density of the resampled empty droplets", color=PALETTE[2])
+        for name, label, colour, style in (("empty_counts", "empty prior (density peak)", PALETTE[1], "--"),
+                                           ("empty_count_upper_limit", "its upper limit", PALETTE[1], ":"),
+                                           ("cell_count_low_limit", "Otsu's cut", PALETTE[3], "-."),
+                                           ("cell_counts", "cell prior", PALETTE[0], "--")):
+            if name in thresholds:
+                ax.axvline(np.log(thresholds[name]), color=colour, ls=style, lw=1, label=f"{label}: {thresholds[name]:.6g}")
+        ax.set_xlabel("log count")
+        ax.set_title("CellBender 0.3+: Otsu and kernel density", fontsize="medium")
+    ax.set_ylabel("barcodes")
     ax.legend(frameon=False, fontsize="small")
     ax.grid(True, alpha=0.3)
 

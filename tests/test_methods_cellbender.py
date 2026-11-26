@@ -154,6 +154,21 @@ def test_otsu_maximises_the_between_class_variance():
     assert 3 < centers[chosen] < 6
 
 
+@pytest.mark.parametrize("release", ["0.2.2", "0.4.0"])
+def test_diagnostics_survive_h5ad_and_draw_both_rules(adata, tmp_path, release):
+    import matplotlib
+
+    matplotlib.use("Agg")
+    scd.call(adata, f"cellbender-prior@{release}")
+    adata.write_h5ad(tmp_path / "calls.h5ad")
+    back = ad.read_h5ad(tmp_path / "calls.h5ad")
+    key = next(iter(back.uns["sc_droplets"]))
+    fig = scd.pl.diagnostics(back[back.obs[key].to_numpy()].copy(), key)
+    title = fig.axes[1].get_title()
+    assert ("0.3+" in title) == (release == "0.4.0")
+    assert any(text.get_text().startswith("transition:") for text in fig.axes[0].get_legend().get_texts())
+
+
 def test_cli_calls_cellbender_prior(sim, tmp_path):
     path = tmp_path / "sim.h5ad"
     sim.write_h5ad(path)
