@@ -241,6 +241,22 @@ def test_diagnostics_draw_the_cumulative_curve_and_the_density(adata):
     assert any(line.get_xdata()[0] == chosen for line in fig.axes[1].get_lines()[1:])
 
 
+def test_distance_diagnostics_draw_after_keeping_only_the_cells(adata):
+    """The cumulative panel used to rebuild the curve from the AnnData's barcodes; once a call
+    was saved with --cells-only (or subset to its cells) the last pass had more points than
+    were left, and the plot failed on arrays of unequal length."""
+    import matplotlib
+
+    matplotlib.use("Agg")
+    scd.call(adata, "umitools-distance")
+    cells = adata[adata.obs["umitools_distance"].to_numpy(dtype=bool)].copy()
+    passes = np.asarray(cells.uns["sc_droplets"]["umitools_distance"]["diagnostics"]["passes"])
+    assert passes[-1][0] > cells.n_obs
+    fig = scd.pl.diagnostics(cells, "umitools_distance")
+    curve = fig.axes[1].get_lines()[0]
+    assert curve.get_xdata()[-1] == passes[-1][0] - 1
+
+
 def test_cli_calls_umitools_distance(sim, tmp_path):
     path = tmp_path / "sim.h5ad"
     sim.write_h5ad(path)

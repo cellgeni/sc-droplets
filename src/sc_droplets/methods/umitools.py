@@ -177,8 +177,19 @@ class Distance(Method):
             droplets,
             is_cell,
             thresholds=thresholds,
-            diagnostics={"passes": np.asarray(passes, dtype=np.int64), "unit": params.unit},
+            diagnostics={"passes": np.asarray(passes, dtype=np.int64), "unit": params.unit,
+                         **_last_pass_curve(np.cumsum(counts[order]), passes)},
         )
+
+
+def _last_pass_curve(cumulative: np.ndarray, passes: List[Tuple[int, int]], most: int = 2000) -> dict:
+    """The last pass's cumulative curve, thinned to about `most` points (its ends and every
+    knee kept), so the plot needs no barcodes: a call saved with only its cells still draws."""
+    points = passes[-1][0]
+    step = max(1, points // most)
+    knees = [k for _, k in passes if k < points]
+    x = np.unique(np.concatenate([np.arange(0, points, step), [points - 1], knees])).astype(np.int64)
+    return {"cumulative_x": x, "cumulative_y": cumulative[x]}
 
 
 # ---------------------------------------------------------------------------

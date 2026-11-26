@@ -121,20 +121,18 @@ def _cumulative_panel(ax, record, curve) -> None:
     passes = np.asarray(diag["passes"], dtype=np.int64).reshape(-1, 2)
     ax.set_title("Cumulative counts (UMI-tools distance)", fontsize="medium")
     ax.set_xlabel("Barcode rank (0-based)")
-    ax.set_ylabel("Cumulative UMIs")
-    if str(diag.get("unit", "umis")) != "umis":
-        ax.text(0.5, 0.5, "drawn for UMI counts only", ha="center", va="center", transform=ax.transAxes)
-        return
-    totals = np.sort(np.asarray(curve.totals, dtype=float))[::-1]
-    cumulative = np.cumsum(totals[totals > 0])
+    ax.set_ylabel(f"Cumulative {diag.get('unit', 'umis')}")
+    # Drawn from the stored curve, not the AnnData's barcodes: those may be only the cells.
+    x = np.asarray(diag["cumulative_x"], dtype=np.int64)
+    y = np.asarray(diag["cumulative_y"], dtype=float)
+    at = dict(zip(x.tolist(), y.tolist()))
     points = int(passes[-1, 0])
-    x = np.arange(points)
-    ax.plot(x, cumulative[:points], color=CURVE_COLOUR, lw=1.5, label=f"last pass: first {points:,} barcodes")
-    ax.plot([0, points - 1], [cumulative[0], cumulative[points - 1]], color=PALETTE[3], ls="-.", lw=1, label="chord")
+    ax.plot(x, y, color=CURVE_COLOUR, lw=1.5, label=f"last pass: first {points:,} barcodes")
+    ax.plot([0, points - 1], [at[0], at[points - 1]], color=PALETTE[3], ls="-.", lw=1, label="chord")
     for i, (_, knee) in enumerate(passes):
-        if knee < points:
+        if knee in at:
             last = i == passes.shape[0] - 1
-            ax.plot([knee], [cumulative[knee]], marker="o", ms=7 if last else 4, color=PALETTE[1] if last else "#999999",
+            ax.plot([knee], [at[int(knee)]], marker="o", ms=7 if last else 4, color=PALETTE[1] if last else "#999999",
                     ls="none", label=f"knee: {knee + 1:,} cells" if last else None, zorder=3)
     ax.legend(frameon=False, fontsize="small")
     ax.grid(True, alpha=0.3)
