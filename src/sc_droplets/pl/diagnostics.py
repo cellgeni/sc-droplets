@@ -7,7 +7,8 @@ for OrdMag, the spread of its bootstraps; for barcodeRanks, the knee, the
 inflection and what found them (the fitted spline, the chord, or the knee's
 window). UMI-tools adds a second panel: for distance, the cumulative curve of
 the last pass with its chord and each pass's knee; for density, the kernel
-density of log10 counts with every valley and the chosen one.
+density of log10 counts with every valley and the chosen one. Kneedle adds its
+difference curve with the maxima, their thresholds and the knee.
 
 Test methods (Cell Ranger 3+, STARsolo EmptyDrops_CR, DropletUtils emptyDrops
 and emptyDropsCellRanger): three panels. The rank curve with each barcode's
@@ -41,7 +42,8 @@ def diagnostics(adata: Any, call: str, *, fig: Any = None):
     record = adata.uns[UNS_KEY][key]
     has_test = f"{key}_pvalue" in adata.obs.columns
     diag = dict(record.get("diagnostics", {}))
-    second = _cumulative_panel if "passes" in diag else _density_panel if "density" in diag else None
+    second = (_cumulative_panel if "passes" in diag else _density_panel if "density" in diag
+              else _difference_panel if "difference_x" in diag else None)
     if fig is None:
         fig = plt.figure(figsize=(13, 4.2) if has_test else (12.8, 4.8) if second else (6.4, 4.8))
     curve = curve_for(adata, [key])
@@ -158,6 +160,26 @@ def _density_panel(ax, record, curve) -> None:
     ax.set_title("Density of log10 counts (UMI-tools density)", fontsize="medium")
     ax.set_xlabel("log10 count per barcode")
     ax.set_ylabel("density")
+    ax.legend(frameon=False, fontsize="small")
+    ax.grid(True, alpha=0.3)
+
+
+def _difference_panel(ax, record, curve) -> None:
+    """Kneedle: the difference curve, its maxima with their thresholds, and the knee's maximum."""
+    diag = dict(record.get("diagnostics", {}))
+    thresholds = dict(record.get("thresholds", {}))
+    ax.plot(np.asarray(diag["difference_x"], dtype=float), np.asarray(diag["difference_y"], dtype=float),
+            color=CURVE_COLOUR, lw=1.2, label="difference curve")
+    mx = np.asarray(diag.get("maxima_x", []), dtype=float)
+    if mx.size:
+        ax.scatter(mx, np.asarray(diag["maxima_y"], dtype=float), s=10, color="#999999", zorder=2, label="local maxima")
+        ax.scatter(mx, np.asarray(diag["maxima_threshold"], dtype=float), s=6, marker="_", color=PALETTE[3], zorder=2,
+                   label=f"thresholds (S = {thresholds.get('sensitivity', float('nan')):g})")
+    ax.plot([float(diag["knee_x"])], [float(diag["knee_y"])], marker="o", ms=7, color=PALETTE[1], ls="none", zorder=3,
+            label=f"knee: {int(thresholds.get('knee_rank', 0)):,} cells")
+    ax.set_title("Kneedle difference curve", fontsize="medium")
+    ax.set_xlabel("x, scaled to [0, 1]")
+    ax.set_ylabel("y − x, scaled")
     ax.legend(frameon=False, fontsize="small")
     ax.grid(True, alpha=0.3)
 
