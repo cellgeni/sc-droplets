@@ -1,0 +1,4 @@
+salmon 1.10.3
+source 9019a83fb163fb48d4c59862da033208c10c4239
+x86_64-conda-linux-gnu-c++ (conda-forge gcc 15.3.0-7) 15.3.0
+platform Linux x86_64

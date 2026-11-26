@@ -83,4 +83,13 @@ Then alevin-fry and bustools:
 - `bustools-allowlist`: bustools' allowlist (`kb --filter bustools`), with its sample of the first
   blocks of the BUS file. Identical lists to bustools 0.39.3, 0.41.0, 0.43.2 and 0.45.1 on BUS
   files written from pbmc_1k_v3 and pbmc4k.
+
+Then alevin:
+
+- `alevin-initial-whitelist`: salmon alevin's initial whitelist (0.11.0 – 1.10.3): the tangent
+  knee with its kernel-density correction, Cell Ranger 2's expected cells, forced cells and
+  `--keepCBFraction`, then the low-confidence band, in each of the six forms these took.
+  Identical counts and whitelists to programs built from salmon 0.11.3, 0.13.1, 0.14.0, 1.1.0 and
+  1.10.3's own `Alevin.cpp` on pbmc_1k_v3 and pbmc4k; the cells match up to barcodes tied at the
+  knee.
 - A validation suite on public data (`-m integration`), and an oracle workflow that runs STAR.
