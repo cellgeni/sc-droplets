@@ -169,6 +169,27 @@ def test_diagnostics_survive_h5ad_and_draw_both_rules(adata, tmp_path, release):
     assert any(text.get_text().startswith("transition:") for text in fig.axes[0].get_legend().get_texts())
 
 
+def test_diagnostics_draw_the_curve_cellbender_ranks_on(adata):
+    """From 0.3 the class bands used to be drawn on the curve of every feature, though CellBender
+    ranks the barcodes (and so places the bands) by their totals over the features it keeps."""
+    import matplotlib
+
+    matplotlib.use("Agg")
+    scd.call(adata, "cellbender-prior", projected_ambient_count_threshold=150, key_added="cb")
+    record = adata.uns["sc_droplets"]["cb"]
+    totals = np.asarray(adata.X.sum(axis=1)).ravel()
+    rows = (totals < record["thresholds"]["empty_count_upper_limit"]) & (totals > 5)
+    mean = np.asarray(adata.X[rows].astype(np.float64).mean(axis=0)).ravel()
+    keep = max(record["thresholds"]["expected_cells"], 5000) * mean > 150
+    kept = np.sort(np.asarray(adata.X[:, keep].sum(axis=1)).ravel())[::-1]
+    x = np.asarray(record["diagnostics"]["rank_curve_x"])
+    y = np.asarray(record["diagnostics"]["rank_curve_y"])
+    assert np.array_equal(y, kept[x - 1])
+    assert not np.array_equal(y, np.sort(totals)[::-1][x - 1])
+    fig = scd.pl.diagnostics(adata, "cb")
+    assert np.array_equal(fig.axes[0].lines[0].get_ydata(), y)
+
+
 def test_cli_calls_cellbender_prior(sim, tmp_path):
     path = tmp_path / "sim.h5ad"
     sim.write_h5ad(path)

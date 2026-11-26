@@ -315,6 +315,17 @@ def _integer(totals: np.ndarray) -> np.ndarray:
     return np.asarray(totals, dtype=np.float64)
 
 
+def _rank_curve(values: np.ndarray, points: int = 2000) -> dict:
+    """The rank curve CellBender ranks on (from 0.3, over the features it keeps), at about
+    `points` log-spaced ranks (1-based), for the diagnostics plot."""
+    descending = np.sort(np.asarray(values, dtype=float))[::-1]
+    descending = descending[descending > 0]
+    if descending.size == 0:
+        return {"rank_curve_x": np.zeros(0, dtype=np.int64), "rank_curve_y": np.zeros(0)}
+    ranks = np.unique(np.round(np.logspace(0, np.log10(descending.size), points)).astype(np.int64))
+    return {"rank_curve_x": ranks, "rank_curve_y": descending[ranks - 1]}
+
+
 def _descending_order(values: np.ndarray, top: int) -> np.ndarray:
     """`np.argsort(values)[::-1][:top]` with numpy's classic quicksort's ties."""
     size = values.size
@@ -406,6 +417,7 @@ def _priors_v03(matrix, u: np.ndarray, params) -> dict:
         "_diagnostics": {
             "prior_rule": "otsu-kde",
             "class_ranks": out.pop("_class_ranks"),
+            **_rank_curve(trimmed),
             "log_histogram_x": (hist_edges[:-1] + hist_edges[1:]) / 2,
             "log_histogram_y": hist_y.astype(np.int64),
             "kde_x": np.asarray(grid, dtype=float),
@@ -484,6 +496,7 @@ def _priors_v01(u: np.ndarray, params, variant: str) -> dict:
         "_diagnostics": {
             "prior_rule": "mode-median",
             "class_ranks": out.pop("_class_ranks"),
+            **_rank_curve(u),
             "mode_values": values.astype(float),
             "mode_counts": frequency.astype(np.int64),
         },

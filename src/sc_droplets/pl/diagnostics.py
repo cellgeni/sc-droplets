@@ -53,7 +53,7 @@ def diagnostics(adata: Any, call: str, *, fig: Any = None):
         if fig is None:
             fig = plt.figure(figsize=(12.8, 4.8))
         axes = fig.subplots(1, 2)
-        _cellbender_curve(axes[0], record, curve_for(adata, [key]))
+        _cellbender_curve(axes[0], record)
         _cellbender_prior_panel(axes[1], record)
         fig.suptitle(f"{record.get('title', key)}: {int(record.get('n_cells', 0)):,} probable cells\n{key}", fontsize="medium")
         fig.tight_layout()
@@ -247,12 +247,20 @@ def _cellsweep_panel(ax, record, curve) -> None:
 CELLBENDER_BANDS = (("cell", PALETTE[0]), ("transition", PALETTE[3]), ("empty", "#999999"))
 
 
-def _cellbender_curve(ax, record, curve) -> None:
-    """CellBender: the rank curve with the ranks of its classes and the priors."""
-    _curve(ax, curve)
+def _cellbender_curve(ax, record) -> None:
+    """CellBender: the rank curve it ranks on, with the ranks of its classes and the priors."""
     diag = dict(record.get("diagnostics", {}))
     thresholds = dict(record.get("thresholds", {}))
-    # The class ranks are stored, not read from the AnnData: it may hold only the cells.
+    # The curve and the class ranks are stored, not read from the AnnData: it may hold only the
+    # cells, and from 0.3 CellBender ranks on the totals over the features it keeps.
+    ax.plot(np.asarray(diag["rank_curve_x"], dtype=float), np.asarray(diag["rank_curve_y"], dtype=float),
+            color=CURVE_COLOUR, lw=1.5, drawstyle="steps-post", zorder=1)
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlabel("Barcode rank")
+    trimmed = "n_features" in thresholds
+    ax.set_ylabel("UMIs per barcode, over the features kept" if trimmed else "UMIs per barcode")
+    ax.grid(True, which="major", alpha=0.3)
     ends = [0] + [int(v) for v in np.asarray(diag["class_ranks"], dtype=np.int64)]
     for (name, colour), start, end in zip(CELLBENDER_BANDS, ends[:-1], ends[1:]):
         if end > start:
