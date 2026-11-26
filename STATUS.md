@@ -91,7 +91,12 @@ Milestones, each its own pull request after the scaffold:
     bustools 0.39.3, 0.41.0, 0.43.2, 0.45.1 on BUS files written from the matrix, 16 cases; all
     identical. Findings: alevin-fry's `--expect-cells` keeps 75,014 barcodes on pbmc4k (E =
     5,000); its 0.12–0.17 Flex rule keeps every barcode with a count.
-  - [ ] alevin (salmon 0.14 – 1.12; C++ harness from `Alevin.cpp`).
+  - [x] alevin (`milestone-3-alevin`): `alevin-initial-whitelist`, six forms across salmon
+    0.11.0 – 1.10.3 (0.11's off-by-one knee; expected and forced cells from 0.12; `--keepCBFraction`
+    from 0.13; the read floor from 0.14; forced cells F − 1 in 0.14.1 – 1.1.0). Oracle: programs
+    built from each tag's `Alevin.cpp` (0.11.3, 0.13.1, 0.14.0, 1.1.0, 1.10.3; conda-forge's gcc),
+    34 cases: identical counts and whitelists; cells up to barcodes tied at the knee (alevin's
+    order there comes from its hash map). The naive Bayes classifier stays planned (0.2).
   - [ ] Drop-seq dropbead, dropEst, zUMIs (R).
 - [ ] 4. Generic MAD / Otsu / multi-Otsu / KDE valley / GMM (1-D, 2-D) / NB mixture; splicing
   readers, `pl.splicing`, knee tracks, separation scores; `pl.density`, `pl.compare`, `pl.qc`,
