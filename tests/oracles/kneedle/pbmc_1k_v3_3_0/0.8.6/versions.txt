@@ -3,4 +3,4 @@ python 3.12.16
 numpy 2.5.5
 scipy 1.18.1
 scikit-learn -
-platform darwin
+platform linux
