@@ -4,7 +4,7 @@ default	empty_counts	17.0
 default	log_counts_crossover	5.809641741478572
 default	d_std	0.5838539967164816
 default	cell_prob	0.1464170877354157
-default	cell_logit	-1.762983367132767
+default	cell_logit	-1.7629833671327668
 default	empty_UMI_threshold	15.0
 default	n_analysed	4354.0
 default	n_empty	0.0
@@ -30,7 +30,7 @@ total	empty_counts	17.0
 total	log_counts_crossover	5.809641741478572
 total	d_std	0.5838539967164816
 total	cell_prob	0.1464170877354157
-total	cell_logit	-1.762983367132767
+total	cell_logit	-1.7629833671327668
 total	empty_UMI_threshold	15.0
 total	n_analysed	4354.0
 total	n_empty	0.0
@@ -43,7 +43,7 @@ low30	empty_counts	8102.0
 low30	log_counts_crossover	9.930781124263994
 low30	d_std	0.18615829636065334
 low30	cell_prob	0.007288629737609329
-low30	cell_logit	-4.914124393715412
+low30	cell_logit	-4.9141243937154115
 low30	empty_UMI_threshold	4042.0
 low30	n_analysed	1029.0
 low30	n_empty	0.0

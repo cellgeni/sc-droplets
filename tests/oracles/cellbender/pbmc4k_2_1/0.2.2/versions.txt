@@ -3,5 +3,6 @@ python 3.7.12
 numpy 1.21.6
 scipy 1.7.3
 torch 1.12.1
-platform darwin x86_64
+platform linux x86_64
+simd AVX512F AVX512_SKX AVX2
 source d92cfc5a55c8b1771348468035993c52df975170
