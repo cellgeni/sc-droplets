@@ -30,6 +30,8 @@ come.
 | `starsolo-cellranger2.2` | STARsolo | rank-threshold | v1: ≥2.7.3a, <2.7.5a; v2: ≥2.7.5a, <2.7.8a; v3: ≥2.7.8a | [STARsolo CellRanger2.2](starsolo/cellranger2-2.md) |
 | `starsolo-emptydrops-cr` | STARsolo | statistical-test | v1: ≥2.7.8a | [STARsolo EmptyDrops_CR](starsolo/emptydrops-cr.md) |
 | `starsolo-topcells` | STARsolo | rank-threshold | v1: ≥2.7.3a, <2.7.5a; v2: ≥2.7.5a, <2.7.6a; v3: ≥2.7.6a | [STARsolo TopCells](starsolo/topcells.md) |
+| `umitools-density` | UMI-tools | density | v0.5: ≥0.5.0 | [UMI-tools whitelist, density valley](umitools/density.md) |
+| `umitools-distance` | UMI-tools | knee | v1.0: ≥1.0.0 | [UMI-tools whitelist, distance knee](umitools/distance.md) |
 <!-- methods-table:end -->
 
 ## Reading a method name

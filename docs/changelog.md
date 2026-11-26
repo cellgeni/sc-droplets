@@ -41,4 +41,13 @@ Then DropletUtils, checked against every release from 1.0 to 1.30 run in R:
   alias-table, exponential and gamma sampling; R's `smooth.spline` and `predict`; R's `lgamma`,
   long-double `sum` and `cumsum`, `optimize`, `quantile` and `p.adjust`; edgeR's Good-Turing.
 - The 10x HDF5 reader keeps the file's attributes (chemistry, Cell Ranger version).
+
+Then UMI-tools:
+
+- `umitools-distance` (`whitelist --knee-method=distance`, 1.0.0+) and `umitools-density`
+  (`--knee-method=density`, 0.5.0+), with `--set-cell-number`, `--expect-cells` and
+  `--allow-threshold-error`. Given the same per-barcode counts, the barcodes of UMI-tools 0.5.5,
+  1.0.0 and 1.1.6's own functions on pbmc_1k_v3 and pbmc4k.
+- `sc-droplets plot diagnostics` draws their cumulative curve and chord, or their density and
+  valleys.
 - A validation suite on public data (`-m integration`), and an oracle workflow that runs STAR.

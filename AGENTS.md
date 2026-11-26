@@ -47,7 +47,7 @@ Markers: `integration` (downloads public data or builds oracle environments; nee
   `cellranger.py` holds the chemistry tables (ambient range and FDR per release and kit family),
   OrdMag v2/v7, the EmptyDrops steps, and the aggregate and high-occupancy filters.
   `dropletutils.py` holds barcodeRanks (four knee rules), emptyDrops, emptyDropsCellRanger and
-  defaultDrops.
+  defaultDrops. `umitools.py` holds `whitelist`'s distance knee and density valley.
 - `primitives/`: the arithmetic of each tool, reused across methods: `goodturing` (Cell Ranger's,
   STAR's and edgeR's), `legacysort` (numpy's classic quicksort, with a `window` so a slice is
   cheap: tie order decides Cell Ranger's ambient droplets), `stdrandom` (C++ `mt19937` and
@@ -98,8 +98,9 @@ Markers: `integration` (downloads public data or builds oracle environments; nee
   STARsolo against STAR's calls in `tests/oracles/starsolo/` (made by `oracles/starsolo/run.sh`
   in the `Oracles` workflow, which runs on branch pushes that touch `oracles/`), DropletUtils
   against R's outputs in `tests/oracles/dropletutils/` (made by `oracles/dropletutils/run.sh`:
-  one pixi environment per release from bioconda, `set.seed(100)`). A new method adds its cases
-  here.
+  one pixi environment per release from bioconda, `set.seed(100)`), UMI-tools against its own
+  whitelist functions in `tests/oracles/umitools/` (made by `oracles/umitools/run.sh`: one pixi
+  environment per release, given the matrix's totals). A new method adds its cases here.
 - `tests/oracles/dropletutils/fixtures/` (from `oracles/dropletutils/fixtures.R`): R's own values
   for the primitives (`smooth.spline`, `lgamma`, `sum`, Good-Turing, Monte Carlo counts).
 - CLI tests use a module-level `CliRunner`; strip ANSI codes and collapse whitespace before

@@ -33,7 +33,7 @@ uv run pytest -m "not integration"
 | `src/sc_droplets/io/` | readers (10x HDF5, MTX folders, pipeline folders) and writers |
 | `src/sc_droplets/methods/` | one module per tool page |
 | `src/sc_droplets/primitives/` | each tool's arithmetic, shared: Good-Turing variants, numpy's classic quicksort, C++, R and Boost random numbers, R's `smooth.spline`, `lgamma`, long-double sums and statistics, the Monte Carlo engines |
-| `oracles/` | scripts that run the original tools on public data (`.github/workflows/oracles.yml`); their output goes to `tests/oracles/`. `oracles/dropletutils/` runs every DropletUtils release from bioconda with pixi |
+| `oracles/` | scripts that run the original tools on public data (`.github/workflows/oracles.yml`); their output goes to `tests/oracles/`. `oracles/dropletutils/` runs every DropletUtils release from bioconda with pixi, `oracles/umitools/` UMI-tools' own whitelist functions |
 | `src/sc_droplets/pl/` | plots |
 | `src/sc_droplets/cli.py` | the command; `call <id>` subcommands are built from the registry |
 | `docs/` | this site; `docs/_research/` holds the source-reading notes the pages start from |

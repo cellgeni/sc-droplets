@@ -18,6 +18,11 @@ emptyDropsCellRanger p-value, FDR and call must be those of DropletUtils itself,
 release by release, saved in tests/oracles/dropletutils by
 oracles/dropletutils/run.sh (bioconda's builds, R's set.seed(100)).
 
+UMI-tools: the whitelist of UMI-tools' own functions, release by release (0.5.5,
+1.0.0, 1.1.6, each with the numpy and scipy of its bioconda build), given the
+matrix's per-barcode UMI totals; saved in tests/oracles/umitools by
+oracles/umitools/run.sh.
+
 The datasets are downloaded once (tests/datasets.py) into $SC_DROPLETS_DATA.
 """
 
@@ -220,3 +225,41 @@ def test_dropletutils_tests_give_rs_p_values_and_cells(path, method):
     cut = 0.001 if method.endswith("emptydrops") else 0.01
     expected = set(index[fdr <= cut]) | set(np.flatnonzero(np.rint(np.asarray(result.totals)) >= retain))
     assert set(np.flatnonzero(result.is_cell)) == expected
+
+
+# ---------------------------------------------------------------------------
+# UMI-tools
+# ---------------------------------------------------------------------------
+
+UT_ORACLES = sorted(p for p in (ORACLES / "umitools").glob("*/*/*.txt.gz"))
+
+
+def _ut_case(path: Path):
+    """Dataset, release, method spec and parameters of one UMI-tools oracle file."""
+    case = path.name[: -len(".txt.gz")]
+    rule, _, option = case.partition("_")
+    params = {}
+    if option.startswith("n"):
+        params["n_cells"] = int(option[1:])
+    elif option.startswith("expect"):
+        params["expect_cells"] = int(option[len("expect"):])
+    return path.parent.parent.name, path.parent.name, f"umitools-{rule}", params
+
+
+def test_there_are_umitools_oracles_to_check():
+    assert len(UT_ORACLES) >= 30
+
+
+@pytest.mark.parametrize("path", UT_ORACLES, ids=[f"{p.parent.parent.name}-{p.parent.name}-{p.name[:-7]}" for p in UT_ORACLES])
+def test_umitools_whitelist_calls_umitools_barcodes(path):
+    name, release, method, params = _ut_case(path)
+    expected = gzip.open(path).read().decode().split()
+    if expected == ["none"]:
+        with pytest.raises(ValueError, match="No local minima was accepted"):
+            scd.call(_read(name), f"{method}@{release}", inplace=False, **params)
+        result = scd.call(_read(name), f"{method}@{release}", inplace=False, allow_threshold_error=True, **params)
+        assert result.n_cells == 0
+        return
+    result = scd.call(_read(name), f"{method}@{release}", inplace=False, **params)
+    ours = _called(result)
+    assert ours == set(expected), f"missing {sorted(set(expected) - ours)[:10]}, extra {sorted(ours - set(expected))[:10]}"

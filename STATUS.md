@@ -57,6 +57,16 @@ Milestones, each its own pull request after the scaffold:
     multinomial runs); `known.empty`.
 - [ ] 3. UMI-tools, alevin, alevin-fry, Drop-seq (dropbead), bustools, dropEst bounds, zUMIs,
   Kneedle (kneed 0.8.5 / 0.8.6 / 0.9.0, vendored), cellsweep empty step, CellBender priors.
+  One pull request into `dev` per tool (or small group), so each review stays small.
+  - [x] UMI-tools (`milestone-3-umitools`): `umitools-distance` (1.0.0+), `umitools-density`
+    (0.5.0+). Ported from its MIT source; one variant each (the thresholds never changed).
+    Oracle: `oracles/umitools/run.sh` calls UMI-tools' own functions in 0.5.5, 1.0.0 and 1.1.6
+    (bioconda, each with its numpy and scipy) on the matrix's per-barcode totals of pbmc_1k_v3
+    and pbmc4k: identical barcodes in all 32 cases. Not offered: `--ed-above-threshold`
+    (needs the barcode sequences).
+  - [ ] Kneedle, cellsweep, CellBender priors (Python).
+  - [ ] alevin, alevin-fry, bustools (C++ / Rust).
+  - [ ] Drop-seq dropbead, dropEst, zUMIs (R).
 - [ ] 4. Generic MAD / Otsu / multi-Otsu / KDE valley / GMM (1-D, 2-D) / NB mixture; splicing
   readers, `pl.splicing`, knee tracks, separation scores; `pl.density`, `pl.compare`, `pl.qc`,
   `report`; the comparison-on-public-data page.

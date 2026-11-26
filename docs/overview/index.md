@@ -60,7 +60,7 @@ closed).
 | DropletUtils | [barcodeRanks](../methods/dropletutils/barcoderanks.md) (four knee definitions), [emptyDrops](../methods/dropletutils/emptydrops.md) (ten behaviours), [emptyDropsCellRanger](../methods/dropletutils/emptydropscellranger.md), [defaultDrops](../methods/dropletutils/defaultdrops.md) | implemented; 1.0–1.2's Dirichlet-multinomial (R's `rgamma`) refused |
 | CellBender | prior estimates of expected cells and total droplets (0.1, 0.2, 0.3–0.4) | planned, 0.1.0; the VAE is docs only |
 | cellsweep | empty-droplet step: autoknee, kneed, mx_filter | planned, 0.1.0 |
-| UMI-tools | whitelist distance and density | planned, 0.1.0 |
+| UMI-tools | whitelist [distance](../methods/umitools/distance.md) and [density](../methods/umitools/density.md) | implemented |
 | alevin (salmon 1.x) | knee with Gauss correction, expect cells, force cells | planned, 0.1.0 |
 | alevin-fry | knee distance, expect cells, force cells, unfiltered permit list | planned, 0.1.0 |
 | Drop-seq | dropbead knee | planned, 0.1.0 |
