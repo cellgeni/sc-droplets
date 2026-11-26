@@ -61,7 +61,7 @@ closed).
 | CellBender | [priors](../methods/cellbender/prior.md): probable cells, analysed and surely-empty droplets, from mode and median (0.1, 0.2) or Otsu and a kernel density (0.3–0.4) | implemented; the VAE is docs only |
 | cellsweep | [empty-droplet step](../methods/cellsweep/empty.md): second derivative (to 1.0.1), kneed (1.0.2), mx_filter | implemented |
 | UMI-tools | whitelist [distance](../methods/umitools/distance.md) and [density](../methods/umitools/density.md) | implemented |
-| alevin (salmon 1.x) | knee with Gauss correction, expect cells, force cells | planned, 0.1.0 |
+| alevin (salmon 0.11 – 1.10) | [initial whitelist](../methods/alevin/initial-whitelist.md): tangent knee with a kernel-density correction, expected cells, forced cells; the low-confidence band | implemented; the naive Bayes classifier is planned |
 | alevin-fry | [permit list](../methods/alevinfry/permit-list.md): knee distance, expect cells, force cells, unfiltered permit list; 0.12–0.17's own rules for Flex | implemented |
 | Drop-seq | dropbead knee | planned, 0.1.0 |
 | bustools / kb | [allowlist](../methods/bustools/allowlist.md) (`kb --filter bustools`) | implemented |

@@ -54,7 +54,7 @@ splits the validation suite into two jobs, each on every core with pytest-xdist'
   `cellsweep.py` holds cellsweep's empty-droplet step; `cellbender.py` CellBender's priors (the
   mode and median of 0.1–0.2, the Otsu and kernel-density heuristics of 0.3+); `alevinfry.py`
   alevin-fry's permit-list rules; `bustools.py` bustools' allowlist (the sample of the first BUS
-  blocks simulated from the matrix).
+  blocks simulated from the matrix); `alevin.py` alevin's initial whitelist (salmon 0.11 – 1.10).
 - `primitives/`: the arithmetic of each tool, reused across methods: `goodturing` (Cell Ranger's,
   STAR's and edgeR's), `legacysort` (numpy's classic quicksort, with a `window` so a slice is
   cheap: tie order decides Cell Ranger's ambient droplets), `stdrandom` (C++ `mt19937` and
@@ -117,7 +117,9 @@ splits the validation suite into two jobs, each on every core with pytest-xdist'
   `whitelist` in `tests/oracles/bustools/` (`oracles/bustools/run.sh`: a BUS file written from the
   matrix, bioconda's builds), alevin-fry against programs built from its own source in
   `tests/oracles/alevinfry/` (`oracles/alevinfry/run.sh`: `harness.py` copies the knee and the
-  rules out of each tag). A new method adds its cases here.
+  rules out of each tag), alevin against programs built from salmon's own `Alevin.cpp` in
+  `tests/oracles/alevin/` (`oracles/alevin/run.sh`: `harness.py` copies its functions out of
+  each tag; conda-forge's gcc). A new method adds its cases here.
 - `tests/oracles/dropletutils/fixtures/` (from `oracles/dropletutils/fixtures.R`): R's own values
   for the primitives (`smooth.spline`, `lgamma`, `sum`, Good-Turing, Monte Carlo counts).
 - CLI tests use a module-level `CliRunner`; strip ANSI codes and collapse whitespace before
