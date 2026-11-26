@@ -17,4 +17,4 @@ whitelist       Generate a whitelist from a BUS file
 
 Running bustools <CMD> without arguments prints usage information for <CMD>
 
-platform Darwin arm64
+platform Linux x86_64
