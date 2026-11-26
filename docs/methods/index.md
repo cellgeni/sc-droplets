@@ -18,6 +18,7 @@ come.
 <!-- methods-table:start -->
 | Method | Tool | Category | Versions | Page |
 |---|---|---|---|---|
+| `bustools-allowlist` | bustools | rank-threshold | default: ≥0.39.3 | [bustools allowlist](bustools/allowlist.md) |
 | `cellranger` | Cell Ranger | statistical-test | v2: ≥2.0, <3.0; v3: ≥3.0, <4.0; v7.2: ≥7.2, <8.0; v8.0: ≥8.0, <8.0.1; v8.0.1: ≥8.0.1, <9.0; v9.0: ≥9.0, <10.0; v10.0: ≥10.0, <10.1; v10.1: ≥10.1 | [Cell Ranger cell calling](cellranger/cellranger.md) |
 | `cellranger-ordmag` | Cell Ranger | rank-threshold | v2: ≥2.0, <4.0; v7.2: ≥7.2, <8.0; v8.0: ≥8.0, <8.0.1; v8.0.1: ≥8.0.1, <9.0; v9.0: ≥9.0, <10.0; v10.0: ≥10.0, <10.1; v10.1: ≥10.1 | [Cell Ranger OrdMag](cellranger/ordmag.md) |
 | `cellbender-prior` | CellBender | density | v0.1: ≥0.1.0, <0.2.0; v0.2: ≥0.2.0, <0.3.0; v0.3: ≥0.3.0 | [CellBender priors](cellbender/prior.md) |
