@@ -204,7 +204,9 @@ jobs:
           retention-days: 30
 
   cellbender:
-    runs-on: ubuntu-latest
+    # torch 1.12.1, the last build for Python 3.7 (CellBender 0.1 and 0.2), asks for an executable
+    # stack, which the glibc of Ubuntu 26.04 refuses to load; 24.04's still allows it.
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     name: CellBender priors
 
