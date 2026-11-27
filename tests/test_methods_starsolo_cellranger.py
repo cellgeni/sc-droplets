@@ -178,11 +178,29 @@ def test_each_genome_gets_its_own_ordmag_and_the_cells_are_their_union():
     assert set(result.diagnostics["groups"]) == {"hg-1"}
 
 
-def test_releases_without_public_source_are_refused(adata):
+@pytest.mark.parametrize("spec", ["cellranger@6.0", "cellranger@7.1.0", "cellranger-ordmag@6.1", "cellranger@1.3"])
+def test_releases_without_public_source_or_a_matching_rule_are_refused(adata, spec):
     with pytest.raises(scd.UnsupportedVersion, match="cannot be reproduced"):
-        scd.call(adata, "cellranger@5.0")
-    with pytest.raises(scd.UnsupportedVersion, match="cannot be reproduced"):
-        scd.call(adata, "cellranger@1.3")
+        scd.call(adata, spec)
+
+
+def test_from_4_0_the_simulation_draws_from_a_stream_of_its_own(adata, monkeypatch):
+    """3.x simulates on the stream OrdMag's bootstraps have already used; 4.0 and 5.x
+    seed a fresh one, as 10x's 4.0 outputs show."""
+    from sc_droplets.methods import cellranger as cr
+
+    first = {}
+
+    def record(counts, initial, state, num_sims=cr.NUM_SIMS):
+        first[release] = state.random_sample()
+        return None
+
+    monkeypatch.setattr(cr, "nonambient_v3", record)
+    for release in ("3.0", "4.0", "5.0"):
+        scd.call(adata, f"cellranger@{release}", expect_cells=300, inplace=False)
+    fresh = np.random.RandomState(0).random_sample()
+    assert first["4.0"] == first["5.0"] == fresh
+    assert first["3.0"] != fresh
 
 
 # --- Cell Ranger 7.2+ ---------------------------------------------------------------
@@ -404,6 +422,24 @@ def test_antibody_only_runs_remove_aggregates_before_ordmag():
     assert not result.is_cell[300]
     assert np.asarray(result.classes)[300] == "removed"
     assert result.is_cell[:200].sum() > 150
+
+
+def test_from_5_0_antibody_aggregates_are_removed_before_ordmag():
+    adata = _antibody_only()
+    before = scd.call(adata, "cellranger@4.0", inplace=False)
+    assert before.is_cell[300] and "aggregates_removed" not in before.diagnostics
+    after = scd.call(adata, "cellranger@5.0", inplace=False)
+    assert after.diagnostics["aggregates_removed"] >= 1
+    assert not after.is_cell[300] and np.asarray(after.classes)[300] == "removed"
+    assert after.is_cell[:200].sum() > 150
+
+
+def test_an_aggregate_list_is_refused_before_5_0(tmp_path):
+    (tmp_path / "aggregate_barcodes.csv").write_text("barcode\nB00300-1\n")
+    with pytest.raises(ValueError, match="before 5.0 takes no aggregate_barcodes"):
+        scd.call(_antibody_only(), "cellranger@4.0", aggregate_barcodes=str(tmp_path / "aggregate_barcodes.csv"), inplace=False)
+    result = scd.call(_antibody_only(), "cellranger@5.0", aggregate_barcodes=str(tmp_path / "aggregate_barcodes.csv"), inplace=False)
+    assert result.diagnostics["aggregates_removed"] == 1 and not result.is_cell[300]
 
 
 def test_the_global_minimum_counts_gene_expression_even_in_antibody_only_runs():
