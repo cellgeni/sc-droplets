@@ -56,6 +56,27 @@ def test_generic_rules_need_a_barcode_at_the_floor(spec):
         scd.call(_matrix([1, 2, 3]), spec, inplace=False)
 
 
+@pytest.mark.parametrize("spec", ["mad", "otsu", "multiotsu", "kde-valley"])
+def test_rules_on_a_log_scale_leave_out_zero_counts_whatever_the_floor(spec):
+    """A floor of 0 used to make zero-count barcodes candidates: their log, -inf, broke the
+    histogram and the density."""
+    values, _ = _two_populations()
+    with_zeros = _matrix(np.concatenate([np.zeros(50), values]))
+    at_zero = scd.call(with_zeros, spec, min_counts=0, inplace=False)
+    at_one = scd.call(with_zeros, spec, min_counts=1, inplace=False)
+    assert at_zero.thresholds == at_one.thresholds
+    assert not at_zero.is_cell[:50].any()
+
+
+def test_rules_off_a_log_scale_keep_zero_counts_as_candidates():
+    values, _ = _two_populations()
+    with_zeros = _matrix(np.concatenate([np.zeros(50), values]))
+    plain = scd.call(with_zeros, "otsu", min_counts=0, transform="none", inplace=False)
+    assert plain.diagnostics["histogram_counts"].sum() == values.size + 50
+    unlogged = scd.call(with_zeros, "mad", min_counts=0, log=False, inplace=False)
+    assert unlogged.diagnostics["histogram_counts"].sum() == values.size + 50
+
+
 @pytest.mark.parametrize("name", ['mad', 'otsu', 'multiotsu', 'kde-valley'])
 def test_cli_calls_the_generic_rule(name, sim, tmp_path):
     path = tmp_path / "sim.h5ad"

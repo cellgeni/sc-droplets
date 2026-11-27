@@ -33,11 +33,16 @@ class RuleError(ValueError):
     """Where a generic rule cannot place its cut."""
 
 
-def candidates(values: np.ndarray, min_counts: float) -> np.ndarray:
-    """Indices of the barcodes with at least `min_counts`; the others are empty."""
-    index = np.flatnonzero(values >= min_counts)
+def candidates(values: np.ndarray, min_counts: float, log: bool) -> np.ndarray:
+    """Indices of the barcodes with at least `min_counts`; the others are empty. A rule on a log
+    scale also leaves out barcodes with no count, whatever the floor: their log is -inf."""
+    keep = values >= min_counts
+    if log:
+        keep &= values > 0
+    index = np.flatnonzero(keep)
     if index.size == 0:
-        raise RuleError(f"no barcode has at least --min-counts {min_counts:g}")
+        above_zero = " and above zero" if log and min_counts <= 0 else ""
+        raise RuleError(f"no barcode has at least --min-counts {min_counts:g}{above_zero}")
     return index
 
 
@@ -194,7 +199,7 @@ class Mad(Method):
 
     def run(self, droplets, params, variant, random_state):
         values = droplets.values(params.unit)
-        index = candidates(values, params.min_counts)
+        index = candidates(values, params.min_counts, log=params.log)
         metric = clog2(values[index]) if params.log else values[index].astype(np.float64)
         median = r_median(metric)
         mad = r_mad(metric, median)
@@ -246,7 +251,7 @@ class Otsu(Method):
 
     def run(self, droplets, params, variant, random_state):
         values = droplets.values(params.unit)
-        index = candidates(values, params.min_counts)
+        index = candidates(values, params.min_counts, log=params.transform == "log10")
         x = transform(values[index], params.transform)
         cut = threshold_otsu(x, params.bins)
         is_cell = np.zeros(values.size, dtype=bool)
@@ -295,7 +300,7 @@ class MultiOtsu(Method):
 
     def run(self, droplets, params, variant, random_state):
         values = droplets.values(params.unit)
-        index = candidates(values, params.min_counts)
+        index = candidates(values, params.min_counts, log=params.transform == "log10")
         x = transform(values[index], params.transform)
         cuts = threshold_multiotsu(x, params.classes, params.bins)
         level = np.digitize(x, bins=cuts)
@@ -376,7 +381,7 @@ class KdeValley(Method):
     def run(self, droplets, params, variant, random_state):
         bandwidth = bandwidth_method(params.bandwidth)
         values = droplets.values(params.unit)
-        index = candidates(values, params.min_counts)
+        index = candidates(values, params.min_counts, log=True)
         x = clog10(values[index])
         found = density_valley(x, bandwidth)
         cut_log = float(found["grid"][found["valley"]])

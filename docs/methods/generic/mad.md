@@ -33,7 +33,8 @@ quality control, `scuttle::isOutlier(log = TRUE, type = "lower")`, applied to ce
 
 1. Keep the barcodes whose value $$v_b$$ (total UMIs by default) is at least `--min-counts`
    (100: DropletUtils' `lower`, below which emptyDrops takes a barcode to be empty). They are the
-   candidates; every other barcode is empty.
+   candidates; every other barcode is empty. With `--log`, a barcode with no count is never a
+   candidate, whatever the floor: its log is $$-\infty$$.
 2. $$m_b = \log_2 v_b$$ (the C library's `log2`, as R calls it).
 3. The median $$\tilde m$$ and the MAD, scaled to estimate a standard deviation under normality:
    $$\operatorname{MAD} = 1.4826 \cdot \operatorname{median}_b |m_b - \tilde m|$$ (R's `median` and

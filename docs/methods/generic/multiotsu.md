@@ -35,7 +35,8 @@ its training droplets this way, on $$\operatorname{arcsinh}$$ of the genes detec
 1. Keep the barcodes whose value $$v_b$$ is at least `--min-counts` (1: every barcode with a
    count). The others are empty.
 2. $$x_b = \log_{10} v_b$$ (the C library's `log10`), or $$\operatorname{arcsinh} v_b$$, or
-   $$v_b$$ (`--transform`).
+   $$v_b$$ (`--transform`). On the $$\log_{10}$$ scale a barcode with no count is never a
+   candidate, whatever the floor; the other two keep it.
 3. A histogram of $$x$$ in `--bins` (256) equal bins, normalised to probabilities $$p_i$$ and held
    as 32-bit floats, as everything below is.
 4. Cumulative moments $$P_i = \sum_{j \le i} p_j$$ and $$S_i = p_0 + \sum_{1 \le j \le i} j\,p_j$$.

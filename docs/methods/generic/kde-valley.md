@@ -33,7 +33,8 @@ BAP, DropSift and DropletQC.
 ## How it works
 
 1. Keep the barcodes whose value $$v_b$$ is at least `--min-counts` (100). The others are empty.
-2. $$x_b = \log_{10} v_b$$ (the C library's `log10`).
+2. $$x_b = \log_{10} v_b$$ (the C library's `log10`). A barcode with no count is never a
+   candidate, whatever the floor.
 3. A Gaussian kernel density of $$x$$ (SciPy's `gaussian_kde`) with bandwidth factor
    `--bandwidth`: `scott` (default, $$n^{-1/5}$$), `silverman`, or a number, which multiplies the
    standard deviation of $$x$$ (UMI-tools uses 0.1).

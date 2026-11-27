@@ -35,7 +35,9 @@ uses the same cut to separate cells from empty droplets before it trains (see it
 
 1. Keep the barcodes whose value $$v_b$$ is at least `--min-counts` (100). The others are empty.
 2. $$x_b = \log_{10} v_b$$ (the C library's `log10`); `--transform arcsinh` takes
-   $$\operatorname{arcsinh} v_b$$ instead, `none` the values themselves.
+   $$\operatorname{arcsinh} v_b$$ instead, `none` the values themselves. On the $$\log_{10}$$
+   scale a barcode with no count is never a candidate, whatever the floor; the other two keep
+   it.
 3. A histogram of $$x$$ in `--bins` (256) equal bins from its minimum to its maximum
    (`numpy.histogram`), with bin centres $$c_i$$ and counts $$h_i$$ held as 32-bit floats.
 4. For each split after bin $$i$$: the weights $$w_1(i) = \sum_{j \le i} h_j$$ and
