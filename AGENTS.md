@@ -56,7 +56,9 @@ splits the validation suite into two jobs, each on every core with pytest-xdist'
   alevin-fry's permit-list rules; `bustools.py` bustools' allowlist (the sample of the first BUS
   blocks simulated from the matrix); `alevin.py` alevin's initial whitelist (salmon 0.11 – 1.10);
   `dropseq.py` dropbead's cell number; `dropest.py` dropestr's bounds; `zumis.py` zUMIs' detection
-  with inflection's `uik`.
+  with inflection's `uik`. `generic.py` holds the rules of no single tool: top N, a fixed
+  threshold, MAD outliers (scuttle's `isOutlier`), Otsu and multi-Otsu (scikit-image's), and a
+  kernel-density valley; the distribution rules take candidates above a floor (`--min-counts`).
 - `primitives/`: the arithmetic of each tool, reused across methods: `goodturing` (Cell Ranger's,
   STAR's and edgeR's), `legacysort` (numpy's classic quicksort, with a `window` so a slice is
   cheap: tie order decides Cell Ranger's ambient droplets), `stdrandom` (C++ `mt19937` and
@@ -66,7 +68,7 @@ splits the validation suite into two jobs, each on every core with pytest-xdist'
   `quantile`, `p.adjust`, `optimize`, `seq.int`), `rmath` (R's `lgamma`; R's long-double
   `sum`/`cumsum`, emulated where numpy has no 80-bit type), `simulate` (Monte Carlo engines:
   Cell Ranger 3.x–8.x with its block refills, 9.0+ PCG64, STAR, DropletUtils), `multinomial`,
-  `pvalues`, `rounding`.
+  `pvalues`, `rounding`, `otsu` (scikit-image's Otsu and multi-Otsu, in 32-bit floats as 0.20+).
   - Where the original calls the C library (`log`, `log10`), call it too (`math`, `rmath.clog`):
     numpy's vectorised `log` can differ in the last bit (AVX-512), and some results
     (DropletUtils' alpha) depend on those bits. Square with `x * x`, not `x ** 2` (libm `pow`).
@@ -123,7 +125,11 @@ splits the validation suite into two jobs, each on every core with pytest-xdist'
   `tests/oracles/alevin/` (`oracles/alevin/run.sh`: `harness.py` copies its functions out of
   each tag; conda-forge's gcc), dropbead, dropEst and zUMIs against their own R functions in
   `tests/oracles/{dropseq,dropest,zumis}/` (`oracles/<tool>/run.sh`: the R files sourced from each
-  repository at a commit or tag, R from conda-forge). A new method adds its cases here.
+  repository at a commit or tag, R from conda-forge), and the generic rules against scuttle's
+  `isOutlier` and scikit-image's `threshold_otsu` and `threshold_multiotsu` in
+  `tests/oracles/generic/` (`oracles/generic/run.sh`: scuttle from bioconda with the DropletUtils
+  oracle's empty `GenomeInfoDbData`; scikit-image's x86-64 builds, as its arm64 ones fuse a
+  multiply-add). A new method adds its cases here.
 - `tests/oracles/dropletutils/fixtures/` (from `oracles/dropletutils/fixtures.R`): R's own values
   for the primitives (`smooth.spline`, `lgamma`, `sum`, Good-Turing, Monte Carlo counts).
 - CLI tests use a module-level `CliRunner`; strip ANSI codes and collapse whitespace before
