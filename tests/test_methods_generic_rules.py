@@ -300,6 +300,15 @@ def test_diagnostics_of_the_histogram_rules_draw_their_cuts(adata):
         assert len(dashed) == n_cuts and panel.get_yscale() == "log"
 
 
+def test_diagnostics_of_the_mixtures_draw_their_components(adata):
+    panel = scd.pl.diagnostics(adata, "gmm:components=3").axes[1]
+    labels = [line.get_label() for line in panel.get_lines()]
+    assert sum(label.startswith("component") for label in labels) == 3
+    assert sum(label.endswith("(cells)") for label in labels) == 1
+    plane = scd.pl.diagnostics(adata, "gmm-2d").axes[1]
+    assert len(plane.patches) == 2 and plane.get_ylabel() == "log10 genes detected"
+
+
 def test_diagnostics_of_kde_valley_marks_the_peaks_and_the_valley(adata):
     figure = scd.pl.diagnostics(adata, "kde-valley")
     panel = figure.axes[1]

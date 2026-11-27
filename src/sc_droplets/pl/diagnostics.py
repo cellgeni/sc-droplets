@@ -9,7 +9,10 @@ window). UMI-tools adds a second panel: for distance, the cumulative curve of
 the last pass with its chord and each pass's knee; for density, the kernel
 density of log10 counts with every valley and the chosen one (the generic
 kernel-density valley adds its peaks). MAD, Otsu and multi-Otsu add the
-candidates' histogram on their scale with the median and limit, or the cuts. Kneedle adds its
+candidates' histogram on their scale with the median and limit, or the cuts;
+the Gaussian mixture adds each component's density over it, and the
+two-dimensional mixture the candidates in its plane with each component's
+ellipse. Kneedle adds its
 difference curve with the maxima, their thresholds and the knee; cellsweep its
 rule's own curve (the second derivative, the Kneedle difference curve, or the
 two Gaussian components and their entropy).
@@ -63,6 +66,7 @@ def diagnostics(adata: Any, call: str, *, fig: Any = None):
     second = (_cellsweep_panel if diag.get("rule") in ("threshold", "kneed", "mx_filter")
               else _cumulative_panel if "passes" in diag else _density_panel if "density" in diag
               else _histogram_panel if "histogram_counts" in diag
+              else _mixture_plane_panel if "points_x" in diag
               else _difference_panel if "difference_x" in diag else None)
     if fig is None:
         fig = plt.figure(figsize=(13, 4.2) if has_test else (12.8, 4.8) if second else (6.4, 4.8))
@@ -195,15 +199,62 @@ def _histogram_panel(ax, record, curve) -> None:
     edges = np.asarray(diag["histogram_edges"], dtype=float)
     ax.stairs(counts, edges, fill=True, color=CURVE_COLOUR, alpha=0.35, label="candidates")
     ax.stairs(counts, edges, color=CURVE_COLOUR, lw=0.8)
+    if "mixture_means" in diag:
+        _mixture_curves(ax, diag, counts.sum() * (edges[1] - edges[0]), (edges[0], edges[-1]))
     cuts = np.asarray(diag.get("cuts", []), dtype=float)
     labels = list(diag.get("cut_labels", []))
     for i, (cut, label) in enumerate(zip(cuts, labels)):
         ax.axvline(cut, color=PALETTE[(1 + i) % len(PALETTE)], ls="--", lw=1.2, label=f"{label}: {cut:.3g}")
     ax.set_yscale("log")
+    ax.set_ylim(0.5, max(float(counts.max()), 1.0) * 2)  # the components' tails would stretch it
     ax.set_xlabel(str(diag.get("histogram_label", "value")))
     ax.set_ylabel("barcodes")
     ax.set_title(f"{record.get('title', '')}: the candidates", fontsize="medium")
     ax.legend(frameon=False, fontsize="small")
+    ax.grid(True, alpha=0.3)
+
+
+def _mixture_curves(ax, diag, scale: float, span) -> None:
+    """Each fitted component's density, scaled to the histogram's counts; the cell component solid."""
+    from scipy.stats import norm
+
+    means = np.asarray(diag["mixture_means"], dtype=float)
+    sds = np.asarray(diag["mixture_sds"], dtype=float)
+    weights = np.asarray(diag["mixture_weights"], dtype=float)
+    cell = int(diag.get("cell_component", int(np.argmax(means))))
+    grid = np.linspace(span[0], span[1], 400)
+    for k in range(means.size):
+        y = scale * weights[k] * norm.pdf(grid, means[k], sds[k])
+        ax.plot(grid, np.where(y > 0, y, np.nan), color=PALETTE[2 + k % (len(PALETTE) - 2)],
+                lw=1.4 if k == cell else 1.0, ls="-" if k == cell else ":",
+                label=f"component {k + 1}{' (cells)' if k == cell else ''}")
+
+
+def _mixture_plane_panel(ax, record, curve) -> None:
+    """A two-dimensional mixture: the candidates by call, and each component's 2-SD ellipse."""
+    from matplotlib.patches import Ellipse
+
+    diag = dict(record.get("diagnostics", {}))
+    x = np.asarray(diag["points_x"], dtype=float)
+    y = np.asarray(diag["points_y"], dtype=float)
+    cell = np.asarray(diag["points_cell"], dtype=bool)
+    ax.scatter(x[~cell], y[~cell], s=3, color="#999999", linewidths=0, label="not cells", zorder=1)
+    ax.scatter(x[cell], y[cell], s=3, color=PALETTE[0], linewidths=0, label="cells", zorder=2)
+    means = np.asarray(diag["mixture_means"], dtype=float)
+    covariances = np.asarray(diag["mixture_covariances"], dtype=float)
+    top = int(diag.get("cell_component", int(np.argmax(means[:, 0]))))
+    for k in range(means.shape[0]):
+        values, vectors = np.linalg.eigh(covariances[k])
+        angle = float(np.degrees(np.arctan2(vectors[1, -1], vectors[0, -1])))
+        width, height = 4 * np.sqrt(np.maximum(values[::-1], 0))
+        ax.add_patch(Ellipse(tuple(means[k]), width, height, angle=angle, fill=False, zorder=3,
+                             color=PALETTE[2 + k % (len(PALETTE) - 2)], lw=1.4 if k == top else 1.0,
+                             ls="-" if k == top else ":",
+                             label=f"component {k + 1}{' (cells)' if k == top else ''}: 2 SD"))
+    ax.set_xlabel(str(diag.get("points_label_x", "x")))
+    ax.set_ylabel(str(diag.get("points_label_y", "y")))
+    ax.set_title(f"{record.get('title', '')}: the candidates", fontsize="medium")
+    ax.legend(frameon=False, fontsize="small", markerscale=3)
     ax.grid(True, alpha=0.3)
 
 
