@@ -279,6 +279,23 @@ def test_every_relative_link_points_at_a_page_and_heading_that_exist(path, targe
         assert anchor in _anchors(destination), f"{_label(path)}: no heading #{anchor} in {file}"
 
 
+ASSETS = [
+    (path, target)
+    for path in PAGES
+    for target in re.findall(
+        r"\{\{\s*['\"](/[^'\"]+)['\"]\s*\|\s*relative_url\s*\}\}",
+        re.sub(r"\{% raw %\}.*?\{% endraw %\}", "", path.read_text(), flags=re.S),  # examples, not links
+    )
+]
+
+
+@pytest.mark.parametrize("path, target", ASSETS, ids=[f"{_label(p)} -> {t}" for p, t in ASSETS])
+def test_every_site_asset_exists(path, target):
+    """Images are linked as `{{ '/assets/...' | relative_url }}`: a relative path would break under
+    the site's pretty permalinks, and the link check above skips them."""
+    assert (SITE / target.lstrip("/")).is_file(), f"{_label(path)} shows {target}, which does not exist"
+
+
 @pytest.mark.parametrize("path", PAGES, ids=[_label(p) for p in PAGES])
 def test_inline_formulas_use_kramdown_dollars(path):
     """kramdown reads `\\(` as an escaped parenthesis, so `\\(x\\)` showed as "(x)" on the

@@ -168,7 +168,8 @@ this file, for people; keep the two in step.
   Differences from the original, Validation, References.
 - Formulas: `$$...$$`, inline and display alike (kramdown turns them into `\(..\)` / `\[..\]`, which
   KaTeX renders). A literal `\(` in a page shows as "("; the docs test refuses it.
-- Link between pages as relative `page.md`.
+- Link between pages as relative `page.md`. Images: `{{ '/assets/...' | relative_url }}` (a
+  relative path breaks under `permalink: pretty`); the docs test checks they exist.
 - Preview: `cd docs && bundle install && bundle exec jekyll serve`.
 
 ## Status

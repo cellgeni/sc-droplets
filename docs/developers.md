@@ -67,7 +67,8 @@ written from.
    ```
 
 `tests/test_docs_are_accurate.py` fails until the page exists, lists the method's options, and
-the table is current.
+the table is current. Images on pages are linked as `{% raw %}{{ '/assets/...' | relative_url }}{% endraw %}`,
+which the same test checks.
 
 ## Tests
 
