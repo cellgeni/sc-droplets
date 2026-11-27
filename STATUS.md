@@ -181,8 +181,17 @@ Milestones, each its own pull request after the scaffold:
     barcodes that enter, which candidate point is accepted and the expected cells move the call;
     rounding, tie order and random numbers move a few barcodes. alevin-fry's `--expect-cells`
     takes the count at rank 0.99·E: with E = 3,000 on PBMC 1k it keeps 119,362 barcodes.
-  - [ ] The *planned* and *docs only* pages, from research notes (`docs/_research/planned-rna.md`,
-    `planned-atac.md`, `docs-only.md`).
+  - [x] The *planned* and *docs only* pages (`milestone-5-planned`), from the research notes
+    (`docs/_research/planned-rna.md`, `planned-atac.md`, `docs-only.md`): a template of their own
+    (At a glance, How it works, Versions, Parameters, Status, References), checked by the docs
+    test, with the indexes `docs/methods/planned/` and `docs/methods/documented/`. 0.2: CB2,
+    DIEM, DropletQC, DropSift, valiDrops, SiftCell, miQC, dropEst's classifier, alevin's naive
+    Bayes whitelist. 0.3: Cell Ranger ATAC (its outputs pin 1.0–2.1; 2.2 would be a gap) and
+    ARC, EmptyDropsMultiome, BAP, SADE. Documented only: CellBender's model, EmptyNN, dropkick,
+    BD Rhapsody, ScaleBio, CeleScope (STARsolo's EmptyDrops_CR at FDR 0.001 since 2.0, which the
+    package runs), Ambimux, AmbientMapper. Found in the sources: CB2's cluster test is not
+    reproducible (unseeded workers); SiftCell needs xgboost < 1.6; ScaleBio 2.1's
+    Benjamini-Hochberg may pad with too many zeros (a reading of the source).
   - [ ] The guides: choosing a method, reproducing a pipeline's calls, comparing methods on a
     sample, read-based methods, multiplexed and Flex runs.
   - [ ] Release 0.1.0.
