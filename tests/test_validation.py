@@ -713,3 +713,40 @@ def test_multiotsu_thresholds_are_scikit_images(name, release, fields):
     expected = [float(v) for v in fields[3].split(",")]
     result = scd.call(_read(name), "multiotsu", min_counts=floor, transform=how, classes=classes, inplace=False)
     assert [result.thresholds[f"threshold_{i + 1}"] for i in range(classes - 1)] == expected
+
+
+GMM_ROWS = _generic_rows("sklearn", "gmm.tsv")
+MCLUST_ROWS = _generic_rows("mclust", "mclust.tsv")
+
+
+def test_there_are_mixture_oracles_to_check():
+    assert len(GMM_ROWS) >= 32 and len(MCLUST_ROWS) >= 2
+
+
+def _floats(text):
+    return np.array([float(v) for v in text.split(",")])
+
+
+@pytest.mark.parametrize("name, release, fields", GMM_ROWS,
+                         ids=[f"{r[0]}-{r[1]}-{r[2][0]}d-k{r[2][1]}-tol{r[2][2]}" for r in GMM_ROWS])
+def test_mixtures_are_scikit_learns(name, release, fields):
+    dimensions, components, tol, max_iter = int(fields[0]), int(fields[1]), float(fields[2]), int(fields[3])
+    means, covariances, weights = _floats(fields[4]), _floats(fields[5]), _floats(fields[6])
+    iterations, cells = int(fields[7]), int(fields[8])
+    spec = "gmm" if dimensions == 1 else "gmm-2d"
+    result = scd.call(_read(name), spec, components=components, tol=tol, max_iter=max_iter, inplace=False)
+    diag = result.diagnostics
+    ours = (diag["mixture_means"], diag["mixture_sds"] ** 2) if dimensions == 1 else (
+        diag["mixture_means"], diag["mixture_covariances"])
+    assert np.allclose(np.ravel(ours[0]), means, rtol=1e-9, atol=0)
+    assert np.allclose(np.ravel(ours[1]), covariances, rtol=1e-9, atol=0)
+    assert np.allclose(diag["mixture_weights"], weights, rtol=1e-9, atol=0)
+    assert diag["iterations"] == iterations
+    assert result.n_cells == cells
+
+
+@pytest.mark.parametrize("name, release, fields", MCLUST_ROWS, ids=[r[0] for r in MCLUST_ROWS])
+def test_converged_gmm_is_at_least_as_likely_as_mclusts_fit(name, release, fields):
+    loglik = float(fields[2])
+    result = scd.call(_read(name), "gmm", tol=1e-8, max_iter=10000, inplace=False)
+    assert result.diagnostics["log_likelihood"] >= loglik - 1e-6 * abs(loglik)

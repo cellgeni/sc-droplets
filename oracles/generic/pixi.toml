@@ -1,6 +1,7 @@
 # The reference implementations of the generic rules, in their own environments: scuttle's
 # isOutlier (R, bioconda) for `mad`, scikit-image's threshold_otsu and threshold_multiotsu
-# (conda-forge) for `otsu` and `multiotsu`. Used by run.sh. On osx-64 the old R builds need the
+# (conda-forge) for `otsu` and `multiotsu`, scikit-learn's GaussianMixture for `gmm` and
+# `gmm-2d`, and mclust (R) to compare the converged mixture with. Used by run.sh. On osx-64 the old R builds need the
 # libc++ they were built against.
 [workspace]
 name = "generic-oracles"
@@ -25,8 +26,23 @@ python = "3.11.*"
 scikit-image = "==0.26.0"
 python = "3.13.*"
 
+[feature.sklearn152.dependencies]
+scikit-learn = "==1.5.2"
+python = "3.12.*"
+
+[feature.sklearn191.dependencies]
+scikit-learn = "==1.9.1"
+python = "3.13.*"
+
+[feature.mclust.dependencies]
+r-mclust = "==6.1.4"
+r-base = "4.5.*"
+
 [environments]
 scuttle104 = { features = ["scuttle104"], no-default-feature = true }
 scuttle122 = { features = ["scuttle122"], no-default-feature = true }
 sk020 = { features = ["sk020"], no-default-feature = true }
 sk026 = { features = ["sk026"], no-default-feature = true }
+sklearn152 = { features = ["sklearn152"], no-default-feature = true }
+sklearn191 = { features = ["sklearn191"], no-default-feature = true }
+mclust = { features = ["mclust"], no-default-feature = true }
