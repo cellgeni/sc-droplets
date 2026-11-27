@@ -40,6 +40,7 @@ come.
 | `starsolo-topcells` | STARsolo | rank-threshold | v1: ≥2.7.3a, <2.7.5a; v2: ≥2.7.5a, <2.7.6a; v3: ≥2.7.6a | [STARsolo TopCells](starsolo/topcells.md) |
 | `umitools-density` | UMI-tools | density | v0.5: ≥0.5.0 | [UMI-tools whitelist, density valley](umitools/density.md) |
 | `umitools-distance` | UMI-tools | knee | v1.0: ≥1.0.0 | [UMI-tools whitelist, distance knee](umitools/distance.md) |
+| `zumis-cell-barcodes` | zUMIs | knee | v2.5.6b: ≥2.5.6b | [zUMIs cell barcodes](zumis/cell-barcodes.md) |
 <!-- methods-table:end -->
 
 ## Reading a method name
