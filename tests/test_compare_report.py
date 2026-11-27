@@ -136,6 +136,17 @@ def test_report_names_the_input_file_not_its_path(sim, tmp_path):
     assert "sample.h5ad" in page and str(path.parent) not in page
 
 
+def test_report_escapes_call_keys_in_its_anchors(sim):
+    """A key with quotes and tags used to go into a figure's id as it was: a shared report could run
+    a script."""
+    adata = sim.copy()
+    key = 'x"><img src=x onerror=alert(1)><figure id="x'
+    scd.call(adata, "otsu", key_added=key)
+    page = scd.report(adata)
+    assert "<img" not in page and "onerror=alert(1)>" not in page
+    assert 'id="call-x&quot;&gt;&lt;img src=x onerror=alert(1)&gt;&lt;figure id=&quot;x-figure"' in page
+
+
 def test_report_needs_a_call(sim):
     with pytest.raises(ValueError, match="nothing to report"):
         scd.report(sim.copy())

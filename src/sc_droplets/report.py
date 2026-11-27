@@ -76,7 +76,8 @@ def _table(header: Sequence[str], rows: Iterable[Sequence[Any]]) -> str:
 
 
 def _figure(anchor: str, svg: str, caption: str) -> str:
-    return f'<figure id="{anchor}">{svg}<figcaption>{html.escape(caption)}</figcaption></figure>'
+    # Anchors hold call keys, which are the caller's to choose: escape them, quotes included.
+    return f'<figure id="{html.escape(anchor, quote=True)}">{svg}<figcaption>{html.escape(caption)}</figcaption></figure>'
 
 
 def _summary_rows(adata: Any, keys: Sequence[str]) -> List[List[Any]]:
