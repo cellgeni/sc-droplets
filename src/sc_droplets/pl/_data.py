@@ -65,14 +65,15 @@ def curve_from_totals(totals: np.ndarray, unit: str = "umis") -> Curve:
     return Curve(totals=totals, order=order, sorted=ordered[ordered > 0], unit=unit)
 
 
-def curve_for(
+def droplets_for(
     adata: Any,
     keys: Sequence[str],
     *,
     layer: Optional[str] = None,
     feature_types: Union[None, str, Sequence[str]] = None,
-) -> Curve:
-    """The curve the calls were made on: their layer and feature types, unless given."""
+) -> Droplets:
+    """What the calls counted: their layer, feature types and genome, unless given. A stored list
+    of feature types comes back from h5ad as an array; it is taken as a list, never truth-tested."""
     record = adata.uns.get(UNS_KEY, {}).get(keys[0], {}) if keys else {}
     counting = record.get("counting", {}) if hasattr(record, "get") else {}
     if layer is None:
@@ -83,8 +84,18 @@ def curve_for(
             feature_types = "Gene Expression" if _has_type(adata, "Gene Expression") else "all"
         else:
             feature_types = stored if isinstance(stored, str) else [str(s) for s in np.atleast_1d(stored)]
-    droplets = Droplets.from_anndata(adata, layer=layer, feature_types=feature_types)
-    return curve_from_totals(droplets.totals)
+    return Droplets.from_anndata(adata, layer=layer, feature_types=feature_types, genome=counting.get("genome"))
+
+
+def curve_for(
+    adata: Any,
+    keys: Sequence[str],
+    *,
+    layer: Optional[str] = None,
+    feature_types: Union[None, str, Sequence[str]] = None,
+) -> Curve:
+    """The curve the calls were made on: their layer, feature types and genome, unless given."""
+    return curve_from_totals(droplets_for(adata, keys, layer=layer, feature_types=feature_types).totals)
 
 
 def _has_type(adata: Any, kind: str) -> bool:

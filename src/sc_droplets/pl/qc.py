@@ -6,8 +6,7 @@ from typing import Any, Optional, Sequence, Union
 
 import numpy as np
 
-from sc_droplets.counts import Droplets
-from sc_droplets.pl._data import agreement_groups, curve_for, resolve_calls
+from sc_droplets.pl._data import agreement_groups, droplets_for, resolve_calls
 from sc_droplets.pl.knee import GROUP_COLOURS
 
 #: Points drawn in each scatter panel, at most.
@@ -59,15 +58,9 @@ def qc(
     keys = resolve_calls(adata, calls)
     if not keys:
         raise ValueError("no calls to draw: give method specs or stored keys")
-    curve = curve_for(adata, keys, layer=layer, feature_types=feature_types)
-    record = adata.uns.get("sc_droplets", {}).get(keys[0], {})
-    counting = record.get("counting", {}) if hasattr(record, "get") else {}
-    types = feature_types if feature_types is not None else counting.get("feature_types") or "all"
-    if not isinstance(types, str):
-        types = [str(t) for t in np.atleast_1d(types)]
-    genes = Droplets.from_anndata(adata, layer=layer if layer is not None else counting.get("layer"),
-                                  feature_types=types).values("genes")
-    totals = curve.totals
+    droplets = droplets_for(adata, keys, layer=layer, feature_types=feature_types)
+    genes = droplets.values("genes")
+    totals = droplets.totals
     shown = totals >= max(min_counts, 1)
     cells = np.column_stack([adata.obs[k].to_numpy(dtype=bool) for k in keys])
     groups = agreement_groups(cells)

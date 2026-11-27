@@ -147,6 +147,36 @@ def test_report_escapes_call_keys_in_its_anchors(sim):
     assert 'id="call-x&quot;&gt;&lt;img src=x onerror=alert(1)&gt;&lt;figure id=&quot;x-figure"' in page
 
 
+def test_qc_and_the_report_read_a_stored_list_of_feature_types(sim, tmp_path):
+    """Calls that count several feature types store them as an array, which used to be
+    truth-tested (and fail) when the plots worked out what to count."""
+    adata = sim.copy()
+    adata.var["feature_types"] = ["Gene Expression"] * (adata.n_vars - 10) + ["Antibody Capture"] * 10
+    scd.call(adata, "otsu", feature_types=["Gene Expression", "Antibody Capture"])
+    path = tmp_path / "calls.h5ad"
+    adata.write_h5ad(path)
+    back = ad.read_h5ad(path)
+    for target in (adata, back):
+        figure = scd.pl.qc(target)
+        assert figure.axes[0].get_ylabel() == "log10 genes detected"
+        assert 'id="qc"' in scd.report(target)
+
+
+def test_plots_count_the_genome_the_call_counted():
+    """The plots rebuilt totals over every genome, whatever genome the call counted."""
+    import scipy.sparse as sp
+
+    counts = np.array([[500, 0], [400, 0], [5, 300], [40, 0]], dtype=float)
+    adata = ad.AnnData(sp.csr_matrix(counts))
+    adata.obs_names = [f"B{i}" for i in range(4)]
+    adata.var_names = ["hg_G", "mm_G"]
+    adata.var["genome"] = ["GRCh38", "mm10"]
+    scd.call(adata, "top-n", n_cells=2, genome="GRCh38")
+    from sc_droplets.pl._data import curve_for
+
+    assert curve_for(adata, ["top_n"]).totals.tolist() == [500, 400, 5, 40]
+
+
 def test_report_needs_a_call(sim):
     with pytest.raises(ValueError, match="nothing to report"):
         scd.report(sim.copy())
