@@ -45,6 +45,13 @@ The default key is the method id with `-` and `.` turned into `_`, followed by t
 and any parameters given in the spec: `top-n:n_cells=3000` is stored as `top_n_n_cells_3000`,
 `cellranger-emptydrops@9.0` as `cellranger_emptydrops_9_0`.
 
+`scd.add_metrics` writes per-barcode measures that belong to no call:
+
+| Where | What |
+|---|---|
+| `obs["unspliced_fraction"]` | U / (S + U) over gene-expression features; NaN where a barcode has neither (see [Inputs](inputs.md#splicing)) |
+| `obs["mito_fraction"]` | the share of gene-expression counts in genes named `MT-` or `mt-` |
+
 ## Files
 
 | Option | Format |

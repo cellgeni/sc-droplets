@@ -56,6 +56,26 @@ smallest cell total. Every call is stored on `adata`.
 scd.compare(adata, ["top-n:n_cells=3000", "threshold:min_counts=500"])
 ```
 
+### `scd.add_metrics(adata, splicing=None)`
+
+Stores each barcode's measures in `obs` and returns the columns written: `unspliced_fraction`,
+U / (S + U) over gene-expression features (from `splicing`, matched by barcode, or from the
+AnnData's own `spliced` and `unspliced` layers), and `mito_fraction`, the share of counts in genes
+named `MT-` or `mt-` (when there are any). `splicing` is anything `unspliced_fraction` takes, or a
+Series of fractions indexed by barcode. Barcodes match by name, or else by the sequence alone
+(velocyto's `sample:` prefix and `x` suffix and a `-1` suffix dropped); unmatched barcodes get NaN.
+
+```python
+scd.add_metrics(adata, splicing="velocyto/sample.loom")
+```
+
+### `scd.unspliced_fraction(source)`
+
+Each barcode's U / (S + U) as a Series indexed by barcode (NaN where it has neither). `source` is
+an AnnData with `spliced` and `unspliced` layers, or a path: a velocyto `.loom`, STARsolo's
+`Velocyto/raw/` or `Solo.out/` (with `Gene` and `GeneFull` but no Velocyto, the estimate
+(GeneFull − Gene) / GeneFull), kb `--workflow nac`, alevin-fry USA mode, an `.h5ad`.
+
 ### `scd.agreement(adata, keys=None)`
 
 The pairwise Jaccard index of the cell sets of stored calls (all of them by default).
