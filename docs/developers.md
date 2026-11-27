@@ -52,6 +52,9 @@ written from.
    Versions, Parameters, Run it, Differences from the original, Validation, References. Read the
    original's source at each release where it changed, and write down every constant, rounding
    rule and tie break.
+   A method with a *planned* page (under `docs/methods/planned/`, or its tool's folder) already
+   has At a glance, How it works, Versions and Parameters; move it to its tool, replace *Status*
+   with the three sections that follow Parameters, and drop it from the Planned index.
 2. **Code.** In `src/sc_droplets/methods/<tool>.py`, a `Method` subclass with a `MethodInfo`
    (one `Variant` per behaviour, each with the range of tool releases it covers, and a `Gap` for
    releases that cannot be reproduced), a `Params` dataclass built with `param`, and `run`.

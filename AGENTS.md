@@ -169,6 +169,10 @@ this file, for people; keep the two in step.
 - Method pages: front matter `method_ids: [id, ...]` and `status: implemented | planned |
   docs-only`; sections in order: At a glance, How it works, Versions, Parameters, Run it,
   Differences from the original, Validation, References.
+- Planned and docs-only pages (methods the package does not run): sections At a glance, How it
+  works, Versions, Parameters, Status, References; ids not registered; each linked from
+  `docs/methods/planned/index.md` or `docs/methods/documented/index.md`, wherever its tool's
+  pages are. Implementing one moves it to the full template.
 - Formulas: `$$...$$`, inline and display alike (kramdown turns them into `\(..\)` / `\[..\]`, which
   KaTeX renders). A literal `\(` in a page shows as "("; the docs test refuses it.
 - Link between pages as relative `page.md`. Images: `{{ '/assets/...' | relative_url }}` (a

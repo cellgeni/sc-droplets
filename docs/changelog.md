@@ -168,3 +168,8 @@ Then the review:
   side by side on PBMC 1k and spinal cord nuclei; made by `docs/_scripts/families.py`.
 - *Reads, UMIs, ties and rounding*: what each tool counts, which barcodes it sees, how it orders
   ties, rounds and draws random numbers.
+- Pages for the methods the package does not run: planned for 0.2 (CB2, DIEM, DropletQC,
+  DropSift, valiDrops, SiftCell, miQC, dropEst's classifier, alevin's naive Bayes whitelist) and
+  0.3 (Cell Ranger ATAC and ARC, EmptyDropsMultiome, BAP, SADE), and documented only (CellBender's
+  model, EmptyNN, dropkick, BD Rhapsody, ScaleBio, CeleScope, Ambimux, AmbientMapper), each with
+  what reproducing it would take.

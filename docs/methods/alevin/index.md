@@ -37,4 +37,4 @@ salmon 1.11.0 dropped alevin in favour of alevin-fry.
 ## Not implemented
 
 The naive Bayes classifier that turns the initial whitelist into alevin's final cells is planned
-for 0.2.
+for 0.2: [alevin naive Bayes whitelist](naive-bayes.md).

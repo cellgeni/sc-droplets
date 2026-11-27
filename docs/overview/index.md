@@ -64,19 +64,19 @@ closed).
 | Cell Ranger | [cell calling](../methods/cellranger/cellranger.md) (2.x, 3.x, 4.0, 5.x, 7.2, 8.0, 8.0.1, 9.0, 10.0, 10.1, with the antibody-aggregate, 8.0+ and high-occupancy filters), [OrdMag](../methods/cellranger/ordmag.md) | implemented; 4.0 and 5.x from 10x's outputs (no public source); 1.x and 6.0–7.1 are documented gaps; targeted (gradient) calling planned |
 | STARsolo | [CellRanger2.2](../methods/starsolo/cellranger2-2.md), [TopCells](../methods/starsolo/topcells.md), [EmptyDrops_CR](../methods/starsolo/emptydrops-cr.md), [`soloBasicCellFilter.awk`](../methods/starsolo/basic-awk.md) | implemented |
 | DropletUtils | [barcodeRanks](../methods/dropletutils/barcoderanks.md) (four knee definitions), [emptyDrops](../methods/dropletutils/emptydrops.md) (ten behaviours), [emptyDropsCellRanger](../methods/dropletutils/emptydropscellranger.md), [defaultDrops](../methods/dropletutils/defaultdrops.md) | implemented; 1.0–1.2's Dirichlet-multinomial (R's `rgamma`) refused |
-| CellBender | [priors](../methods/cellbender/prior.md): probable cells, analysed and surely-empty droplets, from mode and median (0.1, 0.2) or Otsu and a kernel density (0.3–0.4) | implemented; the VAE is docs only |
+| CellBender | [priors](../methods/cellbender/prior.md): probable cells, analysed and surely-empty droplets, from mode and median (0.1, 0.2) or Otsu and a kernel density (0.3–0.4) | implemented; the [model](../methods/cellbender/model.md) is docs only |
 | cellsweep | [empty-droplet step](../methods/cellsweep/empty.md): second derivative (to 1.0.1), kneed (1.0.2), mx_filter | implemented |
 | UMI-tools | whitelist [distance](../methods/umitools/distance.md) and [density](../methods/umitools/density.md) | implemented |
-| alevin (salmon 0.11 – 1.10) | [initial whitelist](../methods/alevin/initial-whitelist.md): tangent knee with a kernel-density correction, expected cells, forced cells; the low-confidence band | implemented; the naive Bayes classifier is planned |
+| alevin (salmon 0.11 – 1.10) | [initial whitelist](../methods/alevin/initial-whitelist.md): tangent knee with a kernel-density correction, expected cells, forced cells; the low-confidence band | implemented; the [naive Bayes classifier](../methods/alevin/naive-bayes.md) is planned |
 | alevin-fry | [permit list](../methods/alevinfry/permit-list.md): knee distance, expect cells, force cells, unfiltered permit list; 0.12–0.17's own rules for Flex | implemented |
 | Drop-seq | [dropbead](../methods/dropseq/dropbead.md): farthest from the diagonal of the cumulative fraction | implemented |
 | bustools / kb | [allowlist](../methods/bustools/allowlist.md) (`kb --filter bustools`) | implemented |
-| dropEst | [cell-number bounds](../methods/dropest/bounds.md): lagged log-log derivatives, High / Unknown / Low | implemented; the classifier is planned |
+| dropEst | [cell-number bounds](../methods/dropest/bounds.md): lagged log-log derivatives, High / Unknown / Low | implemented; the [classifier](../methods/dropest/classifier.md) is planned |
 | zUMIs | [cell barcodes](../methods/zumis/cell-barcodes.md): the UIK of the cumulative reads (2.5.6b on) | implemented; the earlier Gaussian mixture is a gap (unseeded) |
 | Kneedle | [kneed's KneeLocator](../methods/kneedle/kneedle.md) on the rank curve (0.5.1 – 0.9.0), with yascp's sensitivity search | implemented |
-| CB2, DIEM, DropletQC, DropSift, dropEst classifier, alevin naive Bayes, valiDrops, SiftCell | statistical tests and classifiers | planned, 0.2 |
-| Cell Ranger ATAC and ARC, EmptyDropsMultiome, BAP, SADE | ATAC and multiome | planned, 0.3 |
-| CellBender VAE, EmptyNN, dropkick, BD Rhapsody, ScaleBio, CeleScope, Ambimux, AmbientMapper | | docs only |
+| [CB2](../methods/planned/cb2.md), [DIEM](../methods/planned/diem.md), [DropletQC](../methods/planned/dropletqc.md), [DropSift](../methods/planned/dropsift.md), [valiDrops](../methods/planned/validrops.md), [SiftCell](../methods/planned/siftcell.md), [miQC](../methods/planned/miqc.md) | statistical tests, classifiers and quality mixtures | [planned](../methods/planned/index.md), 0.2 |
+| [Cell Ranger ATAC](../methods/planned/cellranger-atac.md) and [ARC](../methods/planned/cellranger-arc.md), [EmptyDropsMultiome](../methods/planned/emptydropsmultiome.md), [BAP](../methods/planned/bap.md), [SADE](../methods/planned/sade.md) | ATAC and multiome | [planned](../methods/planned/index.md), 0.3 |
+| [EmptyNN](../methods/documented/emptynn.md), [dropkick](../methods/documented/dropkick.md), [BD Rhapsody](../methods/documented/bd-rhapsody.md), [ScaleBio](../methods/documented/scalebio.md), [CeleScope](../methods/documented/celescope.md), [Ambimux](../methods/documented/ambimux.md), [AmbientMapper](../methods/documented/ambientmapper.md) | classifiers, vendor pipelines, genotype-based calls | [docs only](../methods/documented/index.md) |
 
 ## Versions matter
 

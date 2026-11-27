@@ -12,8 +12,10 @@ how, its parameters beside the original tool's names for them, how to run it, wh
 implementation differs from the original, and how it was checked against the original.
 
 The table below lists the methods the package runs. It is generated from the package
-(`docs/_scripts/methods_table.py`); the [Overview](../overview/index.md) lists those still to
-come.
+(`docs/_scripts/methods_table.py`). Methods it does not run have pages too, with their own
+sections: [Planned](planned/index.md) for those scheduled for a release, and
+[Documented only](documented/index.md) for those that need a trained model or whose code is
+closed.
 
 <!-- methods-table:start -->
 | Method | Tool | Category | Versions | Page |

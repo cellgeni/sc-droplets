@@ -30,4 +30,5 @@ estimate gives three bands: barcodes surely cells (High), surely not (Low), and 
 
 ## Not implemented
 
-dropestr's classifier of cell quality, trained on the High and Low bands, is planned for 0.2.
+dropestr's classifier of cell quality, trained on the High and Low bands, is planned for 0.2:
+[dropEst classifier](classifier.md).
