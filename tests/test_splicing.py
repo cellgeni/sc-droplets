@@ -279,6 +279,14 @@ def test_knee_tracks_are_medians_in_log_spaced_rank_bins(measured):
     assert medians[-1] == np.nanmedian(ordered[edges[-2] - 1:])
 
 
+def test_knee_colour_with_one_call_keeps_the_cells_in_the_measures_colours(measured):
+    """With one call, the cells used to be drawn over in a fixed colour, hiding the measure."""
+    ax = scd.pl.knee(measured, "otsu", color="unspliced_fraction")
+    assert len(ax.collections) == 1  # the measure's scatter alone
+    labels = [line.get_label() for line in ax.get_lines()]
+    assert any(label.startswith("otsu:") for label in labels)  # the cut line carries the label
+
+
 def test_knee_colour_and_tracks_refuse_what_they_cannot_draw(measured):
     import matplotlib.pyplot as plt
 

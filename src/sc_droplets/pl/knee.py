@@ -111,7 +111,7 @@ def knee(
                 continue
             cut = float(curve.totals[cells].min())
             last = int(ranks[cells].max())
-            if len(keys) == 1:
+            if len(keys) == 1 and not color:  # with color=, the cells keep the measure's colours
                 index = np.flatnonzero(cells)
                 if index.size > MAX_POINTS:
                     index = np.random.default_rng(0).choice(index, MAX_POINTS, replace=False)
@@ -120,7 +120,7 @@ def knee(
                     px, py = py, px
                 ax.scatter(px, py, s=4, color=colour, label=label, zorder=2, linewidths=0)
             line = ax.axvline if rotated else ax.axhline
-            line(cut, color=colour, ls="--", lw=1, zorder=0, label=None if len(keys) == 1 else label)
+            line(cut, color=colour, ls="--", lw=1, zorder=0, label=None if len(keys) == 1 and not color else label)
             point = (cut, last) if rotated else (last, cut)
             ax.plot(*point, marker="o", ms=5, color=colour, zorder=3)
     if title is not None:
