@@ -21,6 +21,7 @@ for the raw matrix inside it; a folder with only a filtered matrix is refused, w
 | `.zarr` | AnnData, as written |
 | 10x HDF5, v3 (`raw_feature_bc_matrix.h5`, Cell Ranger 3+, also CellBender's output) | counts in `X`; `var` has `gene_ids`, `feature_types`, `genome`, indexed by gene symbol made unique |
 | 10x HDF5, v2 (`raw_gene_bc_matrices_h5.h5`, Cell Ranger 2) | every genome group side by side, `var["genome"]` saying which; `--genome` reads one |
+| velocyto `.loom` | `spliced`, `unspliced` and `ambiguous` layers (velocyto's genes × cells, read a block of genes at a time); counts are their sum; barcodes as velocyto writes them (`sample:BARCODEx`) |
 
 Counts stay integers, as the pipeline wrote them.
 

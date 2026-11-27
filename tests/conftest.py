@@ -43,6 +43,12 @@ def sim():
     return scd.simulate_droplets(n_cells=300, n_empty=2000, n_low=5000, n_genes=200, seed=7)
 
 
+@pytest.fixture(scope="session")
+def spliced():
+    """`sim` with `spliced` and `unspliced` layers: cells about 25 % unspliced, ambient RNA 10 %."""
+    return scd.simulate_droplets(n_cells=300, n_empty=2000, n_low=5000, n_genes=200, seed=7, splicing=True)
+
+
 @pytest.fixture
 def adata(sim):
     """A fresh copy of `sim` for tests that store calls on it."""
@@ -154,6 +160,25 @@ def write_kb(adata, folder: Path, nac: bool = False) -> Path:
     else:
         _write_mtx(folder / "cells_x_genes.mtx", adata.X, False)
     return folder
+
+
+def write_loom(adata, path: Path, sample: str = "sample1") -> Path:
+    """A velocyto loom: dense genes × cells layers, CellID as `sample:BARCODEx` (no `-1`)."""
+    import h5py
+
+    def dense(name):
+        layer = adata.layers[name] if name in adata.layers else sp.csr_matrix(adata.shape, dtype=np.int64)
+        return sp.csr_matrix(layer).T.toarray()
+
+    cells = [f"{sample}:{b.split('-')[0]}x" for b in adata.obs_names]
+    with h5py.File(path, "w") as handle:
+        handle["matrix"] = dense("spliced")
+        for name in ("spliced", "unspliced", "ambiguous"):
+            handle[f"layers/{name}"] = dense(name)
+        handle["row_attrs/Gene"] = np.array(adata.var_names, dtype="S")
+        handle["row_attrs/Accession"] = np.array(adata.var["gene_ids"], dtype="S")
+        handle["col_attrs/CellID"] = np.array(cells, dtype="S")
+    return path
 
 
 def write_alevin_fry(adata, folder: Path, usa: bool = False) -> Path:
