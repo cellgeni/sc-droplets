@@ -40,5 +40,5 @@ withdrawn before it was tagged. 0.3.2 and 0.4.0 change no line of the prior code
 ## Not implemented
 
 The model itself, and so CellBender's own cells (posterior cell probability above 0.5), is a
-variational autoencoder trained with pyro: [docs only](../../overview/index.md). Its result
+variational autoencoder trained with pyro, documented on [CellBender model](model.md). Its result
 depends on the training, the hardware and the random seed, not only on the matrix.
