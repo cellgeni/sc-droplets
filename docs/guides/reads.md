@@ -63,7 +63,8 @@ import pandas as pd
 
 with h5py.File("molecule_info.h5") as f:
     barcodes = f["barcodes"][:].astype(str)
-    reads = np.bincount(f["barcode_idx"][:], weights=f["count"][:], minlength=len(barcodes))
+    index = f["barcode_idx"][:].astype(np.int64)  # stored as uint64, which numpy before 2.3 refuses here
+    reads = np.bincount(index, weights=f["count"][:], minlength=len(barcodes))
 table = pd.DataFrame({"barcode": [b + "-1" for b in barcodes], "reads": reads.astype(int)})
 table[table["reads"] > 0].to_csv("reads.tsv", sep="\t", index=False)
 ```
