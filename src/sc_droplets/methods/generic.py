@@ -1,9 +1,9 @@
 """Generic rules that belong to no single tool: top N, a fixed threshold, MAD outliers, Otsu and
-multi-Otsu thresholds, and a kernel-density valley.
+multi-Otsu thresholds, a kernel-density valley, and a Gaussian mixture.
 
-Pages: docs/methods/generic/{top-n,threshold,mad,otsu,multiotsu,kde-valley}.md. MAD follows
-scuttle's `isOutlier` (R's `log2`, `median` and `mad`); Otsu and multi-Otsu are scikit-image's
-(`primitives/otsu.py`).
+Pages: docs/methods/generic/{top-n,threshold,mad,otsu,multiotsu,kde-valley,gmm}.md. MAD
+follows scuttle's `isOutlier` (R's `log2`, `median` and `mad`); Otsu and multi-Otsu are
+scikit-image's (`primitives/otsu.py`); the mixture is scikit-learn's `GaussianMixture`.
 """
 
 from __future__ import annotations
@@ -398,4 +398,108 @@ class KdeValley(Method):
                 "valleys": np.array([cut_log]), "valley_passing": np.array([n_cells]), "chosen": cut_log,
                 "density_title": f"Density of log10 {_UNIT_LABEL[params.unit]} (bandwidth {params.bandwidth})",
             },
+        )
+
+
+def fit_mixture(x: np.ndarray, params, seed: int):
+    """scikit-learn's `GaussianMixture` with full covariances, fitted to the rows of x. Returns the
+    model and a note when EM stopped at --max-iter without meeting --tol."""
+    import warnings
+
+    from sklearn.exceptions import ConvergenceWarning
+    from sklearn.mixture import GaussianMixture
+
+    if x.shape[0] < params.components:
+        raise RuleError(f"{x.shape[0]} candidates cannot fit {params.components} components")
+    model = GaussianMixture(n_components=params.components, covariance_type="full", tol=params.tol,
+                            max_iter=params.max_iter, random_state=seed)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", ConvergenceWarning)
+        model.fit(x)
+    notes = [] if model.converged_ else [
+        f"EM stopped after --max-iter {params.max_iter} iterations without the log-likelihood settling to --tol {params.tol:g}"
+    ]
+    return model, notes
+
+
+def _probability_column(n: int, index: np.ndarray, probability: np.ndarray) -> np.ndarray:
+    column = np.zeros(n, dtype=np.float64)
+    column[index] = probability
+    return column
+
+
+def _smallest_called(values: np.ndarray, is_cell: np.ndarray) -> float:
+    return float(values[is_cell].min()) if is_cell.any() else float("nan")
+
+
+@register
+class Gmm(Method):
+    info = MethodInfo(
+        id="gmm",
+        title="Gaussian mixture",
+        tool=_GENERIC,
+        category="mixture",
+        summary="A Gaussian mixture (scikit-learn's GaussianMixture) fitted to the log totals of the barcodes "
+                "above a floor; the component with the highest mean is the cells.",
+        docs="methods/generic/gmm.md",
+        counts="either",
+        deterministic=True,
+        default_seed=0,
+        references=(
+            Reference("Pedregosa et al. 2011, Scikit-learn: machine learning in Python, Journal of Machine "
+                      "Learning Research 12:2825"),
+            Reference(
+                "Scrucca, Fop, Murphy & Raftery 2016, mclust 5: clustering, classification and density "
+                "estimation using Gaussian finite mixture models, The R Journal 8:289",
+                doi="10.32614/RJ-2016-021",
+            ),
+        ),
+        source="https://github.com/scikit-learn/scikit-learn/blob/1.9.1/sklearn/mixture/_gaussian_mixture.py",
+        original_license="BSD-3-Clause",
+    )
+
+    @dataclass
+    class Params:
+        components: int = param(2, "Gaussians in the mixture", original="n_components", minimum=2, maximum=10)
+        rule: str = param("posterior", "posterior: above 0.5 for the cell component; quantile: above its quantile",
+                          choices=("posterior", "quantile"))
+        quantile: float = param(0.01, "For --rule quantile: the cell component's quantile that is the cut",
+                                minimum=0, maximum=1)
+        min_counts: float = param(100.0, "Candidates have at least this value; the others are empty", minimum=0)
+        tol: float = param(1e-3, "Stop when the mean log-likelihood changes by less", original="tol", minimum=0)
+        max_iter: int = param(100, "Stop after this many EM iterations", original="max_iter", minimum=1)
+        unit: str = param("umis", "What the mixture is fitted to", choices=_UNITS)
+
+    def run(self, droplets, params, variant, random_state):
+        from scipy.stats import norm
+
+        values = droplets.values(params.unit)
+        index = candidates(values, params.min_counts, log=True)
+        x = clog10(values[index])
+        model, notes = fit_mixture(x.reshape(-1, 1), params, random_state)
+        means = model.means_[:, 0]
+        sds = np.sqrt(model.covariances_[:, 0, 0])
+        top = int(np.argmax(means))
+        probability = model.predict_proba(x.reshape(-1, 1))[:, top]
+        thresholds = {}
+        if params.rule == "posterior":
+            chosen = probability > 0.5
+        else:
+            cut = float(means[top] + sds[top] * norm.ppf(params.quantile))
+            chosen = x >= cut
+            thresholds.update({"cut": 10.0 ** cut, "log10": cut})
+        is_cell = np.zeros(values.size, dtype=bool)
+        is_cell[index[chosen]] = True
+        thresholds[params.unit] = _smallest_called(values, is_cell)
+        smallest = thresholds[params.unit]
+        label = f"log10 {_UNIT_LABEL[params.unit]}"
+        diagnostics = _histogram_diagnostics(
+            x, 100, label, [(math.log10(smallest), f"smallest cell ({params.rule})")] if is_cell.any() else [])
+        diagnostics.update({"mixture_means": means, "mixture_sds": sds, "mixture_weights": model.weights_,
+                            "cell_component": top, "iterations": int(model.n_iter_),
+                            "log_likelihood": float(model.score(x.reshape(-1, 1)) * x.size)})
+        return result(
+            type(self), variant, params, droplets, is_cell,
+            columns={"probability": _probability_column(values.size, index, probability)},
+            thresholds=thresholds, diagnostics=diagnostics, notes=notes,
         )

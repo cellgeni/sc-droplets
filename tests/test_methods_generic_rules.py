@@ -1,4 +1,4 @@
-"""MAD outliers, Otsu and multi-Otsu thresholds, and the kernel-density valley."""
+"""MAD outliers, Otsu and multi-Otsu thresholds, the kernel-density valley, and a Gaussian mixture."""
 
 from __future__ import annotations
 
@@ -50,13 +50,13 @@ def _two_populations(low=(2.3, 0.15, 3000), high=(3.8, 0.2, 500)):
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("spec", ['mad', 'otsu', 'multiotsu:min_counts=10', 'kde-valley'])
+@pytest.mark.parametrize("spec", ["mad", "otsu", "multiotsu:min_counts=10", "kde-valley", "gmm"])
 def test_generic_rules_need_a_barcode_at_the_floor(spec):
     with pytest.raises(RuleError, match="--min-counts"):
         scd.call(_matrix([1, 2, 3]), spec, inplace=False)
 
 
-@pytest.mark.parametrize("spec", ["mad", "otsu", "multiotsu", "kde-valley"])
+@pytest.mark.parametrize("spec", ["mad", "otsu", "multiotsu", "kde-valley", "gmm"])
 def test_rules_on_a_log_scale_leave_out_zero_counts_whatever_the_floor(spec):
     """A floor of 0 used to make zero-count barcodes candidates: their log, -inf, broke the
     histogram and the density."""
@@ -77,7 +77,7 @@ def test_rules_off_a_log_scale_keep_zero_counts_as_candidates():
     assert unlogged.diagnostics["histogram_counts"].sum() == values.size + 50
 
 
-@pytest.mark.parametrize("name", ['mad', 'otsu', 'multiotsu', 'kde-valley'])
+@pytest.mark.parametrize("name", ["mad", "otsu", "multiotsu", "kde-valley", "gmm"])
 def test_cli_calls_the_generic_rule(name, sim, tmp_path):
     path = tmp_path / "sim.h5ad"
     sim.write_h5ad(path)
@@ -196,6 +196,69 @@ def test_cli_reports_a_bad_bandwidth_as_an_error(sim, tmp_path):
     sim.write_h5ad(path)
     bad = runner.invoke(app, ["call", "kde-valley", str(path), "--json", "--bandwidth", "wide"])
     assert bad.exit_code == 1 and "Error:" in _out(bad)
+
+
+# ---------------------------------------------------------------------------
+# Gaussian mixtures
+# ---------------------------------------------------------------------------
+
+
+def _sklearn_fit(data, components=2, tol=1e-3, max_iter=100, seed=0):
+    from sklearn.mixture import GaussianMixture
+
+    return GaussianMixture(n_components=components, covariance_type="full", tol=tol, max_iter=max_iter,
+                           random_state=seed).fit(data)
+
+
+def test_gmm_is_scikit_learns_mixture_of_the_log_totals_above_the_floor(sim):
+    result = scd.call(sim, "gmm", components=3, inplace=False)
+    totals = np.asarray(result.totals)
+    index = np.flatnonzero(totals >= 100)
+    x = np.log10(totals[index]).reshape(-1, 1)
+    model = _sklearn_fit(x, components=3)
+    assert np.array_equal(result.diagnostics["mixture_means"], model.means_[:, 0])
+    top = int(np.argmax(model.means_[:, 0]))
+    probability = np.zeros(totals.size)
+    probability[index] = model.predict_proba(x)[:, top]
+    assert np.array_equal(result.columns["probability"], probability)
+    assert np.array_equal(result.is_cell, probability > 0.5)
+
+
+def test_gmm_seed_is_the_k_means_initialisations(sim):
+    a = scd.call(sim, "gmm", components=3, inplace=False, random_state=5)
+    totals = np.asarray(a.totals)
+    x = np.log10(totals[totals >= 100]).reshape(-1, 1)
+    assert np.array_equal(a.diagnostics["mixture_means"], _sklearn_fit(x, components=3, seed=5).means_[:, 0])
+
+
+def test_gmm_calls_the_upper_of_two_populations():
+    values, upper = _two_populations()
+    result = scd.call(_matrix(values), "gmm", inplace=False)
+    assert (result.is_cell == upper).mean() > 0.995
+
+
+def test_gmm_quantile_rule_cuts_at_the_cell_components_quantile():
+    from scipy.stats import norm
+
+    values, _ = _two_populations()
+    result = scd.call(_matrix(values), "gmm", rule="quantile", quantile=0.05, inplace=False)
+    diag = result.diagnostics
+    top = diag["cell_component"]
+    cut = diag["mixture_means"][top] + diag["mixture_sds"][top] * norm.ppf(0.05)
+    assert result.thresholds["log10"] == cut and result.thresholds["cut"] == 10.0 ** cut
+    assert np.array_equal(result.is_cell, (values >= 100) & (np.log10(np.maximum(values, 1)) >= cut))
+
+
+def test_gmm_notes_when_em_stops_before_it_converges():
+    values, _ = _two_populations()
+    stopped = scd.call(_matrix(values), "gmm", max_iter=1, tol=1e-12, inplace=False)
+    assert stopped.notes and "--max-iter 1" in stopped.notes[0]
+    assert not scd.call(_matrix(values), "gmm", inplace=False).notes
+
+
+def test_gmm_needs_as_many_candidates_as_components():
+    with pytest.raises(RuleError, match="cannot fit 3 components"):
+        scd.call(_matrix([1, 150, 300]), "gmm", components=3, inplace=False)
 
 
 # ---------------------------------------------------------------------------
