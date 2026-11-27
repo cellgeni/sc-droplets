@@ -3,16 +3,26 @@ HTML report."""
 
 from __future__ import annotations
 
+import re
+
+import anndata as ad
 import matplotlib
 import numpy as np
 import pytest
+from typer.testing import CliRunner
 
 import sc_droplets as scd
+from sc_droplets.cli import app
 from sc_droplets.pl._data import curve_from_totals
 from sc_droplets.pl.compare import strip_shares
 from sc_droplets.pl.qc import disagreement_band
 
 matplotlib.use("Agg")
+runner = CliRunner()
+
+
+def _out(result) -> str:
+    return re.sub(r"\s+", " ", re.sub(r"\x1b\[[0-9;]*m", "", result.output))
 
 
 @pytest.fixture
@@ -129,3 +139,32 @@ def test_report_names_the_input_file_not_its_path(sim, tmp_path):
 def test_report_needs_a_call(sim):
     with pytest.raises(ValueError, match="nothing to report"):
         scd.report(sim.copy())
+
+
+# ---------------------------------------------------------------------------
+# Command line
+# ---------------------------------------------------------------------------
+
+
+def test_cli_writes_the_compare_and_qc_plots_and_the_report(called, tmp_path):
+    path = tmp_path / "calls.h5ad"
+    called.write_h5ad(path)
+    for args in (["plot", "compare", str(path)], ["plot", "qc", str(path), "--key", "otsu", "--key", "kde_valley"]):
+        figure = tmp_path / f"{args[1]}.png"
+        result = runner.invoke(app, args + ["-o", str(figure)])
+        assert result.exit_code == 0, _out(result)
+        assert figure.stat().st_size > 0
+    page = tmp_path / "report.html"
+    result = runner.invoke(app, ["report", str(path), "--key", "otsu", "-m", "gmm", "-o", str(page), "--title", "Simulated"])
+    assert result.exit_code == 0, _out(result)
+    text = page.read_text()
+    assert "<title>Simulated</title>" in text and 'id="call-gmm"' in text and 'id="call-otsu"' in text
+    assert 'id="call-kde_valley"' not in text  # stored, but not asked for
+
+
+def test_cli_report_refuses_to_overwrite_its_input(called, tmp_path):
+    path = tmp_path / "calls.h5ad"
+    called.write_h5ad(path)
+    result = runner.invoke(app, ["report", str(path), "-o", str(path)])
+    assert result.exit_code == 1 and "also the input" in _out(result)
+    assert ad.read_h5ad(path).n_obs == called.n_obs

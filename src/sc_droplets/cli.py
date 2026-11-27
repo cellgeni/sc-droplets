@@ -758,6 +758,90 @@ def plot_density(
         raise _fail(e)
 
 
+def _plot_figure(input: Path, output: Path, key, method, feature_type, layer, genome, solo_feature, splicing,
+                 draw_name: str, **kwargs: Any) -> None:
+    """Load, gather the calls, draw a multi-panel plot from `scd.pl` and save it."""
+    from sc_droplets.io.write import check_outputs
+
+    check_outputs([output], [input])
+    adata = _load(input, solo_feature, genome)
+    _add_metrics(adata, splicing, layer)
+    types = _feature_types(feature_type)
+    keys = _plot_keys(adata, input, key, method, layer, types, genome)
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    from sc_droplets import pl
+
+    figure = getattr(pl, draw_name)(adata, keys, layer=layer, feature_types=types, **kwargs)
+    figure.savefig(output, dpi=150)
+    plt.close(figure)
+    console.print(f"Wrote {escape(str(output))}")
+
+
+@plot_app.command("compare")
+def plot_compare(
+    input: Path = _input_argument(),
+    output: Path = typer.Option(..., "--output", "-o", help="Figure to write (.png, .pdf or .svg)."),
+    method: Optional[List[str]] = typer.Option(
+        None, "--method", "-m", help="Run this method spec and draw it (repeatable); see compare."
+    ),
+    key: Optional[List[str]] = typer.Option(
+        None, "--key", help="Draw this call stored in an .h5ad input (repeatable). Default: every stored call."
+    ),
+    feature_type: Optional[List[str]] = _feature_type_option(),
+    layer: Optional[str] = _layer_option(),
+    genome: Optional[str] = _genome_option(),
+    solo_feature: str = _solo_feature_option(),
+) -> None:
+    """Several calls side by side: where they part along the rank curve, cells per call, and the
+    Jaccard index of their cell sets.
+
+    Examples:
+        sc-droplets plot compare raw_feature_bc_matrix.h5 -m cellranger -m otsu -m gmm -o compare.png
+        sc-droplets plot compare calls.h5ad -o compare.pdf
+    """
+    try:
+        _plot_figure(input, output, key, method, feature_type, layer, genome, solo_feature, None, "compare")
+    except typer.Exit:
+        raise
+    except Exception as e:
+        raise _fail(e)
+
+
+@plot_app.command("qc")
+def plot_qc(
+    input: Path = _input_argument(),
+    output: Path = typer.Option(..., "--output", "-o", help="Figure to write (.png, .pdf or .svg)."),
+    method: Optional[List[str]] = typer.Option(
+        None, "--method", "-m", help="Run this method spec and draw it (repeatable); see compare."
+    ),
+    key: Optional[List[str]] = typer.Option(
+        None, "--key", help="Draw this call stored in an .h5ad input (repeatable). Default: every stored call."
+    ),
+    min_counts: float = typer.Option(10, "--min-counts", help="Leave out barcodes below this total.", min=0),
+    feature_type: Optional[List[str]] = _feature_type_option(),
+    layer: Optional[str] = _layer_option(),
+    genome: Optional[str] = _genome_option(),
+    solo_feature: str = _solo_feature_option(),
+) -> None:
+    """Genes detected and the mitochondrial fraction against count, coloured by how many calls took
+    each barcode, and the barcodes the calls disagree on.
+
+    Examples:
+        sc-droplets plot qc raw_feature_bc_matrix.h5 -m cellranger -m gmm -o qc.png
+    """
+    try:
+        _plot_figure(input, output, key, method, feature_type, layer, genome, solo_feature, None, "qc",
+                     min_counts=min_counts)
+    except typer.Exit:
+        raise
+    except Exception as e:
+        raise _fail(e)
+
+
 @plot_app.command("splicing")
 def plot_splicing(
     input: Path = _input_argument(),
@@ -783,25 +867,9 @@ def plot_splicing(
         sc-droplets plot splicing raw_feature_bc_matrix.h5 -m cellranger -m otsu --splicing velocyto.loom -o splicing.png
         sc-droplets plot splicing counts_unfiltered -m gmm -m kde-valley -o splicing.pdf
     """
-    from sc_droplets.io.write import check_outputs
-
     try:
-        check_outputs([output], [input])
-        adata = _load(input, solo_feature, genome)
-        _add_metrics(adata, splicing, layer)
-        types = _feature_types(feature_type)
-        keys = _plot_keys(adata, input, key, method, layer, types, genome)
-        import matplotlib
-
-        matplotlib.use("Agg")
-        import matplotlib.pyplot as plt
-
-        from sc_droplets.pl import splicing as draw
-
-        figure = draw(adata, keys, metric=metric, min_counts=min_counts, layer=layer, feature_types=types)
-        figure.savefig(output, dpi=150)
-        plt.close(figure)
-        console.print(f"Wrote {escape(str(output))}")
+        _plot_figure(input, output, key, method, feature_type, layer, genome, solo_feature, splicing, "splicing",
+                     metric=metric, min_counts=min_counts)
     except typer.Exit:
         raise
     except Exception as e:
@@ -850,6 +918,57 @@ def plot_diagnostics(
         figure = diagnostics(adata, target)
         figure.savefig(output, dpi=150)
         plt.close(figure)
+        console.print(f"Wrote {escape(str(output))}")
+    except typer.Exit:
+        raise
+    except Exception as e:
+        raise _fail(e)
+
+
+# ---------------------------------------------------------------------------
+# report
+# ---------------------------------------------------------------------------
+
+
+@app.command("report")
+def report_command(
+    input: Path = _input_argument(),
+    output: Path = typer.Option(..., "--output", "-o", help="The HTML page to write."),
+    method: Optional[List[str]] = typer.Option(
+        None, "--method", "-m", help="Run this method spec and report it (repeatable); see compare."
+    ),
+    key: Optional[List[str]] = typer.Option(
+        None, "--key", help="Report this call stored in an .h5ad input (repeatable). Default: every stored call."
+    ),
+    title: Optional[str] = typer.Option(None, "--title", help="Page title (default: the input's name)."),
+    feature_type: Optional[List[str]] = _feature_type_option(),
+    layer: Optional[str] = _layer_option(),
+    genome: Optional[str] = _genome_option(),
+    solo_feature: str = _solo_feature_option(),
+    splicing: Optional[Path] = _splicing_option(),
+) -> None:
+    """One self-contained HTML page: the calls and their separation scores, the knee, density,
+    agreement, quality and splicing plots, and each call's parameters and diagnostics.
+
+    Examples:
+        sc-droplets report raw_feature_bc_matrix.h5 -m cellranger -m otsu -m gmm -o report.html
+        sc-droplets report calls.h5ad --splicing velocyto.loom -o report.html --title "PBMC 4k"
+    """
+    from sc_droplets.io.write import check_outputs
+
+    try:
+        check_outputs([output], [input])
+        adata = _load(input, solo_feature, genome)
+        _add_metrics(adata, splicing, layer)
+        types = _feature_types(feature_type)
+        keys = _plot_keys(adata, input, key, method, layer, types, genome)
+        import matplotlib
+
+        matplotlib.use("Agg")
+        from sc_droplets.report import report
+
+        with console.status("Drawing the report"):
+            report(adata, keys, output, title=title, layer=layer, feature_types=types)
         console.print(f"Wrote {escape(str(output))}")
     except typer.Exit:
         raise
