@@ -113,7 +113,7 @@ Milestones, each its own pull request after the scaffold:
   9,000 is already in 6.0, 6.1 tests per genome, 7.x estimates cells, but no rule is exact on
   every dataset (differences at the FDR cut; the 6.1 two-genome set further off). Evidence and
   the survey script: `docs/_research/cellranger-4.0-7.1-outputs.md`.
-- [ ] 4. Generic MAD / Otsu / multi-Otsu / KDE valley / GMM (1-D, 2-D); splicing readers,
+- [x] 4. Generic MAD / Otsu / multi-Otsu / KDE valley / GMM (1-D, 2-D); splicing readers,
   `pl.splicing`, knee tracks, separation scores; `pl.density`, `pl.compare`, `pl.qc`, `report`;
   the comparison-on-public-data page. One pull request per group:
   - [x] Distribution rules (`milestone-4-generic-thresholds`): `mad` (scuttle's `isOutlier`, lower
@@ -171,7 +171,21 @@ Milestones, each its own pull request after the scaffold:
   - Moved: the negative-binomial mixture (Cell Ranger ATAC's EM) goes to 0.3 with Cell Ranger
     ATAC, where 10x's own ATAC calls (`singlecell.csv`) can check it; on RNA there is no original
     to check it against.
-- [ ] 5. Overview pages in full, *planned* and *docs only* pages, guides; release 0.1.0.
+- [ ] 5. Overview pages in full, *planned* and *docs only* pages, guides; release 0.1.0. One pull
+  request per group:
+  - [x] The review pages (`milestone-5-overview`): *Same idea, different tools* (four families,
+    each member run side by side on PBMC 1k and the spinal cord nuclei by
+    `docs/_scripts/families.py`) and *Reads, UMIs, ties and rounding*; the overview's Cell Ranger
+    row and versions table brought up to 4.0 and 5.x; `cellranger@9.0`, not the unregistered
+    `cellranger-emptydrops@9.0`, in the examples. Findings: within a family, the curve, the
+    barcodes that enter, which candidate point is accepted and the expected cells move the call;
+    rounding, tie order and random numbers move a few barcodes. alevin-fry's `--expect-cells`
+    takes the count at rank 0.99·E: with E = 3,000 on PBMC 1k it keeps 119,362 barcodes.
+  - [ ] The *planned* and *docs only* pages, from research notes (`docs/_research/planned-rna.md`,
+    `planned-atac.md`, `docs-only.md`).
+  - [ ] The guides: choosing a method, reproducing a pipeline's calls, comparing methods on a
+    sample, read-based methods, multiplexed and Flex runs.
+  - [ ] Release 0.1.0.
 
 Needs the maintainer of the GitHub organisation (not doable from here): a PyPI pending trusted
 publisher for `sc-droplets` (workflow `publish.yml`, environment `pypi`), the
