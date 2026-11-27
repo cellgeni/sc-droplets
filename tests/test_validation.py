@@ -7,7 +7,9 @@ the calls, found by trying the usual values (1,000 for the "1k" datasets, 5,000
 for pbmc4k).
 
 Cell Ranger 10.0 is the exception: it matches up to the order of tied totals at
-the ambient boundary (see its test).
+the ambient boundary (see its test). Cell Ranger 4.0 to 7.1 published no source;
+4.0 and 5.0 are checked here against 10x's outputs as 3.0 is. The 6.0 to 7.1
+datasets in datasets.py are the evidence for that gap (see the method page).
 
 STARsolo: our call must give exactly the barcodes `STAR --runMode
 soloCellFiltering` kept, saved in tests/oracles/starsolo by
@@ -99,6 +101,12 @@ CELLRANGER_CASES = [
     ("pbmc4k_2_1", "cellranger-ordmag@2.1.0", {"expect_cells": 5000}, "GRCh38"),
     ("pbmc_1k_v2_3_0", "cellranger@3.0.0", {"expect_cells": 1000}, None),
     ("pbmc_1k_v3_3_0", "cellranger@3.0.0", {"expect_cells": 1000}, None),
+    # 4.0 and 5.0: no public source; the --expect-cells are those 10x's dataset pages give
+    # (none for pbmc_parent_4_0, run with the default).
+    ("pbmc10k_nextgem_4_0", "cellranger@4.0.0", {"expect_cells": 10000}, None),
+    ("neuron10k_nextgem_4_0", "cellranger@4.0.0", {"expect_cells": 10000}, None),
+    ("pbmc_parent_4_0", "cellranger@4.0.0", {}, None),
+    ("pbmc10k_5p_v2_5_0", "cellranger@5.0.0", {"expect_cells": 10000}, None),  # 6 antibody aggregates removed
     # 7.2+ estimates the expected cells itself; these runs gave none.
     ("pbmc5k_nextgem_8_0", "cellranger@8.0.0", {}, None),  # with antibody aggregates removed
     ("pbmc5k_gemx_9_0", "cellranger@9.0.0", {}, None),
@@ -111,6 +119,18 @@ def test_cell_ranger_calls_the_cells_10x_called(name, spec, params, genome):
     expected = set(filtered_barcodes(name, genome))
     ours = _called(result)
     assert ours == expected, f"missing {sorted(expected - ours)[:10]}, extra {sorted(ours - expected)[:10]}"
+
+
+def test_cell_ranger_4_0_simulates_on_a_stream_of_its_own():
+    """With 3.x's stream, which OrdMag's bootstraps have already used, the 4.0 neuron
+    sample differs from 10x's cells by 31 barcodes, every one at the FDR cut; 4.0's own
+    rule (above) reproduces it exactly."""
+    name = "neuron10k_nextgem_4_0"
+    result = scd.call(_read(name), "cellranger@3.0.0", expect_cells=10000, inplace=False)
+    different = _called(result) ^ set(filtered_barcodes(name))
+    assert len(different) == 31
+    fdr = result.columns["fdr"][np.isin(np.asarray(result.barcodes), list(different))]
+    assert np.all((fdr > 0.005) & (fdr < 0.015)), np.sort(fdr)
 
 
 STAR_PARAMS = {"starsolo-topcells": {"n_cells": 3000}}

@@ -14,7 +14,12 @@ Provenance, by release:
   `stats.py`, `sgt.py`, `mro/stages/counter/filter_barcodes`), which 10x
   released under the MIT licence (Copyright (c) 2015-2018 10X Genomics). Its
   OrdMag is the 2.x algorithm.
-- 4.0 to 7.1 (and 1.x): no public source; refused (documented gaps).
+- 4.0 to 5.x: no public source. 10x's own outputs of these releases are reproduced
+  exactly by the 3.x port with two changes seen in them (and in 7.2's specification): the
+  simulation seeds a stream of its own, and from 5.0 antibody aggregates are removed first
+  (the method page lists the datasets).
+- 6.0 to 7.1 (and 1.x): no public source, and 10x's outputs match no rule exactly; refused
+  (documented gaps).
 - 7.2 to 10.1: written from the behavioural specification in
   docs/_research/cellranger-7.2-plus-spec.md and the method pages, not from
   10x's code, which is under a licence that does not allow copying.
@@ -65,10 +70,10 @@ GAPS = (
         "expected cells), but not whether 1.x bootstrapped it as 2.x does.",
     ),
     Gap(
-        "4.0",
+        "6.0",
         "7.2",
-        "Cell Ranger 4.0 to 7.1 published no source; their release notes describe changes "
-        "(targeted calling, per-species EmptyDrops, changed parameters) that cannot be reproduced exactly.",
+        "Cell Ranger 6.0 to 7.1 published no source, and no rule reproduces 10x's own outputs of these "
+        "releases exactly: the closest differ by a few barcodes at the FDR cut.",
     ),
 )
 CLASSES = ["initial", "rescued", "candidate", "removed", "background"]
@@ -617,7 +622,7 @@ def _read_barcode_list(path: str) -> set:
 _V2 = Variant(
     "v2",
     since="2.0",
-    until="4.0",
+    until="6.0",
     summary="OrdMag: 100 bootstraps of the count of barcodes within 10x of the 30th-largest (for 3,000 "
     "expected cells); legacy numpy RNG seeded 0; Python 2 rounding",
     settings={"release": "3.x"},
@@ -695,7 +700,7 @@ class OrdMag(Method):
 
     @dataclass
     class Params:
-        expect_cells: Optional[int] = param(None, "Expected number of cells (2.x/3.x: 3,000 per GEM group if not given; 7.2+: estimated)", original="--expect-cells", minimum=1)
+        expect_cells: Optional[int] = param(None, "Expected number of cells (2.x–5.x: 3,000 per GEM group if not given; 7.2+: estimated)", original="--expect-cells", minimum=1)
         chemistry: Optional[str] = param(None, "7.2+: chemistry name or description, for the estimate's cap (default: the input file's)", original="--chemistry")
         n_probe_barcodes: Optional[int] = param(None, "7.2+: probe barcodes / OCM tags of the sample, for the estimate's cap", original="probe_barcode_ids", minimum=1)
 
@@ -743,6 +748,27 @@ def _expected_v7(expect: Optional[int], n_groups: int) -> Optional[int]:
     return staged // n_groups if staged else None
 
 
+def _remove_aggregates(droplets, params, types: np.ndarray, notes: List[str], diagnostics: Dict) -> np.ndarray:
+    """The barcodes kept for calling (5.0+): without Cell Ranger's list of antibody aggregates, or
+    without those of its count rule."""
+    kept = np.ones(droplets.n_barcodes, dtype=bool)
+    if params.aggregate_barcodes:
+        listed = _read_barcode_list(params.aggregate_barcodes)
+        kept &= ~np.isin(droplets.barcodes.astype(str), list(listed))
+        diagnostics["aggregates_removed"] = int((~kept).sum())
+    elif params.filter_aggregates and (types == ANTIBODY).any():
+        # Antibody-only runs too: Cell Ranger filters aggregates whenever there is an antibody library.
+        aggregates, info = antibody_aggregates(droplets.counts[:, np.flatnonzero(types == ANTIBODY)], params.n_probe_barcodes)
+        kept &= ~aggregates
+        diagnostics["aggregates_removed"] = int(aggregates.sum())
+        diagnostics["aggregates"] = info
+        notes.append(
+            "antibody aggregates removed by Cell Ranger's count rule; its read-based rule needs read counts "
+            "a matrix does not hold (give aggregate_barcodes= for Cell Ranger's own list)"
+        )
+    return kept
+
+
 def _gex_or_antibody(droplets) -> Tuple[np.ndarray, np.ndarray]:
     """The features Cell Ranger calls on: Gene Expression, or Antibody Capture in an antibody-only run."""
     types = _feature_types(droplets)
@@ -776,6 +802,10 @@ class CellRanger(Method):
                 "with at least max(500, 1% of the median cell), 10,000 simulations, BH FDR ≤ 0.01",
                 settings={"release": "3.x"},
             ),
+            Variant("v4", since="4.0", until="5.0", summary="as 3.x, but the simulation draws from a stream "
+                    "of its own, seeded 0", settings={"release": "4.x"}),
+            Variant("v5", since="5.0", until="6.0", summary="as 4.x, after removing antibody aggregates "
+                    "(the count rule of 7.2+)", settings={"release": "5.x"}),
         )
         + _V7_VARIANTS,
         gaps=GAPS,
@@ -789,42 +819,52 @@ class CellRanger(Method):
 
     @dataclass
     class Params:
-        expect_cells: Optional[int] = param(None, "Expected number of cells (2.x/3.x: 3,000 per GEM group if not given; 7.2+: estimated)", original="--expect-cells", minimum=1)
+        expect_cells: Optional[int] = param(None, "Expected number of cells (2.x–5.x: 3,000 per GEM group if not given; 7.2+: estimated)", original="--expect-cells", minimum=1)
         force_cells: Optional[int] = param(None, "Call exactly this many cells (the top N) instead", original="--force-cells", minimum=1)
         chemistry: Optional[str] = param(None, "7.2+: chemistry name or description (default: the input file's)", original="--chemistry")
         n_probe_barcodes: Optional[int] = param(None, "7.2+: number of probe barcodes / OCM tags of this sample (Flex, OCM)", original="probe_barcode_ids", minimum=1)
         emptydrops_minimum_umis: int = param(500, "7.2+: fewest UMIs a candidate may have", original="emptydrops-minimum-umis", minimum=0)
         global_minimum_umis: int = param(0, "8.0+: remove called cells with fewer UMIs", original="global-minimum-umis", minimum=0)
         max_mito_percent: float = param(100.0, "8.0+: remove called cells with a higher mitochondrial %", original="max-mito-percent", minimum=0)
-        filter_aggregates: bool = param(True, "7.2+: remove antibody aggregates before calling", original="filter-aggregates")
-        aggregate_barcodes: Optional[str] = param(None, "7.2+: Cell Ranger's aggregate_barcodes.csv, removed before calling instead of the count rule", original="aggregate_barcodes.csv")
+        filter_aggregates: bool = param(True, "5.0+: remove antibody aggregates before calling", original="filter-aggregates")
+        aggregate_barcodes: Optional[str] = param(None, "5.0+: Cell Ranger's aggregate_barcodes.csv, removed before calling instead of the count rule", original="aggregate_barcodes.csv")
 
     def run(self, droplets, params, variant, random_state):
         release = variant.settings["release"]
-        if release in ("2.x", "3.x"):
-            unused = [n for n in ("chemistry", "n_probe_barcodes", "aggregate_barcodes") if getattr(params, n)]
+        if release in ("2.x", "3.x", "4.x", "5.x"):
+            unused = [n for n in ("chemistry", "n_probe_barcodes") if getattr(params, n)]
             unused += [n for n, d in (("emptydrops_minimum_umis", 500), ("global_minimum_umis", 0), ("max_mito_percent", 100.0)) if getattr(params, n) != d]
             if unused:
                 raise ValueError(f"cellranger before 7.2 takes no {', '.join(unused)}")
+            if params.aggregate_barcodes and release != "5.x":
+                raise ValueError("cellranger before 5.0 takes no aggregate_barcodes")
             return self._run_v3(droplets, params, variant, random_state)
         return self._run_v7(droplets, params, variant, random_state)
 
-    # -- 2.x / 3.x -------------------------------------------------------------
+    # -- 2.x to 5.x ------------------------------------------------------------
 
     def _run_v3(self, droplets, params, variant, random_state):
-        state = np.random.RandomState(0 if random_state is None else random_state)
+        release = variant.settings["release"]
+        seed = 0 if random_state is None else random_state
+        state = np.random.RandomState(seed)
         notes: List[str] = []
         n_all = droplets.n_barcodes
         gex, types = _gex_or_antibody(droplets)
-        if (types == ANTIBODY).any():
-            notes.append("Cell Ranger 3.x first removed antibody aggregates using read counts a matrix does not hold")
-        counts = droplets.counts[:, np.flatnonzero(gex)]
+        diagnostics: Dict = {"ordmag": {}}
+        if release == "5.x":
+            kept = _remove_aggregates(droplets, params, types, notes, diagnostics)
+        else:
+            kept = np.ones(n_all, dtype=bool)
+            if (types == ANTIBODY).any():
+                notes.append(f"Cell Ranger {release} first removed antibody aggregates using read counts a matrix does not hold")
+        index = np.flatnonzero(kept)
+        n_kept = index.size
+        counts = droplets.counts[index][:, np.flatnonzero(gex)]
         features = droplets.features.iloc[np.flatnonzero(gex)]
-        groups = gem_groups(droplets.barcodes)
+        groups = gem_groups(droplets.barcodes[index])
         unique = sorted(set(groups.tolist()))
         recovered = int(float(params.expect_cells) / len(unique)) if params.expect_cells else DEFAULT_RECOVERED_CELLS
-        initial = np.zeros(n_all, dtype=bool)
-        diagnostics: Dict = {"ordmag": {}}
+        initial = np.zeros(n_kept, dtype=bool)
         for genome, feature_mask in genomes(features):
             sub = counts[:, np.flatnonzero(feature_mask)]
             for group in unique:
@@ -837,15 +877,21 @@ class CellRanger(Method):
                     chosen, info = ordmag_v2(bc_counts, recovered, state)
                 initial[rows[chosen]] = True
                 diagnostics["ordmag"][f"{genome or 'all'}-{group}"] = info
-        calls = _Calls(n_all)
+        calls = _Calls(n_kept)
         calls.initial = initial
-        if variant.name == "v3" and not params.force_cells:
+        with_test = release != "2.x"
+        if with_test and not params.force_cells:
             for group in unique:
                 rows = np.flatnonzero(groups == group)
-                found = nonambient_v3(counts[rows], initial[rows], state)
+                # 3.x simulates on the stage's stream, after OrdMag's bootstraps; from 4.0 the
+                # simulation seeds a stream of its own (as 7.2+ does), so OrdMag no longer moves it.
+                stream = state if release == "3.x" else np.random.RandomState(seed)
+                found = nonambient_v3(counts[rows], initial[rows], stream)
                 calls.add_test(found, rows, f"GEM group {group}", notes, diagnostics)
             calls.thresholds["fdr"] = MAX_ADJ_PVALUE
-        return calls.result(self, variant, params, droplets, diagnostics, notes, with_test=variant.name == "v3")
+        out = _Calls(n_all)
+        out.absorb(calls, index)
+        return out.result(self, variant, params, droplets, diagnostics, notes, with_test=with_test)
 
     # -- 7.2+ --------------------------------------------------------------------
 
@@ -863,22 +909,7 @@ class CellRanger(Method):
         (low, high), fdr, rule = ambient_range(release, family, params.n_probe_barcodes)
         diagnostics: Dict = {"chemistry": chemistry or "", "kit": family, "range_rule": rule, "ordmag": {}}
 
-        # Barcodes removed before calling (antibody aggregates)
-        kept = np.ones(n_all, dtype=bool)
-        if params.aggregate_barcodes:
-            listed = _read_barcode_list(params.aggregate_barcodes)
-            kept &= ~np.isin(droplets.barcodes.astype(str), list(listed))
-            diagnostics["aggregates_removed"] = int((~kept).sum())
-        elif params.filter_aggregates and (types == ANTIBODY).any():
-            # Antibody-only runs too: Cell Ranger filters aggregates whenever there is an antibody library.
-            aggregates, info = antibody_aggregates(droplets.counts[:, np.flatnonzero(types == ANTIBODY)], params.n_probe_barcodes)
-            kept &= ~aggregates
-            diagnostics["aggregates_removed"] = int(aggregates.sum())
-            diagnostics["aggregates"] = info
-            notes.append(
-                "antibody aggregates removed by Cell Ranger's count rule; its read-based rule needs read counts "
-                "a matrix does not hold (give aggregate_barcodes= for Cell Ranger's own list)"
-            )
+        kept = _remove_aggregates(droplets, params, types, notes, diagnostics)
         if (types == ANTIGEN).any():
             notes.append("Cell Ranger's antigen (BEAM) aggregate rule is not reproduced")
 

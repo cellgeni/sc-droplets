@@ -178,6 +178,9 @@ matrix). 3.1 (Space Ranger 1.0 snapshot): identical, except the SGT `n0 == 0` ca
 
 ### 3.4 CR 4.0–6.1 [DOC; code UNVERIFIED]
 
+Superseded by [cellranger-4.0-7.1-outputs.md](cellranger-4.0-7.1-outputs.md) [OUT]: 4.0 and 5.x are
+3.x with the simulation on its own stream (and 5.0's aggregate count rule); 6.0–7.1 match no rule.
+
 - 4.0: targeted gradient (described from 7.2 code below); Feature-Barcode-only runs use step 1 on
   Antibody counts.
 - 5.0: protein aggregation filter rebuilt (`cellranger_ab_aggregates_v5`, §3.9).
