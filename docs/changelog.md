@@ -28,6 +28,7 @@ Then Cell Ranger and STARsolo, each checked against the original on public data:
   numpy's classic quicksort (for tie order), C++ `mt19937` and libstdc++'s
   `discrete_distribution`, and the Cell Ranger and STAR Monte Carlo engines.
 - `scd.pl.diagnostics` and `sc-droplets plot diagnostics`: each call's own view.
+- A validation suite on public data (`-m integration`), and an oracle workflow that runs STAR.
 
 Then DropletUtils, checked against every release from 1.0 to 1.30 run in R:
 
@@ -139,4 +140,3 @@ Then the views of several calls at once:
   the calls disagree on beside the agreed cells and the uncalled barcodes around them.
 - `scd.report` and `sc-droplets report`: one self-contained HTML page with every plot, the
   separation scores and each call's parameters.
-- A validation suite on public data (`-m integration`), and an oracle workflow that runs STAR.
