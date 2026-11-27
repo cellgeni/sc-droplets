@@ -1,8 +1,8 @@
-"""Generic rules that belong to no single tool: top N, a fixed threshold, MAD outliers, and Otsu
-and multi-Otsu thresholds.
+"""Generic rules that belong to no single tool: top N, a fixed threshold, MAD outliers, Otsu and
+multi-Otsu thresholds, and a kernel-density valley.
 
-Pages: docs/methods/generic/{top-n,threshold,mad,otsu,multiotsu}.md. MAD follows scuttle's
-`isOutlier` (R's `log2`, `median` and `mad`); Otsu and multi-Otsu are scikit-image's
+Pages: docs/methods/generic/{top-n,threshold,mad,otsu,multiotsu,kde-valley}.md. MAD follows
+scuttle's `isOutlier` (R's `log2`, `median` and `mad`); Otsu and multi-Otsu are scikit-image's
 (`primitives/otsu.py`).
 """
 
@@ -25,6 +25,8 @@ _GENERIC = "Generic"
 _UNITS = ("umis", "reads", "genes")
 _UNIT_LABEL = {"umis": "UMIs", "reads": "reads", "genes": "genes"}
 _TRANSFORMS = ("log10", "arcsinh", "none")
+#: Points of the kernel density's grid, as UMI-tools evaluates it.
+GRID_POINTS = 10000
 
 
 class RuleError(ValueError):
@@ -309,4 +311,86 @@ class MultiOtsu(Method):
             thresholds=thresholds,
             diagnostics=_histogram_diagnostics(x, params.bins, _scale_label(params),
                                                [(c, f"threshold {i + 1}") for i, c in enumerate(cuts)]),
+        )
+
+
+def bandwidth_method(text: str):
+    """`--bandwidth`: scott, silverman, or a positive factor."""
+    if text in ("scott", "silverman"):
+        return text
+    try:
+        factor = float(text)
+    except ValueError:
+        raise RuleError(f"--bandwidth must be scott, silverman or a number, not {text!r}") from None
+    if not factor > 0:
+        raise RuleError(f"--bandwidth must be positive, not {text}")
+    return factor
+
+
+def density_valley(x: np.ndarray, bandwidth) -> dict:
+    """The kernel density of x on a 10,000-point grid, its peaks, and the lowest point between the two
+    highest (the first such point)."""
+    from scipy.signal import argrelextrema
+    from scipy.stats import gaussian_kde
+
+    if x.size < 2 or np.all(x == x[0]):
+        raise RuleError("a kernel density needs at least two different values")
+    kde = gaussian_kde(x, bw_method=bandwidth)
+    grid = np.linspace(x.min(), x.max(), GRID_POINTS)
+    density = kde(grid)
+    peaks = argrelextrema(density, np.greater)[0]
+    if peaks.size < 2:
+        raise RuleError(f"the density has {peaks.size} peak: no valley between two (try another --bandwidth or --min-counts)")
+    highest = peaks[np.lexsort((peaks, -density[peaks]))[:2]]
+    low, high = int(highest.min()), int(highest.max())
+    valley = low + int(np.argmin(density[low:high + 1]))
+    return {"grid": grid, "density": density, "peaks": peaks, "bounds": (low, high), "valley": valley}
+
+
+@register
+class KdeValley(Method):
+    info = MethodInfo(
+        id="kde-valley",
+        title="Kernel-density valley",
+        tool=_GENERIC,
+        category="density",
+        summary="The lowest point of a kernel density of log totals between its two highest peaks; barcodes "
+                "above it are cells.",
+        docs="methods/generic/kde-valley.md",
+        counts="either",
+        references=(
+            Reference(
+                "Smith, Heger & Sudbery 2017, UMI-tools: modeling sequencing errors in Unique Molecular "
+                "Identifiers to improve quantification accuracy, Genome Research 27:491",
+                doi="10.1101/gr.209601.116",
+            ),
+        ),
+    )
+
+    @dataclass
+    class Params:
+        min_counts: float = param(100.0, "Candidates have at least this value; the others are empty", minimum=0)
+        bandwidth: str = param("scott", "Bandwidth: scott, silverman, or a factor such as 0.1", original="bw_method")
+        unit: str = param("umis", "What the rule applies to", choices=_UNITS)
+
+    def run(self, droplets, params, variant, random_state):
+        bandwidth = bandwidth_method(params.bandwidth)
+        values = droplets.values(params.unit)
+        index = candidates(values, params.min_counts)
+        x = clog10(values[index])
+        found = density_valley(x, bandwidth)
+        cut_log = float(found["grid"][found["valley"]])
+        cut = 10.0 ** cut_log
+        is_cell = values > cut
+        thin = slice(None, None, GRID_POINTS // 1000)
+        n_cells = int(is_cell.sum())
+        return result(
+            type(self), variant, params, droplets, is_cell,
+            thresholds={params.unit: cut, "log10": cut_log},
+            diagnostics={
+                "grid": found["grid"][thin], "density": found["density"][thin],
+                "peaks": found["grid"][found["peaks"]],
+                "valleys": np.array([cut_log]), "valley_passing": np.array([n_cells]), "chosen": cut_log,
+                "density_title": f"Density of log10 {_UNIT_LABEL[params.unit]} (bandwidth {params.bandwidth})",
+            },
         )

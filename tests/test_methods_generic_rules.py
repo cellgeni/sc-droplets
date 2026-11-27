@@ -1,4 +1,4 @@
-"""MAD outliers, Otsu and multi-Otsu thresholds."""
+"""MAD outliers, Otsu and multi-Otsu thresholds, and the kernel-density valley."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from typer.testing import CliRunner
 
 import sc_droplets as scd
 from sc_droplets.cli import app
-from sc_droplets.methods.generic import RuleError
+from sc_droplets.methods.generic import GRID_POINTS, RuleError, density_valley
 from sc_droplets.primitives.rmath import clog2
 
 runner = CliRunner()
@@ -48,13 +48,13 @@ def _two_populations(low=(2.3, 0.15, 3000), high=(3.8, 0.2, 500)):
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("spec", ['mad', 'otsu', 'multiotsu:min_counts=10'])
+@pytest.mark.parametrize("spec", ['mad', 'otsu', 'multiotsu:min_counts=10', 'kde-valley'])
 def test_generic_rules_need_a_barcode_at_the_floor(spec):
     with pytest.raises(RuleError, match="--min-counts"):
         scd.call(_matrix([1, 2, 3]), spec, inplace=False)
 
 
-@pytest.mark.parametrize("name", ['mad', 'otsu', 'multiotsu'])
+@pytest.mark.parametrize("name", ['mad', 'otsu', 'multiotsu', 'kde-valley'])
 def test_cli_calls_the_generic_rule(name, sim, tmp_path):
     path = tmp_path / "sim.h5ad"
     sim.write_h5ad(path)
@@ -130,3 +130,46 @@ def test_multiotsu_stores_each_barcodes_class_and_calls_the_top_one(sim):
 def test_multiotsu_refuses_more_than_four_classes(sim):
     with pytest.raises(ValueError, match="classes"):
         scd.call(sim, "multiotsu", classes=5, inplace=False)
+
+
+# ---------------------------------------------------------------------------
+# kde-valley
+# ---------------------------------------------------------------------------
+
+
+def test_kde_valley_lies_between_two_populations_and_calls_the_upper_one():
+    values, upper = _two_populations()
+    result = scd.call(_matrix(values), "kde-valley", inplace=False)
+    assert 2.6 < result.thresholds["log10"] < 3.4
+    assert np.array_equal(result.is_cell, values > result.thresholds["umis"])
+    assert (result.is_cell == upper).mean() > 0.995
+
+
+def test_kde_valley_density_is_scipys_on_a_10000_point_grid():
+    from scipy.stats import gaussian_kde
+
+    values, _ = _two_populations()
+    x = np.log10(values[values >= 100])
+    found = density_valley(x, 0.1)
+    grid = np.linspace(x.min(), x.max(), GRID_POINTS)
+    assert np.array_equal(found["grid"], grid)
+    assert np.array_equal(found["density"], gaussian_kde(x, bw_method=0.1)(grid))
+    low, high = found["bounds"]
+    assert found["density"][found["valley"]] == found["density"][low:high + 1].min()
+
+
+def test_kde_valley_needs_two_peaks_and_a_valid_bandwidth():
+    values, _ = _two_populations(high=(3.8, 0.2, 0))
+    with pytest.raises(RuleError, match="1 peak"):
+        scd.call(_matrix(values), "kde-valley", inplace=False)
+    with pytest.raises(RuleError, match="scott, silverman or a number"):
+        scd.call(_matrix(values), "kde-valley", bandwidth="wide", inplace=False)
+    with pytest.raises(RuleError, match="positive"):
+        scd.call(_matrix(values), "kde-valley", bandwidth="-1", inplace=False)
+
+
+def test_cli_reports_a_bad_bandwidth_as_an_error(sim, tmp_path):
+    path = tmp_path / "sim.h5ad"
+    sim.write_h5ad(path)
+    bad = runner.invoke(app, ["call", "kde-valley", str(path), "--json", "--bandwidth", "wide"])
+    assert bad.exit_code == 1 and "Error:" in _out(bad)
