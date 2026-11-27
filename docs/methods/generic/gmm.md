@@ -94,7 +94,7 @@ import sc_droplets as scd
 
 adata = scd.read("raw_feature_bc_matrix.h5")
 result = scd.call(adata, "gmm", components=3)
-result.thresholds["umis"], result.diagnostics["means"]
+result.thresholds["umis"], result.diagnostics["mixture_means"]
 adata.obs["gmm_probability"]
 ```
 
