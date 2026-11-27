@@ -558,3 +558,35 @@ jobs:
           name: oracles-generic
           path: oracle-out/
           retention-days: 30
+
+  splicing:
+    needs: changes
+    if: contains(needs.changes.outputs.tools, ' splicing ')
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    name: kb nac counts (splicing data)
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      # The FASTQs (5.5 GB), the index (2 GB, 3.3 GB unpacked) and kb's output need the room.
+      - name: Free disk space
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+
+      - uses: prefix-dev/setup-pixi@9936258fee697aff89b3fed6ca1f80a382ef694e # v0.11.3
+        with:
+          pixi-version: v0.80.0
+          run-install: false
+          cache: false
+
+      - name: Run kb count --workflow nac
+        run: bash oracles/splicing/run.sh oracle-out/splicing
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: oracles-splicing
+          path: oracle-out/
+          retention-days: 30
