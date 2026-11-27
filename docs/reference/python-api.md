@@ -121,16 +121,22 @@ and page.
 
 ## Plots
 
-### `scd.pl.knee(adata, calls=None, *, layer=None, feature_types=None, rotated=False, cumulative=False, ax=None, title=None, legend=True)`
+### `scd.pl.knee(adata, calls=None, *, layer=None, feature_types=None, rotated=False, cumulative=False, ax=None, title=None, legend=True, color=None, track=None, bins=100)`
 
 The barcode-rank curve with the calls on it; returns the matplotlib Axes. `calls` takes stored
 keys or method specs (a spec not yet stored is run first); `None` draws every stored call. With
 one call its cells are marked on the curve; with several, each gets a dashed line at its smallest
 cell total.
 
+`color` colours each barcode on the curve by an obs column. `track` (a column or a list) adds a
+panel under the curve per column with its median in `bins` log-spaced bins of rank, as
+CellBender's Fig. 1d shows the exonic fraction along the rank curve; the function then makes its
+own figure, so `ax` must be left out.
+
 ```python
 scd.pl.knee(adata, ["top_n", "threshold"])
 scd.pl.knee(adata, "top-n:n_cells=3000", rotated=True)
+scd.pl.knee(adata, "otsu", color="unspliced_fraction", track=["unspliced_fraction", "mito_fraction"])
 ```
 
 ### `scd.pl.density(adata, calls=None, *, layer=None, feature_types=None, min_counts=1, bins=100, weighted=False, ax=None, title=None, legend=True)`

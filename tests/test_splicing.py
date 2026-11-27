@@ -14,6 +14,7 @@ from conftest import write_alevin_fry, write_kb, write_loom, write_starsolo
 import sc_droplets as scd
 from sc_droplets.io.loom import is_loom
 from sc_droplets.metrics import MetricError, auroc, barcode_key
+from sc_droplets.pl.knee import track_medians
 
 matplotlib.use("Agg")
 
@@ -211,3 +212,28 @@ def test_splicing_plot_has_a_disagreement_panel_only_for_several_calls(measured)
 def test_splicing_plot_needs_the_metric(sim):
     with pytest.raises(KeyError, match="add_metrics"):
         scd.pl.splicing(sim.copy(), "otsu")
+
+
+def test_knee_tracks_are_medians_in_log_spaced_rank_bins(measured):
+    from sc_droplets.pl._data import curve_from_totals
+
+    ax = scd.pl.knee(measured, "otsu", color="unspliced_fraction", track=["unspliced_fraction", "unspliced_fraction"])
+    figure = ax.figure
+    assert len(figure.axes) == 4  # the curve, two tracks, the colour bar
+    curve = curve_from_totals(np.asarray(measured.X.sum(axis=1)).ravel())
+    edges, medians = track_medians(measured.obs["unspliced_fraction"].to_numpy(), curve, 100)
+    assert edges[0] == 1 and edges[-1] == curve.n and np.all(np.diff(edges) > 0)
+    ordered = measured.obs["unspliced_fraction"].to_numpy()[curve.order[: curve.n]]
+    assert medians[-1] == np.nanmedian(ordered[edges[-2] - 1:])
+
+
+def test_knee_colour_and_tracks_refuse_what_they_cannot_draw(measured):
+    import matplotlib.pyplot as plt
+
+    _, ax = plt.subplots()
+    with pytest.raises(ValueError, match="leave ax= out"):
+        scd.pl.knee(measured, "otsu", track="unspliced_fraction", ax=ax)
+    with pytest.raises(ValueError, match="cumulative"):
+        scd.pl.knee(measured, "otsu", color="unspliced_fraction", cumulative=True)
+    with pytest.raises(KeyError, match="no obs column 'nuclear'"):
+        scd.pl.knee(measured, "otsu", color="nuclear")
