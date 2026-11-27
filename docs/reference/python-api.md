@@ -82,7 +82,8 @@ an AnnData with `spliced` and `unspliced` layers, or a path: a velocyto `.loom`,
 ### `scd.separation(adata, keys=None, metric="unspliced_fraction", min_counts=10)`
 
 For each stored call: the median of `obs[metric]` in its cells (`<metric>_cells`) and in the
-barcodes it left out with at least `min_counts` (`<metric>_others`), and the AUROC between them
+barcodes it left out with at least `min_counts` gene-expression counts (`<metric>_others`; gene
+expression whatever the call counted, so every call meets the same outsiders), and the AUROC between them
 (`<metric>_auroc`: the chance that a cell's value exceeds an outsider's, ties counting half; 0.5
 is no separation). Unsupervised indicators, not ground truth.
 

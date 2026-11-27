@@ -98,7 +98,7 @@ among them. Each `-m` is a method spec, `id[@tool_version][:name=value,...]`; ea
 under its own key (the id, the version and the spec's parameters).
 
 With the unspliced fraction (the input's layers, or `--splicing`), each call also gets its
-median in the call's cells, in the barcodes it left out with at least 10 counts, and the AUROC
+median in the call's cells, in the barcodes it left out with at least 10 gene-expression counts, and the AUROC
 between the two; likewise the mitochondrial fraction when genes are named `MT-`. These separation
 scores are unsupervised indicators of a call's quality, not ground truth.
 

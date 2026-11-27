@@ -221,6 +221,22 @@ def test_separation_floor_counts_the_genome_the_call_counted():
     assert row["unspliced_fraction_others"] == 0.1  # B2 has 5 GRCh38 counts: below the floor
 
 
+def test_separation_floor_counts_gene_expression_whatever_the_call_counted():
+    """A call that also counted antibodies used to have every antibody-heavy barcode among its
+    outsiders, so two calls of the same cells scored differently."""
+    counts = np.array([[500, 0], [400, 0], [5, 300], [40, 0]], dtype=float)
+    adata = ad.AnnData(sp.csr_matrix(counts))
+    adata.obs_names = [f"B{i}" for i in range(4)]
+    adata.var_names = ["G", "CD3"]
+    adata.var["feature_types"] = ["Gene Expression", "Antibody Capture"]
+    adata.obs["unspliced_fraction"] = [0.3, 0.3, 0.9, 0.1]
+    scd.call(adata, "top-n", n_cells=2, key_added="gex")
+    scd.call(adata, "top-n", n_cells=2, key_added="both", feature_types=["Gene Expression", "Antibody Capture"])
+    scores = scd.separation(adata, ["gex", "both"], min_counts=10)
+    assert scores.loc["gex"].equals(scores.loc["both"])
+    assert scores.loc["both", "unspliced_fraction_others"] == 0.1  # B2 has 5 gene-expression counts
+
+
 def test_separation_needs_the_metric(sim):
     adata = sim.copy()
     scd.call(adata, "otsu")
