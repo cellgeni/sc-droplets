@@ -11,6 +11,7 @@ Prose drifts from code silently, and nothing else in the suite reads the docs.
 from __future__ import annotations
 
 import importlib.util
+import os
 import re
 import shlex
 from pathlib import Path
@@ -219,6 +220,28 @@ def test_every_implemented_method_page_is_for_a_registered_method():
     for method_id, (path, meta, _) in METHOD_PAGES.items():
         if meta.get("status") == "implemented":
             assert method_id in registered, f"{_label(path)}: {method_id} is not registered"
+
+
+#: Pages of methods not (yet) run by the package: what the method does, not how to run it here.
+OTHER_SECTIONS = ["At a glance", "How it works", "Versions", "Parameters", "Status", "References"]
+OTHER_PAGES = [(i, p, m) for i, (p, m, _) in METHOD_PAGES.items() if m.get("status") in ("planned", "docs-only")]
+OTHER_INDEX = {"planned": SITE / "methods" / "planned" / "index.md", "docs-only": SITE / "methods" / "documented" / "index.md"}
+
+
+@pytest.mark.parametrize("method_id, path, meta", OTHER_PAGES, ids=[i for i, _, _ in OTHER_PAGES])
+def test_planned_and_documented_pages_have_their_sections_and_are_listed(method_id, path, meta):
+    """A planned or documented-only page follows its own template, names no registered method,
+    and is linked from the index of its status, wherever its tool's pages are."""
+    _, body = front_matter(path.read_text())
+    assert re.findall(r"^## (.+)$", body, re.M) == OTHER_SECTIONS, f"{_label(path)} has other sections"
+    assert method_id not in {c.info.id for c in METHODS}, f"{_label(path)}: {method_id} is registered"
+    index = OTHER_INDEX[meta["status"]]
+    target = os.path.relpath(path, index.parent).replace(os.sep, "/")
+    assert f"]({target})" in index.read_text(), f"{_label(index)} does not link {target}"
+
+
+def test_there_are_planned_and_documented_pages():
+    assert {m.get("status") for _, _, m in OTHER_PAGES} == {"planned", "docs-only"}
 
 
 def test_the_methods_table_is_current():
