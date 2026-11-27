@@ -117,8 +117,14 @@ Milestones, each its own pull request after the scaffold:
     moments and can break a near-tie the other way (1 in 300 random histograms); the port and the
     committed outputs follow x86-64. `kde-valley` is this package's rule: checked on simulated
     populations and against SciPy, not against a tool.
-  - [ ] Mixtures: `gmm` (1-D log totals; posterior or zUMIs' 1 % quantile rule) and `gmm-2d`
-    (log UMIs and log genes), scikit-learn's `GaussianMixture`, cross-checked against mclust.
+  - [x] Mixtures (`milestone-4-mixtures`): `gmm` (1-D log totals; posterior or zUMIs' 1 %
+    quantile rule) and `gmm-2d` (log UMIs and log genes), scikit-learn's `GaussianMixture`.
+    Decision: its defaults (tol 1e-3, k-means start, seed 0) are the default, as Python tools run
+    it; `--tol` and `--max-iter` give the converged fit. The two differ: on pbmc4k EM stops after
+    4 iterations at 4,413 cells, and converges to another optimum at 3,969; mclust 6.1 reaches
+    that optimum on pbmc4k and a worse one on pbmc_1k_v3. `gmm-2d` barely moves (4,475 / 4,451).
+    Oracle: scikit-learn 1.5.2 and 1.9.1 give the same parameters and calls (32 cases); the
+    converged fit is at least as likely as mclust's.
   - [ ] Splicing readers, `pl.splicing`, knee tracks, separation scores.
   - [ ] `pl.compare`, `pl.qc`, `report`.
   - [ ] The comparison-on-public-data page and the *Visualising calls* guide.

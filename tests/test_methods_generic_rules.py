@@ -1,4 +1,4 @@
-"""MAD outliers, Otsu and multi-Otsu thresholds, and the kernel-density valley."""
+"""MAD outliers, Otsu and multi-Otsu thresholds, the kernel-density valley, and Gaussian mixtures."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from typer.testing import CliRunner
 import sc_droplets as scd
 from sc_droplets.cli import app
 from sc_droplets.methods.generic import GRID_POINTS, RuleError, density_valley
-from sc_droplets.primitives.rmath import clog2
+from sc_droplets.primitives.rmath import clog2, clog10
 
 matplotlib.use("Agg")
 runner = CliRunner()
@@ -50,13 +50,13 @@ def _two_populations(low=(2.3, 0.15, 3000), high=(3.8, 0.2, 500)):
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("spec", ['mad', 'otsu', 'multiotsu:min_counts=10', 'kde-valley'])
+@pytest.mark.parametrize("spec", ["mad", "otsu", "multiotsu:min_counts=10", "kde-valley", "gmm", "gmm-2d"])
 def test_generic_rules_need_a_barcode_at_the_floor(spec):
     with pytest.raises(RuleError, match="--min-counts"):
         scd.call(_matrix([1, 2, 3]), spec, inplace=False)
 
 
-@pytest.mark.parametrize("spec", ["mad", "otsu", "multiotsu", "kde-valley"])
+@pytest.mark.parametrize("spec", ["mad", "otsu", "multiotsu", "kde-valley", "gmm"])
 def test_rules_on_a_log_scale_leave_out_zero_counts_whatever_the_floor(spec):
     """A floor of 0 used to make zero-count barcodes candidates: their log, -inf, broke the
     histogram and the density."""
@@ -77,7 +77,7 @@ def test_rules_off_a_log_scale_keep_zero_counts_as_candidates():
     assert unlogged.diagnostics["histogram_counts"].sum() == values.size + 50
 
 
-@pytest.mark.parametrize("name", ['mad', 'otsu', 'multiotsu', 'kde-valley'])
+@pytest.mark.parametrize("name", ["mad", "otsu", "multiotsu", "kde-valley", "gmm", "gmm-2d"])
 def test_cli_calls_the_generic_rule(name, sim, tmp_path):
     path = tmp_path / "sim.h5ad"
     sim.write_h5ad(path)
@@ -126,7 +126,7 @@ def test_otsu_splits_two_clusters_between_them_and_calls_the_upper_one():
     result = scd.call(_matrix(values), "otsu", inplace=False)
     cut = result.thresholds["transformed"]
     assert 2.6 < cut < 3.4 and result.thresholds["umis"] == 10.0 ** cut
-    assert np.array_equal(result.is_cell, np.log10(values) > cut)
+    assert np.array_equal(result.is_cell, clog10(values) > cut)
     assert (result.is_cell == upper).mean() > 0.995
 
 
@@ -199,6 +199,95 @@ def test_cli_reports_a_bad_bandwidth_as_an_error(sim, tmp_path):
 
 
 # ---------------------------------------------------------------------------
+# Gaussian mixtures
+# ---------------------------------------------------------------------------
+
+
+def _sklearn_fit(data, components=2, tol=1e-3, max_iter=100, seed=0):
+    from sklearn.mixture import GaussianMixture
+
+    return GaussianMixture(n_components=components, covariance_type="full", tol=tol, max_iter=max_iter,
+                           random_state=seed).fit(data)
+
+
+def test_gmm_is_scikit_learns_mixture_of_the_log_totals_above_the_floor(sim):
+    result = scd.call(sim, "gmm", components=3, inplace=False)
+    totals = np.asarray(result.totals)
+    index = np.flatnonzero(totals >= 100)
+    x = clog10(totals[index]).reshape(-1, 1)  # the C library's log10, as the method takes it
+    model = _sklearn_fit(x, components=3)
+    assert np.array_equal(result.diagnostics["mixture_means"], model.means_[:, 0])
+    top = int(np.argmax(model.means_[:, 0]))
+    probability = np.zeros(totals.size)
+    probability[index] = model.predict_proba(x)[:, top]
+    assert np.array_equal(result.columns["probability"], probability)
+    assert np.array_equal(result.is_cell, probability > 0.5)
+
+
+def test_gmm_seed_is_the_k_means_initialisations(sim):
+    a = scd.call(sim, "gmm", components=3, inplace=False, random_state=5)
+    totals = np.asarray(a.totals)
+    x = clog10(totals[totals >= 100]).reshape(-1, 1)
+    assert np.array_equal(a.diagnostics["mixture_means"], _sklearn_fit(x, components=3, seed=5).means_[:, 0])
+
+
+def test_gmm_calls_the_upper_of_two_populations():
+    values, upper = _two_populations()
+    result = scd.call(_matrix(values), "gmm", inplace=False)
+    assert (result.is_cell == upper).mean() > 0.995
+
+
+def test_gmm_quantile_rule_cuts_at_the_cell_components_quantile():
+    from scipy.stats import norm
+
+    values, _ = _two_populations()
+    result = scd.call(_matrix(values), "gmm", rule="quantile", quantile=0.05, inplace=False)
+    diag = result.diagnostics
+    top = diag["cell_component"]
+    cut = diag["mixture_means"][top] + diag["mixture_sds"][top] * norm.ppf(0.05)
+    assert result.thresholds["log10"] == cut and result.thresholds["cut"] == 10.0 ** cut
+    assert np.array_equal(result.is_cell, (values >= 100) & (clog10(np.maximum(values, 1)) >= cut))
+
+
+def test_gmm_notes_when_em_stops_before_it_converges():
+    values, _ = _two_populations()
+    stopped = scd.call(_matrix(values), "gmm", max_iter=1, tol=1e-12, inplace=False)
+    assert stopped.notes and "--max-iter 1" in stopped.notes[0]
+    assert not scd.call(_matrix(values), "gmm", inplace=False).notes
+
+
+def test_gmm_needs_as_many_candidates_as_components():
+    with pytest.raises(RuleError, match="cannot fit 3 components"):
+        scd.call(_matrix([1, 150, 300]), "gmm", components=3, inplace=False)
+
+
+def test_gmm_2d_fits_log_umis_and_log_genes_and_calls_the_component_with_most_umis(sim):
+    result = scd.call(sim, "gmm-2d", inplace=False)
+    totals = np.asarray(result.totals)
+    genes = np.diff(sim.X.tocsr().indptr)
+    index = np.flatnonzero(totals >= 100)
+    points = np.column_stack([clog10(totals[index]), clog10(genes[index])])
+    model = _sklearn_fit(points)
+    assert np.array_equal(result.diagnostics["mixture_means"], model.means_)
+    top = int(np.argmax(model.means_[:, 0]))
+    assert result.diagnostics["cell_component"] == top
+    assert np.array_equal(result.is_cell[index], model.predict_proba(points)[:, top] > 0.5)
+    truth = np.asarray(sim.obs["truth"] == "cell")
+    assert np.array_equal(result.is_cell, truth)
+
+
+def test_mixture_probabilities_are_stored_on_the_anndata_and_survive_h5ad(adata, tmp_path):
+    scd.call(adata, "gmm")
+    scd.call(adata, "gmm-2d")
+    assert adata.obs["gmm_probability"].between(0, 1).all()
+    path = tmp_path / "calls.h5ad"
+    adata.write_h5ad(path)
+    back = ad.read_h5ad(path)
+    assert np.array_equal(back.uns["sc_droplets"]["gmm_2d"]["diagnostics"]["mixture_covariances"],
+                          adata.uns["sc_droplets"]["gmm_2d"]["diagnostics"]["mixture_covariances"])
+
+
+# ---------------------------------------------------------------------------
 # Plots
 # ---------------------------------------------------------------------------
 
@@ -209,6 +298,15 @@ def test_diagnostics_of_the_histogram_rules_draw_their_cuts(adata):
         panel = figure.axes[1]
         dashed = [line for line in panel.get_lines() if line.get_linestyle() == "--"]
         assert len(dashed) == n_cuts and panel.get_yscale() == "log"
+
+
+def test_diagnostics_of_the_mixtures_draw_their_components(adata):
+    panel = scd.pl.diagnostics(adata, "gmm:components=3").axes[1]
+    labels = [line.get_label() for line in panel.get_lines()]
+    assert sum(label.startswith("component") for label in labels) == 3
+    assert sum(label.endswith("(cells)") for label in labels) == 1
+    plane = scd.pl.diagnostics(adata, "gmm-2d").axes[1]
+    assert len(plane.patches) == 2 and plane.get_ylabel() == "log10 genes detected"
 
 
 def test_diagnostics_of_kde_valley_marks_the_peaks_and_the_valley(adata):

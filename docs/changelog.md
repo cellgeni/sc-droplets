@@ -112,4 +112,12 @@ Then the first generic rules on the distribution of totals:
   and 0.26.0, on pbmc_1k_v3 and pbmc4k.
 - `scd.pl.density` and `sc-droplets plot density`: the histogram of log totals with each call's
   cut.
+
+Then Gaussian mixtures:
+
+- `gmm` (log totals; cells by posterior, or zUMIs' quantile of the cell component) and `gmm-2d`
+  (log UMIs and log genes), scikit-learn's `GaussianMixture` with its defaults unless told;
+  each barcode's posterior is stored.
+- The same parameters and calls as scikit-learn 1.5.2 and 1.9.1; converged, `gmm`'s fit is at
+  least as likely as mclust's.
 - A validation suite on public data (`-m integration`), and an oracle workflow that runs STAR.

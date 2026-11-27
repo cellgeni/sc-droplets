@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
-# Run the reference implementations of the generic rules on the per-barcode UMI totals of public
-# raw matrices: scuttle's isOutlier (1.0.4, 1.22.0) for `mad`, scikit-image's threshold_otsu and
-# threshold_multiotsu (0.20.0, 0.26.0) for `otsu` and `multiotsu`.
+# Run the reference implementations of the generic rules on the per-barcode totals of public raw
+# matrices: scuttle's isOutlier (1.0.4, 1.22.0) for `mad`, scikit-image's threshold_otsu and
+# threshold_multiotsu (0.20.0, 0.26.0) for `otsu` and `multiotsu`, scikit-learn's GaussianMixture
+# (1.5.2, 1.9.1) for `gmm` and `gmm-2d`, and mclust (6.1.4) to compare the converged mixture with.
 #
 #   bash oracles/generic/run.sh OUT_DIR
 #
 # Needs pixi and uv. The environments are built in $GENERIC_ORACLE_WORK (default
 # $RUNNER_TEMP/gen or /tmp/gen). Writes OUT_DIR/<dataset>/scuttle-<release>/{mad.tsv,versions.txt}
-# (see mad.R) and OUT_DIR/<dataset>/skimage-<release>/{otsu.tsv,multiotsu.tsv,versions.txt} (see
-# otsu.py). The committed outputs are linux-64's, as CI's: scikit-image's arm64 builds fuse a
+# (see mad.R), OUT_DIR/<dataset>/skimage-<release>/{otsu.tsv,multiotsu.tsv,versions.txt} (see
+# otsu.py), OUT_DIR/<dataset>/sklearn-<release>/{gmm.tsv,versions.txt} (see gmm.py) and
+# OUT_DIR/<dataset>/mclust-6.1.4/{mclust.tsv,versions.txt} (see mclust.R). The committed outputs are linux-64's, as CI's: scikit-image's arm64 builds fuse a
 # multiply and an add in multi-Otsu's moments, which can break a tie between two splits the
 # other way.
 set -euo pipefail
@@ -39,4 +41,11 @@ for dataset in pbmc_1k_v3_3_0 pbmc4k_2_1; do
     IFS=: read -r env release <<< "$run"
     (cd "$work" && pixi run -e "$env" python "$here/otsu.py" "$counts" "$out/$dataset/skimage-$release")
   done
+  features="$work/counts/$dataset.features.tsv"
+  (cd "$repo" && uv run python oracles/generic/make_features.py "$dataset" "$features")
+  for run in sklearn152:1.5.2 sklearn191:1.9.1; do
+    IFS=: read -r env release <<< "$run"
+    (cd "$work" && pixi run -e "$env" python "$here/gmm.py" "$features" "$out/$dataset/sklearn-$release")
+  done
+  (cd "$work" && pixi run -e mclust Rscript "$here/mclust.R" "$features" "$out/$dataset/mclust-6.1.4")
 done

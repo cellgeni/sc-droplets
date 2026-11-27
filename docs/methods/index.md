@@ -31,6 +31,8 @@ come.
 | `dropletutils-defaultdrops` | DropletUtils | rank-threshold | v1.0: ≥1.0 | [DropletUtils defaultDrops](dropletutils/defaultdrops.md) |
 | `dropletutils-emptydrops` | DropletUtils | statistical-test | v1.0: ≥1.0, <1.2; v1.2: ≥1.2, <1.4; v1.4: ≥1.4, <1.6; v1.6: ≥1.6, <1.8; v1.8: ≥1.8, <1.10; v1.10: ≥1.10, <1.12; v1.12: ≥1.12, <1.20; v1.20: ≥1.20, <1.28; v1.28: ≥1.28, <1.30; v1.30: ≥1.30 | [DropletUtils emptyDrops](dropletutils/emptydrops.md) |
 | `dropletutils-emptydropscellranger` | DropletUtils | statistical-test | v1.14: ≥1.14, <1.18.1; v1.18.1: ≥1.18.1 | [DropletUtils emptyDropsCellRanger](dropletutils/emptydropscellranger.md) |
+| `gmm` | Generic | mixture | — | [Gaussian mixture](generic/gmm.md) |
+| `gmm-2d` | Generic | mixture | — | [Gaussian mixture in two dimensions](generic/gmm-2d.md) |
 | `kde-valley` | Generic | density | — | [Kernel-density valley](generic/kde-valley.md) |
 | `mad` | Generic | density | — | [MAD outliers](generic/mad.md) |
 | `multiotsu` | Generic | density | — | [Multi-Otsu thresholds](generic/multiotsu.md) |
