@@ -668,3 +668,48 @@ def test_zumis_cell_barcodes_are_zumis(name, release, fields):
     ours = set(np.asarray(result.barcodes)[result.is_cell])
     assert len(expected) == cells and ours == expected
     assert result.thresholds["umis"] == smallest
+
+
+# ---------------------------------------------------------------------------
+# Generic rules: scuttle's isOutlier (mad), scikit-image's Otsu and multi-Otsu
+# ---------------------------------------------------------------------------
+
+
+def _generic_rows(prefix: str, filename: str):
+    rows = []
+    for path in sorted((ORACLES / "generic").glob(f"*/{prefix}-*/{filename}")):
+        rows += [(path.parent.parent.name, path.parent.name, line.split("\t")) for line in path.read_text().splitlines()]
+    return rows
+
+
+MAD_ROWS = _generic_rows("scuttle", "mad.tsv")
+OTSU_ROWS = _generic_rows("skimage", "otsu.tsv")
+MULTIOTSU_ROWS = _generic_rows("skimage", "multiotsu.tsv")
+
+
+def test_there_are_generic_rule_oracles_to_check():
+    assert len(MAD_ROWS) >= 24 and len(OTSU_ROWS) >= 32 and len(MULTIOTSU_ROWS) >= 64
+
+
+@pytest.mark.parametrize("name, release, fields", MAD_ROWS, ids=[f"{r[0]}-{r[1]}-{r[2][0]}-{r[2][1]}" for r in MAD_ROWS])
+def test_mad_limit_is_scuttles_isoutlier(name, release, fields):
+    floor, nmads, limit, cells = float(fields[0]), float(fields[1]), float(fields[2]), int(fields[3])
+    result = scd.call(_read(name), "mad", min_counts=floor, nmads=nmads, inplace=False)
+    assert result.thresholds["umis"] == limit
+    assert result.n_cells == cells
+
+
+@pytest.mark.parametrize("name, release, fields", OTSU_ROWS, ids=[f"{r[0]}-{r[1]}-{r[2][0]}-{r[2][1]}" for r in OTSU_ROWS])
+def test_otsu_threshold_is_scikit_images(name, release, fields):
+    floor, how, threshold = float(fields[0]), fields[1], float(fields[2])
+    result = scd.call(_read(name), "otsu", min_counts=floor, transform=how, inplace=False)
+    assert result.thresholds["transformed"] == threshold
+
+
+@pytest.mark.parametrize("name, release, fields", MULTIOTSU_ROWS,
+                         ids=[f"{r[0]}-{r[1]}-{r[2][0]}-{r[2][1]}-{r[2][2]}" for r in MULTIOTSU_ROWS])
+def test_multiotsu_thresholds_are_scikit_images(name, release, fields):
+    floor, how, classes = float(fields[0]), fields[1], int(fields[2])
+    expected = [float(v) for v in fields[3].split(",")]
+    result = scd.call(_read(name), "multiotsu", min_counts=floor, transform=how, classes=classes, inplace=False)
+    assert [result.thresholds[f"threshold_{i + 1}"] for i in range(classes - 1)] == expected

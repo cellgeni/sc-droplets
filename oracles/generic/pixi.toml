@@ -1,0 +1,32 @@
+# The reference implementations of the generic rules, in their own environments: scuttle's
+# isOutlier (R, bioconda) for `mad`, scikit-image's threshold_otsu and threshold_multiotsu
+# (conda-forge) for `otsu` and `multiotsu`. Used by run.sh. On osx-64 the old R builds need the
+# libc++ they were built against.
+[workspace]
+name = "generic-oracles"
+channels = ["conda-forge", "bioconda"]
+platforms = ["linux-64", "osx-64"]
+
+[feature.scuttle104.dependencies]
+bioconductor-scuttle = "==1.0.4"
+r-base = "4.0.*"
+
+[feature.scuttle104.target.osx-64.dependencies]
+libcxx = "<15"
+
+[feature.scuttle122.dependencies]
+bioconductor-scuttle = "==1.22.0"
+
+[feature.sk020.dependencies]
+scikit-image = "==0.20.0"
+python = "3.11.*"
+
+[feature.sk026.dependencies]
+scikit-image = "==0.26.0"
+python = "3.13.*"
+
+[environments]
+scuttle104 = { features = ["scuttle104"], no-default-feature = true }
+scuttle122 = { features = ["scuttle122"], no-default-feature = true }
+sk020 = { features = ["sk020"], no-default-feature = true }
+sk026 = { features = ["sk026"], no-default-feature = true }

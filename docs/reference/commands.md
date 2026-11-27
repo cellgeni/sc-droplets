@@ -122,6 +122,27 @@ The barcode-rank curve with each call's cut-off. Given an `.h5ad` with stored ca
 | `--title` | Figure title |
 | `--feature-type`, `--layer`, `--genome`, `--solo-feature` | As for `inspect` |
 
+## `plot density`
+
+```bash
+sc-droplets plot density raw_feature_bc_matrix.h5 -m otsu -m kde-valley -o density.png
+sc-droplets plot density calls.h5ad -o density.pdf --weighted
+```
+
+The histogram of $$\log_{10}$$ totals with each call's cut-off. Given an `.h5ad` with stored
+calls and neither `-m` nor `--key`, it draws every stored call.
+
+| Option | Meaning |
+|---|---|
+| `--output`, `-o` | The figure (`.png`, `.pdf`, `.svg`); required |
+| `--method`, `-m` | Run this method spec and draw it (repeatable) |
+| `--key` | Draw this stored call (repeatable) |
+| `--min-counts` | Leave out barcodes below this total (1) |
+| `--bins` | Histogram bins (100) |
+| `--weighted` | Weight each barcode by its total |
+| `--title` | Figure title |
+| `--feature-type`, `--layer`, `--genome`, `--solo-feature` | As for `inspect` |
+
 ## `plot diagnostics`
 
 ```bash
