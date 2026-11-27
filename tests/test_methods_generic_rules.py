@@ -15,7 +15,7 @@ from typer.testing import CliRunner
 import sc_droplets as scd
 from sc_droplets.cli import app
 from sc_droplets.methods.generic import GRID_POINTS, RuleError, density_valley
-from sc_droplets.primitives.rmath import clog2
+from sc_droplets.primitives.rmath import clog2, clog10
 
 matplotlib.use("Agg")
 runner = CliRunner()
@@ -126,7 +126,7 @@ def test_otsu_splits_two_clusters_between_them_and_calls_the_upper_one():
     result = scd.call(_matrix(values), "otsu", inplace=False)
     cut = result.thresholds["transformed"]
     assert 2.6 < cut < 3.4 and result.thresholds["umis"] == 10.0 ** cut
-    assert np.array_equal(result.is_cell, np.log10(values) > cut)
+    assert np.array_equal(result.is_cell, clog10(values) > cut)
     assert (result.is_cell == upper).mean() > 0.995
 
 
@@ -214,7 +214,7 @@ def test_gmm_is_scikit_learns_mixture_of_the_log_totals_above_the_floor(sim):
     result = scd.call(sim, "gmm", components=3, inplace=False)
     totals = np.asarray(result.totals)
     index = np.flatnonzero(totals >= 100)
-    x = np.log10(totals[index]).reshape(-1, 1)
+    x = clog10(totals[index]).reshape(-1, 1)  # the C library's log10, as the method takes it
     model = _sklearn_fit(x, components=3)
     assert np.array_equal(result.diagnostics["mixture_means"], model.means_[:, 0])
     top = int(np.argmax(model.means_[:, 0]))
@@ -227,7 +227,7 @@ def test_gmm_is_scikit_learns_mixture_of_the_log_totals_above_the_floor(sim):
 def test_gmm_seed_is_the_k_means_initialisations(sim):
     a = scd.call(sim, "gmm", components=3, inplace=False, random_state=5)
     totals = np.asarray(a.totals)
-    x = np.log10(totals[totals >= 100]).reshape(-1, 1)
+    x = clog10(totals[totals >= 100]).reshape(-1, 1)
     assert np.array_equal(a.diagnostics["mixture_means"], _sklearn_fit(x, components=3, seed=5).means_[:, 0])
 
 
@@ -246,7 +246,7 @@ def test_gmm_quantile_rule_cuts_at_the_cell_components_quantile():
     top = diag["cell_component"]
     cut = diag["mixture_means"][top] + diag["mixture_sds"][top] * norm.ppf(0.05)
     assert result.thresholds["log10"] == cut and result.thresholds["cut"] == 10.0 ** cut
-    assert np.array_equal(result.is_cell, (values >= 100) & (np.log10(np.maximum(values, 1)) >= cut))
+    assert np.array_equal(result.is_cell, (values >= 100) & (clog10(np.maximum(values, 1)) >= cut))
 
 
 def test_gmm_notes_when_em_stops_before_it_converges():
@@ -266,7 +266,7 @@ def test_gmm_2d_fits_log_umis_and_log_genes_and_calls_the_component_with_most_um
     totals = np.asarray(result.totals)
     genes = np.diff(sim.X.tocsr().indptr)
     index = np.flatnonzero(totals >= 100)
-    points = np.column_stack([np.log10(totals[index]), np.log10(genes[index])])
+    points = np.column_stack([clog10(totals[index]), clog10(genes[index])])
     model = _sklearn_fit(points)
     assert np.array_equal(result.diagnostics["mixture_means"], model.means_)
     top = int(np.argmax(model.means_[:, 0]))
