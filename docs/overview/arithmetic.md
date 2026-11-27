@@ -75,21 +75,24 @@ decide where tied barcodes fall.
 
 | Tool | Order of equal counts |
 |---|---|
-| Cell Ranger, CellBender | numpy's default sort: before numpy 1.25 everywhere, and on processors without the vector instructions after it, its classic quicksort, which is not stable; with AVX-512 (or AVX2 in newer releases) a vectorised sort that leaves them elsewhere |
+| Cell Ranger: the ambient droplets and the candidates (every release), OrdMag's cells and forced cells (2.x – 5.x); CellBender | numpy's default sort: before numpy 1.25 everywhere, and on processors without the vector instructions after it, its classic quicksort, which is not stable; with AVX-512 (or AVX2 in newer releases) a vectorised sort that leaves them elsewhere |
+| Cell Ranger 7.2+: OrdMag's cells and forced cells | a stable sort, reversed: of two equal counts, the barcode later in the matrix comes first |
 | UMI-tools | the order barcodes were first seen (`Counter.most_common`) |
 | STARsolo | position in the barcode list |
 | DropletUtils, dropbead, zUMIs | input order (R's `order` is stable) |
 | alevin | the order of its hash map, then the C++ library's `std::sort` |
 
 sc-droplets ports numpy's classic quicksort for Cell Ranger and CellBender
-(`primitives.legacysort`). A Cell Ranger run on a processor with the vectorised sort can still
+(`primitives.legacysort`), and uses the stable sort where Cell Ranger 7.2+ does. A Cell Ranger run
+on a processor with the vectorised sort can still
 differ: on the spinal cord, Cell Ranger 10.0 here calls 15,266 cells and 10x's run 15,257, every
 difference at the FDR cut.
 
 **Is a tie at the cut in?** `≥` keeps every barcode tied with the cut: alevin-fry, STARsolo,
 Cell Ranger's bootstrap cut. `>` drops them all: DropletUtils `defaultDrops`, UMI-tools' density
 valley. A rank keeps some and not others, by the order above: Cell Ranger's OrdMag takes the top
-$$n$$ in its sort order; UMI-tools' distance knee the first $$k + 1$$. barcodeRanks avoids the
+$$n$$ in its release's order (2.x – 5.x the quicksort's, 7.2+ the later barcode first); UMI-tools'
+distance knee the first $$k + 1$$. barcodeRanks avoids the
 question by collapsing each run of equal totals into one point at its mid-rank.
 
 ## Rounding
