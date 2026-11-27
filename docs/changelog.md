@@ -140,3 +140,12 @@ Then the views of several calls at once:
 - `scd.report` and `sc-droplets report`: one self-contained HTML page with every plot, the
   separation scores and each call's parameters.
 - A validation suite on public data (`-m integration`), and an oracle workflow that runs STAR.
+
+Then Cell Ranger 4.0 to 7.1, which published no source, from 10x's own outputs:
+
+- `cellranger` `v4` (4.0) and `v5` (5.0, 5.0.1): the 3.x method with its simulation on a stream of
+  its own, seeded 0, and from 5.0 the antibody aggregates removed first by their counts;
+  `cellranger-ordmag`'s 3.x rule now covers 4.0 to 5.x. Identical cells to 10x's on three 4.0
+  datasets and one 5.0 dataset (`--aggregate-barcodes` and `--filter-aggregates` apply from 5.0).
+- 6.0 to 7.1 stay refused: on twelve public datasets of those releases the closest rule is
+  identical on six and differs at the FDR cut on the others. The page lists each.
