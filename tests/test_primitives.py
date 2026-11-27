@@ -7,6 +7,7 @@ embedded below), and the C++ standard's check value for mt19937.
 
 from __future__ import annotations
 
+import itertools
 import math
 
 import numpy as np
@@ -15,6 +16,14 @@ import scipy.sparse as sp
 from scipy.stats import multinomial
 
 from sc_droplets.primitives import goodturing, multinomial as mn, pvalues, rounding, simulate, stdrandom
+from sc_droplets.primitives.otsu import (
+    OtsuError,
+    _between_class_table,
+    histogram,
+    multiotsu_indices,
+    threshold_multiotsu,
+    threshold_otsu,
+)
 from sc_droplets.primitives.rmath import clog2
 from sc_droplets.primitives.rstats import r_mad, r_median
 
@@ -231,3 +240,49 @@ def test_clog2_is_the_c_librarys_log2_with_c_semantics_at_zero():
     values = clog2(np.array([1.0, 3.0, 1e-300, 0.0, -1.0]))
     assert values[:3].tolist() == [math.log2(1.0), math.log2(3.0), math.log2(1e-300)]
     assert values[3] == -math.inf and math.isnan(values[4])
+
+
+# ---------------------------------------------------------------------------
+# Otsu and multi-Otsu (scikit-image)
+# ---------------------------------------------------------------------------
+
+
+def test_otsu_of_identical_values_is_that_value():
+    assert threshold_otsu(np.full(5, 2.5)) == 2.5
+
+
+def test_multiotsu_search_is_the_first_maximum_in_lexicographic_order():
+    """The vectorised search must pick what scikit-image's recursive loop picks."""
+    rng = np.random.default_rng(0)
+    for _ in range(20):
+        n = int(rng.integers(5, 24))
+        counts = rng.integers(0, 6, n).astype(float)
+        counts[[0, -1]] += 1
+        prob = (counts / counts.sum()).astype(np.float32)
+        table = _between_class_table(prob)
+        for k in (1, 2, 3):
+            best, chosen = np.float32(0), None
+            for combo in itertools.combinations(range(n - 1), k):
+                sigma = table[0, combo[0]] + table[combo[-1] + 1, n - 1]
+                for a, b in zip(combo[:-1], combo[1:]):
+                    sigma = np.float32(sigma + table[a + 1, b])
+                if sigma > best:
+                    best, chosen = sigma, list(combo)
+            assert multiotsu_indices(prob, k).tolist() == chosen
+
+
+def test_multiotsu_first_moment_starts_at_the_first_probability():
+    """scikit-image starts its first moments at prob[0], not 0 * prob[0]; so must the table."""
+    prob = np.array([0.5, 0.25, 0.25], dtype=np.float32)
+    table = _between_class_table(prob)
+    assert table[0, 0] == 0  # never set
+    assert table[0, 1] == np.float32((0.5 + 0.25) ** 2 / 0.75)
+
+
+def test_multiotsu_with_as_many_values_as_classes_cuts_at_the_first_ones():
+    x = np.array([1.0] * 4 + [2.0] * 3 + [3.0] * 5)
+    _, centers = histogram(x, 256)
+    cuts = threshold_multiotsu(x, 3)
+    assert cuts.tolist() == [centers[0], centers[np.searchsorted(centers, 2.0)]]
+    with pytest.raises(OtsuError, match="only 2 different values"):
+        threshold_multiotsu(np.array([1.0, 1.0, 2.0]), 3)
