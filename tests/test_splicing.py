@@ -1,7 +1,9 @@
 """The unspliced and mitochondrial fractions: their sources, their separation scores, and the plots
 that use them."""
+
 from __future__ import annotations
 
+import re
 
 import anndata as ad
 import matplotlib
@@ -10,13 +12,21 @@ import pandas as pd
 import pytest
 import scipy.sparse as sp
 from conftest import write_alevin_fry, write_kb, write_loom, write_starsolo
+from typer.testing import CliRunner
 
 import sc_droplets as scd
+from sc_droplets.cli import app
 from sc_droplets.io.loom import is_loom
 from sc_droplets.metrics import MetricError, auroc, barcode_key
 from sc_droplets.pl.knee import track_medians
 
 matplotlib.use("Agg")
+runner = CliRunner()
+
+
+def _out(result) -> str:
+    return re.sub(r"\s+", " ", re.sub(r"\x1b\[[0-9;]*m", "", result.output))
+
 
 def _expected(adata) -> np.ndarray:
     s = np.asarray(adata.layers["spliced"].sum(axis=1)).ravel().astype(float)
@@ -237,3 +247,51 @@ def test_knee_colour_and_tracks_refuse_what_they_cannot_draw(measured):
         scd.pl.knee(measured, "otsu", color="unspliced_fraction", cumulative=True)
     with pytest.raises(KeyError, match="no obs column 'nuclear'"):
         scd.pl.knee(measured, "otsu", color="nuclear")
+
+
+# ---------------------------------------------------------------------------
+# Command line
+# ---------------------------------------------------------------------------
+
+
+def test_cli_inspect_reports_the_unspliced_fraction_from_a_separate_source(spliced, sim, tmp_path):
+    path = tmp_path / "sim.h5ad"
+    sim.write_h5ad(path)
+    loom = write_loom(spliced, tmp_path / "sample.loom")
+    result = runner.invoke(app, ["inspect", str(path), "--splicing", str(loom)])
+    assert result.exit_code == 0, _out(result)
+    assert "unspliced fraction" in _out(result) and "median" in _out(result)  # the table wraps its cells
+    plain = runner.invoke(app, ["inspect", str(path)])
+    assert "none: no spliced/unspliced layers" in _out(plain)
+
+
+def test_cli_compare_scores_the_calls_and_writes_the_fraction(spliced, tmp_path):
+    path = tmp_path / "spliced.h5ad"
+    spliced.write_h5ad(path)
+    table = tmp_path / "calls.csv"
+    result = runner.invoke(app, ["compare", str(path), "-m", "otsu", "-m", "top-n:n_cells=600", "--table", str(table)])
+    assert result.exit_code == 0, _out(result)
+    assert "unspliced:" in _out(result) and "AUROC" in _out(result)  # the table wraps its header
+    frame = pd.read_csv(table)
+    assert "unspliced_fraction" in frame.columns
+
+
+def test_cli_call_stores_the_fractions_it_was_given(spliced, sim, tmp_path):
+    path = tmp_path / "sim.h5ad"
+    sim.write_h5ad(path)
+    loom = write_loom(spliced, tmp_path / "sample.loom")
+    out = tmp_path / "calls.h5ad"
+    result = runner.invoke(app, ["call", "otsu", str(path), "--splicing", str(loom), "-o", str(out)])
+    assert result.exit_code == 0, _out(result)
+    assert "unspliced_fraction" in ad.read_h5ad(out).obs.columns
+
+
+def test_cli_plots_splicing_and_the_knee_with_tracks(spliced, tmp_path):
+    path = tmp_path / "spliced.h5ad"
+    spliced.write_h5ad(path)
+    for args in (["plot", "splicing", str(path), "-m", "otsu", "-m", "gmm"],
+                 ["plot", "knee", str(path), "-m", "otsu", "--color", "unspliced_fraction", "--track", "unspliced_fraction"]):
+        figure = tmp_path / f"{args[1]}.png"
+        result = runner.invoke(app, args + ["-o", str(figure)])
+        assert result.exit_code == 0, _out(result)
+        assert figure.stat().st_size > 0

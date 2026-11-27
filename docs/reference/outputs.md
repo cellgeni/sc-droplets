@@ -45,7 +45,7 @@ The default key is the method id with `-` and `.` turned into `_`, followed by t
 and any parameters given in the spec: `top-n:n_cells=3000` is stored as `top_n_n_cells_3000`,
 `cellranger-emptydrops@9.0` as `cellranger_emptydrops_9_0`.
 
-`scd.add_metrics` writes per-barcode measures that belong to no call:
+`scd.add_metrics` (and `--splicing`) write per-barcode measures that belong to no call:
 
 | Where | What |
 |---|---|
@@ -61,7 +61,7 @@ With either present, `compare`'s summary adds, per call, `<metric>_cells` and `<
 | Option | Format |
 |---|---|
 | `--barcodes cells.tsv.gz` | one cell barcode per line, in input order; gzipped when the name ends in `.gz` |
-| `--table calls.csv` | `call`: barcode, total, `is_cell`, `class` and every per-barcode value; `compare`: barcode, total and one column per call. TSV when the name ends in `.tsv` or `.txt`; gzipped for `.gz` |
+| `--table calls.csv` | `call`: barcode, total, `is_cell`, `class` and every per-barcode value; `compare`: barcode, total, one column per call and the fractions measured. TSV when the name ends in `.tsv` or `.txt`; gzipped for `.gz` |
 | `--json` | `call`: the record above without diagnostics; `compare`: `calls` (one entry per key, with the separation scores) and `jaccard` |
 | `-o calls.h5ad` | the input with the calls added (`--cells-only` keeps the cells) |
 
