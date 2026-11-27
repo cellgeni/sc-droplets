@@ -1,4 +1,4 @@
-"""Plots of calls: `scd.pl.knee`, `scd.pl.density`, `scd.pl.compare`, `scd.pl.splicing`,
+"""Plots of calls: `scd.pl.knee`, `scd.pl.density`, `scd.pl.compare`, `scd.pl.qc`, `scd.pl.splicing`,
 `scd.pl.diagnostics`.
 
 Every plot takes an AnnData, draws the calls stored on it (or runs the method
@@ -10,7 +10,8 @@ from sc_droplets.pl.compare import compare
 from sc_droplets.pl.density import density
 from sc_droplets.pl.diagnostics import diagnostics
 from sc_droplets.pl.knee import knee
+from sc_droplets.pl.qc import qc
 from sc_droplets.pl.splicing import splicing
 from sc_droplets.pl.terminal import knee_text
 
-__all__ = ["compare", "density", "diagnostics", "knee", "knee_text", "splicing"]
+__all__ = ["compare", "density", "diagnostics", "knee", "knee_text", "qc", "splicing"]

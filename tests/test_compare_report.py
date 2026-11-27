@@ -1,4 +1,4 @@
-"""Several calls side by side: `pl.compare`."""
+"""Several calls side by side (`pl.compare`) and quality measures against the calls (`pl.qc`)."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ import pytest
 import sc_droplets as scd
 from sc_droplets.pl._data import curve_from_totals
 from sc_droplets.pl.compare import strip_shares
+from sc_droplets.pl.qc import disagreement_band
 
 matplotlib.use("Agg")
 
@@ -56,3 +57,31 @@ def test_compare_plot_shows_strips_counts_and_the_jaccard_index(called):
 def test_compare_plot_needs_a_call(sim):
     with pytest.raises(ValueError, match="no calls to compare"):
         scd.pl.compare(sim.copy())
+
+
+# ---------------------------------------------------------------------------
+# pl.qc
+# ---------------------------------------------------------------------------
+
+
+def test_disagreement_band_runs_between_the_calls_smallest_cells(called):
+    totals = np.asarray(called.X.sum(axis=1)).ravel()
+    keys = ["otsu", "top_n_n_cells_600"]
+    smallest = sorted(float(totals[called.obs[k].to_numpy()].min()) for k in keys)
+    assert disagreement_band(called, keys, totals) == tuple(smallest)
+    assert disagreement_band(called, ["otsu"], totals) is None
+
+
+def test_qc_plot_has_genes_mito_and_the_disputed_barcodes(called):
+    figure = scd.pl.qc(called, ["otsu", "top_n_n_cells_600"])
+    assert [ax.get_ylabel() for ax in figure.axes] == ["log10 genes detected", "mitochondrial fraction", "density"]
+    legend = [t.get_text() for t in figure.axes[2].get_legend().get_texts()]
+    assert any(text.startswith("no call in the band") for text in legend)
+    one = scd.pl.qc(called, "otsu")  # one call: no disagreement panel
+    assert len(one.axes) == 2
+
+
+def test_qc_plot_without_mito_has_no_mito_panel(sim):
+    adata = sim.copy()
+    scd.call(adata, "otsu")
+    assert [ax.get_ylabel() for ax in scd.pl.qc(adata).axes] == ["log10 genes detected"]

@@ -163,6 +163,18 @@ cells per call, and the Jaccard index of their cell sets.
 scd.pl.compare(adata, ["cellranger", "otsu", "gmm"])
 ```
 
+### `scd.pl.qc(adata, calls=None, *, min_counts=10, layer=None, feature_types=None, fig=None)`
+
+Genes detected (and the mitochondrial fraction, when `obs` has it) against count, each barcode
+coloured by how many calls took it; with calls that disagree, the genes per count of the barcodes
+they disagree on beside those every call took and those none took in the band. Returns the
+Figure.
+
+```python
+scd.add_metrics(adata)
+scd.pl.qc(adata, ["cellranger", "gmm"])
+```
+
 ### `scd.pl.splicing(adata, calls=None, *, metric="unspliced_fraction", min_counts=10, layer=None, feature_types=None, fig=None)`
 
 A per-barcode measure against the calls, as `plot splicing` draws it; returns the Figure. Panels:
