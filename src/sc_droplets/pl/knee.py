@@ -11,6 +11,9 @@ from sc_droplets.pl._data import curve_for, resolve_calls
 #: Okabe–Ito, readable for colour-blind viewers and in print.
 PALETTE = ("#0072B2", "#D55E00", "#009E73", "#CC79A7", "#E69F00", "#56B4E9", "#F0E442", "#000000")
 CURVE_COLOUR = "#7f7f7f"
+#: Colours of `agreement_groups`, shared by the plots that colour barcodes by agreement.
+GROUP_COLOURS = {"every call": PALETTE[0], "some calls": PALETTE[1], "no call": "#999999",
+                 "cell": PALETTE[0], "not a cell": "#999999"}
 #: Above this many called barcodes, the single-call overlay draws a sample.
 MAX_POINTS = 20000
 

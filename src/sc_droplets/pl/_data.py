@@ -48,6 +48,16 @@ class Curve:
         return x, y
 
 
+def agreement_groups(cells: np.ndarray) -> np.ndarray:
+    """Each barcode's agreement across calls (one column per call): `every call`, `some calls` or
+    `no call`; with one call, `cell` or `not a cell`."""
+    n = cells.shape[1]
+    hits = cells.sum(axis=1)
+    if n == 1:
+        return np.where(hits == 1, "cell", "not a cell").astype(object)
+    return np.where(hits == n, "every call", np.where(hits > 0, "some calls", "no call")).astype(object)
+
+
 def curve_from_totals(totals: np.ndarray, unit: str = "umis") -> Curve:
     totals = np.asarray(totals, dtype=np.float64)
     order = np.argsort(-totals, kind="stable")
