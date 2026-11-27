@@ -1,4 +1,4 @@
 scikit-image 0.20.0
 numpy 1.26.4
 python 3.11.18
-platform Darwin-x86_64
+platform Linux-x86_64
