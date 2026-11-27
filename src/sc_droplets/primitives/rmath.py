@@ -92,6 +92,13 @@ def clog10(x: np.ndarray) -> np.ndarray:
     return np.array(values, dtype=np.float64).reshape(x.shape)
 
 
+def clog2(x: np.ndarray) -> np.ndarray:
+    """The C library's `log2`, element by element, as R's `log2` calls it."""
+    x = np.asarray(x, dtype=np.float64)
+    values = [_c(math.log2, v) for v in x.ravel().tolist()]
+    return np.array(values, dtype=np.float64).reshape(x.shape)
+
+
 def _chebyshev(x: np.ndarray, coefficients: np.ndarray) -> np.ndarray:
     twox = x * 2
     b0 = np.zeros_like(x)

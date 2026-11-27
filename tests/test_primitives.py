@@ -7,12 +7,16 @@ embedded below), and the C++ standard's check value for mt19937.
 
 from __future__ import annotations
 
+import math
+
 import numpy as np
 import pytest
 import scipy.sparse as sp
 from scipy.stats import multinomial
 
 from sc_droplets.primitives import goodturing, multinomial as mn, pvalues, rounding, simulate, stdrandom
+from sc_droplets.primitives.rmath import clog2
+from sc_droplets.primitives.rstats import r_mad, r_median
 
 # Gale & Sampson (1995), Table 2: frequencies r and their counts n_r (prosody data).
 PROSODY = [(1, 120), (2, 40), (3, 24), (4, 13), (5, 15), (6, 5), (7, 11), (8, 2), (9, 2), (10, 1), (12, 3), (14, 2), (15, 1), (16, 1), (17, 3), (19, 1), (20, 3), (21, 2), (23, 3), (24, 3), (25, 3), (26, 2), (27, 2), (28, 1), (31, 2), (32, 2), (33, 1), (34, 2), (36, 2), (41, 3), (43, 1), (45, 3), (46, 1), (47, 1), (50, 1), (71, 1), (84, 1), (101, 1), (105, 1), (121, 1), (124, 1), (146, 1), (162, 1), (193, 1), (199, 1), (224, 1), (226, 1), (254, 1), (257, 1), (339, 1), (421, 1), (456, 1), (481, 1), (483, 1), (1140, 1), (1256, 1), (1322, 1), (1530, 1), (2131, 1), (2395, 1), (6925, 1), (7846, 1)]  # noqa: E501
@@ -209,3 +213,21 @@ def test_the_starsolo_engine_is_deterministic_and_seeded_per_simulation():
     a = simulate.starsolo(p, totals, observed, 20, chunk=7)
     b = simulate.starsolo(p, totals, observed, 20, chunk=20)
     assert np.array_equal(a, b), "chunking must not change the streams"
+
+
+# ---------------------------------------------------------------------------
+# R's median and mad
+# ---------------------------------------------------------------------------
+
+
+def test_r_median_takes_the_mean_of_the_middle_two_and_mad_scales_by_1_4826():
+    assert r_median(np.array([4.0, 1.0, 3.0, 2.0])) == 2.5
+    assert r_median(np.array([5.0, 1.0, 3.0])) == 3.0
+    assert math.isnan(r_median(np.array([])))
+    assert r_mad(np.array([1.0, 2.0, 3.0, 4.0, 10.0]), 3.0) == 1.4826 * 1.0
+
+
+def test_clog2_is_the_c_librarys_log2_with_c_semantics_at_zero():
+    values = clog2(np.array([1.0, 3.0, 1e-300, 0.0, -1.0]))
+    assert values[:3].tolist() == [math.log2(1.0), math.log2(3.0), math.log2(1e-300)]
+    assert values[3] == -math.inf and math.isnan(values[4])

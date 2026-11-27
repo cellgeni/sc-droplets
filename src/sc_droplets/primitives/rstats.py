@@ -139,6 +139,23 @@ def r_mean(values: np.ndarray) -> float:
     return s
 
 
+def r_median(values: np.ndarray) -> float:
+    """R's `median` of doubles: the middle value, or R's `mean` of the middle two."""
+    values = np.sort(np.asarray(values, dtype=np.float64).ravel())
+    n = values.size
+    if n == 0:
+        return math.nan
+    half = (n + 1) // 2
+    if n % 2 == 1:
+        return float(values[half - 1])
+    return r_mean(values[half - 1:half + 1])
+
+
+def r_mad(values: np.ndarray, center: float, constant: float = 1.4826) -> float:
+    """R's `mad(x, center)`: `constant * median(abs(x - center))`."""
+    return constant * r_median(np.abs(np.asarray(values, dtype=np.float64) - center))
+
+
 def all_equal(target: np.ndarray, current: np.ndarray, tolerance: float = 1.5e-8) -> bool:
     """`isTRUE(all.equal(target, current))` for two numeric vectors of one length."""
     target = np.asarray(target, dtype=np.float64)
