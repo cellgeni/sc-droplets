@@ -73,12 +73,12 @@ DATASETS: Dict[str, Dataset] = {
             Remote(
                 BASE + "cell-exp/8.0.0/5k_Human_PBMC_TotalSeqB_3p_nextgem_Multiplex/"
                 "5k_Human_PBMC_TotalSeqB_3p_nextgem_Multiplex_count_raw_feature_bc_matrix.h5",
-                "",
+                "1861c0b6f433a980b39a18f0b6fe0df0ad16e57f94d255d51bf2cee749175b76",
             ),
             Remote(
                 BASE + "cell-exp/8.0.0/5k_Human_PBMC_TotalSeqB_3p_nextgem_5k_Human_PBMC_TotalSeqB_3p_nextgem/"
                 "5k_Human_PBMC_TotalSeqB_3p_nextgem_5k_Human_PBMC_TotalSeqB_3p_nextgem_count_sample_filtered_feature_bc_matrix.h5",
-                "",
+                "20eec804fdc58e247c773da4a777d3ff147292612e0cadcf1656fcd0ecffcf3f",
             ),
             note="Gene Expression + Antibody Capture",
         ),
@@ -89,12 +89,12 @@ DATASETS: Dict[str, Dataset] = {
             Remote(
                 BASE + "cell-exp/9.0.0/5k_Human_Donor1_PBMC_3p_gem-x_Multiplex/"
                 "5k_Human_Donor1_PBMC_3p_gem-x_Multiplex_count_raw_feature_bc_matrix.h5",
-                "",
+                "a93a27fa3c48ff5011b625702fcba95943d80d053d19e3ac46f9842fb7de488d",
             ),
             Remote(
                 BASE + "cell-exp/9.0.0/5k_Human_Donor1_PBMC_3p_gem-x_5k_Human_Donor1_PBMC_3p_gem-x/"
                 "5k_Human_Donor1_PBMC_3p_gem-x_5k_Human_Donor1_PBMC_3p_gem-x_count_sample_filtered_feature_bc_matrix.h5",
-                "",
+                "6c46fc939ed9d39d8cc228c29f2e6e6b0af0771a1a2c2bf1abc71e6788b122d5",
             ),
         ),
         Dataset(
@@ -104,12 +104,12 @@ DATASETS: Dict[str, Dataset] = {
             Remote(
                 BASE + "cell-exp/10.0.0/WT_mouse_spinal_cord_P112_specimen_1_Multiplex/"
                 "WT_mouse_spinal_cord_P112_specimen_1_Multiplex_raw_feature_bc_matrix.h5",
-                "",
+                "70c934c2b25fb7352b24894829b00bd8af8aefec93d0338b6761131f39175bf0",
             ),
             Remote(
                 BASE + "cell-exp/10.0.0/WT_mouse_spinal_cord_P112_specimen_1_WT_mouse_spinal_cord_P112_specimen_1/"
                 "WT_mouse_spinal_cord_P112_specimen_1_WT_mouse_spinal_cord_P112_specimen_1_sample_filtered_feature_bc_matrix.h5",
-                "",
+                "9eb052d76f5dc167023e509977f4d22d0e81b5e0b4f42bee71045b99ac9e17c9",
             ),
             note="nuclei",
         ),
@@ -120,12 +120,12 @@ DATASETS: Dict[str, Dataset] = {
             Remote(
                 BASE + "cell-exp/7.2.0/4plex_mouse_LymphNode_Spleen_TotalSeqC_multiplex_LymphNode1_BC1_AB1/"
                 "4plex_mouse_LymphNode_Spleen_TotalSeqC_multiplex_LymphNode1_BC1_AB1_count_sample_raw_feature_bc_matrix.h5",
-                "",
+                "ecc062ac14fdb050a08446c9173a243f272ecb6bcc8df73d25c20796e27eb9c3",
             ),
             Remote(
                 BASE + "cell-exp/7.2.0/4plex_mouse_LymphNode_Spleen_TotalSeqC_multiplex_LymphNode1_BC1_AB1/"
                 "4plex_mouse_LymphNode_Spleen_TotalSeqC_multiplex_LymphNode1_BC1_AB1_count_sample_filtered_feature_bc_matrix.h5",
-                "",
+                "d7f93c736efce7b625bea14bd808148836cd76d25d1afe9425c4ee549364aa85",
             ),
             note="multiplexed Flex, one sample's own raw matrix; Gene Expression + Antibody Capture",
         ),
