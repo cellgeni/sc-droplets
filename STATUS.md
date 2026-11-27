@@ -138,7 +138,27 @@ Milestones, each its own pull request after the scaffold:
     SVG with dense scatters rasterised, about 1.5 MB for five calls on pbmc4k; the input's file
     name, not its path). Finding on pbmc4k: the barcodes the calls disagree on look more like
     cells than like the uncalled barcodes around them (genes per count).
-  - [ ] The comparison-on-public-data page and the *Visualising calls* guide.
+  - [x] The comparison (`milestone-4-comparison`): `docs/_scripts/comparison.py` runs every
+    method with its defaults on five public samples against 10x's own call, with separation
+    scores (mito; unspliced for PBMC 1k from `oracles/splicing/run.sh`, kb --workflow nac with
+    kallisto's prebuilt human nac index); `docs/_scripts/figures.py` draws the *Visualising calls*
+    guide. Images are linked with `relative_url` (pretty permalinks), checked by the docs test.
+    Fixes found by the comparison: the separation floor counts gene expression for every call (on
+    Flex, Cell Ranger also counts antibodies and met twice the outsiders); kb nac's ambiguous
+    counts and alevin-fry's A block (reads within exons, mostly) count as spliced, as kb's
+    `--sum cell` and pyroe's velocity output do (left out, PBMC 1k's cells were 0.63 unspliced
+    instead of 0.32). The page's findings: Cell Ranger at 10x's release matches 10x's calls; on
+    whole cells 17 of 26 methods are within Jaccard 0.9 of 10x; on the nuclei the knee rules
+    stop at 1–6k, the tests at 13.5–20k, and alevin-fry, MAD and multi-Otsu take the 158k empty
+    droplets; emptyDrops at its defaults hits its Monte Carlo limit there; the disputed barcodes
+    below the knee are mostly mitochondrial RNA, which raises the mito score and lowers the
+    unspliced one.
+  - Real STARsolo runs from the maintainer (GEO GSE168243: six nuclei samples, STAR 2.7.10a,
+    EM multimappers, Gene, GeneFull and Velocyto, gzipped, under `output/`): the readers take
+    them as they are, Velocyto gives the unspliced fraction (cells 0.52, others 0.33 on
+    GSM5134537), and `starsolo-emptydrops-cr@2.7.10a` matches STAR's own filtered barcodes in all
+    12 runs (13,221 cells). Kept in the git-ignored `data/`, so not in CI; more such runs are
+    available on request (see Next candidates).
   - Moved: the negative-binomial mixture (Cell Ranger ATAC's EM) goes to 0.3 with Cell Ranger
     ATAC, where 10x's own ATAC calls (`singlecell.csv`) can check it; on RNA there is no original
     to check it against.
@@ -164,6 +184,11 @@ GitHub Pages from `main`, `/docs`.
   running the high-occupancy filter from the CLI.
 - Cell Ranger 1.x: pbmc3k (1.1.0) and pbmc4k (1.2.0, 1.3.0) have raw and filtered MEX files; they
   could show whether 1.x bootstrapped OrdMag, turning the 1.x gap into a variant.
+- emptyDrops: a note when `limited` barcodes miss the FDR cut, as DropletUtils' documentation
+  advises raising `niters` (on the spinal cord nuclei, 12,988 barcodes beat every simulation and
+  none is called).
+- A STARsolo run of pbmc_1k_v3 with Velocyto (the maintainer can make one) would set velocyto's
+  unspliced fraction beside kb's on the same reads, and STARsolo's call beside Cell Ranger 3.0's.
 
 - anndata 0.13 lists `X` as the layer `None` in `adata.layers.keys()`; filter it wherever layer
   names are listed.
