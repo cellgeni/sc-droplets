@@ -54,6 +54,12 @@ alevin: the initial whitelist of programs built from salmon's own Alevin.cpp at
 saved in tests/oracles/alevin by oracles/alevin/run.sh. The cells are checked up to
 the barcodes tied at the knee, whose order in alevin comes from its hash map.
 
+Drop-seq (dropbead), dropEst and zUMIs: their own R functions (dropbead's
+estimateCellNumber, dropestr's EstimateCellsNumber, zUMIs' cellBC with inflection's
+uik), sourced from each tool's repository at a commit or tag and run in R from
+conda-forge on the matrix's UMI totals; saved in tests/oracles/{dropseq,dropest,zumis}
+by oracles/{dropseq,dropest,zumis}/run.sh.
+
 The datasets are downloaded once (tests/datasets.py) into $SC_DROPLETS_DATA.
 """
 
@@ -614,3 +620,51 @@ def test_alevin_initial_whitelist_is_alevins(name, release, case, values):
     white = np.asarray(result.barcodes)[classes != "background"]
     assert white.size == int(values["whitelist"])
     assert hashlib.sha256("\n".join(sorted(map(str, white))).encode()).hexdigest() == values["whitelist_digest"]
+
+
+# ---------------------------------------------------------------------------
+# Drop-seq (dropbead), dropEst, zUMIs
+# ---------------------------------------------------------------------------
+
+
+def _r_rows(tool: str, filename: str):
+    rows = []
+    for path in sorted((ORACLES / tool).glob(f"*/*/{filename}")):
+        rows += [(path.parent.parent.name, path.parent.name, line.split("\t")) for line in path.read_text().splitlines()]
+    return rows
+
+
+DROPBEAD_ROWS = _r_rows("dropseq", "cells.tsv")
+DROPEST_ROWS = _r_rows("dropest", "bounds.tsv")
+ZUMIS_ROWS = _r_rows("zumis", "cells.tsv")
+
+
+def test_there_are_r_tool_oracles_to_check():
+    assert len(DROPBEAD_ROWS) >= 4 and len(DROPEST_ROWS) >= 4 and len(ZUMIS_ROWS) >= 16
+
+
+@pytest.mark.parametrize("name, release, fields", DROPBEAD_ROWS, ids=[f"{r[0]}-{r[2][0]}" for r in DROPBEAD_ROWS])
+def test_dropbead_counts_dropbeads_cells(name, release, fields):
+    max_cells, cells = (int(v) for v in fields)
+    result = scd.call(_read(name), f"dropseq-dropbead@{release}", max_cells=max_cells, inplace=False)
+    assert result.thresholds["cells"] == cells == result.n_cells
+
+
+@pytest.mark.parametrize("name, release, fields", DROPEST_ROWS, ids=[f"{r[0]}-lag{r[2][0]}" for r in DROPEST_ROWS])
+def test_dropest_bounds_are_dropestrs(name, release, fields):
+    lag, expected, low, high = float(fields[0]), *(int(v) for v in fields[1:])
+    result = scd.call(_read(name), f"dropest-bounds@{release}", lag=lag, inplace=False)
+    assert (result.thresholds["expected"], result.thresholds["min"], result.thresholds["max"]) == (expected, low, high)
+    assert result.n_cells == expected
+
+
+@pytest.mark.parametrize("name, release, fields", ZUMIS_ROWS, ids=[f"{r[0]}-{r[1]}-{r[2][0]}" for r in ZUMIS_ROWS])
+def test_zumis_cell_barcodes_are_zumis(name, release, fields):
+    floor, cells, smallest = (int(v) for v in fields)
+    version = release.split("-inflection")[0]
+    result = scd.call(_read(name), f"zumis-cell-barcodes@{version}", n_reads_per_cell=floor, inplace=False)
+    with gzip.open(ORACLES / "zumis" / name / release / f"cells_{floor}.txt.gz", "rt") as handle:
+        expected = set(handle.read().split())
+    ours = set(np.asarray(result.barcodes)[result.is_cell])
+    assert len(expected) == cells and ours == expected
+    assert result.thresholds["umis"] == smallest

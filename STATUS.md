@@ -55,7 +55,7 @@ Milestones, each its own pull request after the scaffold:
     each checked against R in `tests/test_primitives_dropletutils.py`.
   - Not done: 1.0 – 1.2's Dirichlet-multinomial (R's `rgamma` in R's single stream; refused, the
     multinomial runs); `known.empty`.
-- [ ] 3. UMI-tools, alevin, alevin-fry, Drop-seq (dropbead), bustools, dropEst bounds, zUMIs,
+- [x] 3. UMI-tools, alevin, alevin-fry, Drop-seq (dropbead), bustools, dropEst bounds, zUMIs,
   Kneedle (kneed 0.8.5 / 0.8.6 / 0.9.0, vendored), cellsweep empty step, CellBender priors.
   One pull request into `dev` per tool (or small group), so each review stays small.
   - [x] UMI-tools (`milestone-3-umitools`): `umitools-distance` (1.0.0+), `umitools-density`
@@ -97,7 +97,13 @@ Milestones, each its own pull request after the scaffold:
     built from each tag's `Alevin.cpp` (0.11.3, 0.13.1, 0.14.0, 1.1.0, 1.10.3; conda-forge's gcc),
     34 cases: identical counts and whitelists; cells up to barcodes tied at the knee (alevin's
     order there comes from its hash map). The naive Bayes classifier stays planned (0.2).
-  - [ ] Drop-seq dropbead, dropEst, zUMIs (R).
+  - [x] Drop-seq, dropEst, zUMIs (`milestone-3-r-tools`): `dropseq-dropbead` (dropbead 0.3.1),
+    `dropest-bounds` (dropestr 0.6.0 – 0.7.9; classes High / Unknown / Low), `zumis-cell-barcodes`
+    (zUMIs 2.5.6b – 2.9.7 with inflection 1.3.5 – 1.3.7; 0.0.1 – 2.5.4 a gap: no detection, then
+    an Mclust fit initialised on an unseeded random subset). Oracles: the R functions sourced at
+    their commits and tags in R 4.4 from conda-forge, 24 cases, all identical. Findings: on raw
+    10x matrices dropestr's bounds land among the empty droplets (125,227 expected on pbmc_1k_v3);
+    zUMIs' UIK is conservative (594 cells against Cell Ranger's 1,222).
 - [ ] 4. Generic MAD / Otsu / multi-Otsu / KDE valley / GMM (1-D, 2-D) / NB mixture; splicing
   readers, `pl.splicing`, knee tracks, separation scores; `pl.density`, `pl.compare`, `pl.qc`,
   `report`; the comparison-on-public-data page.

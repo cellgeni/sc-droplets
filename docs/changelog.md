@@ -92,4 +92,14 @@ Then alevin:
   Identical counts and whitelists to programs built from salmon 0.11.3, 0.13.1, 0.14.0, 1.1.0 and
   1.10.3's own `Alevin.cpp` on pbmc_1k_v3 and pbmc4k; the cells match up to barcodes tied at the
   knee.
+
+Then Drop-seq, dropEst and zUMIs:
+
+- `dropseq-dropbead`: dropbead's `estimateCellNumber` (0.3.1).
+- `dropest-bounds`: dropestr's `EstimateCellsNumber` (0.6.0 – 0.7.9), with the High / Unknown / Low
+  bands of its classifier.
+- `zumis-cell-barcodes`: zUMIs' automatic cell detection with inflection's `uik` (2.5.6b on); the
+  earlier Gaussian mixture is a documented gap (mclust initialises on an unseeded random subset).
+- Identical results to the tools' own R functions, sourced at their commits and tags, on
+  pbmc_1k_v3 and pbmc4k.
 - A validation suite on public data (`-m integration`), and an oracle workflow that runs STAR.

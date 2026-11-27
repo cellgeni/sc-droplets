@@ -1,0 +1,9 @@
+# R from conda-forge, to run the original R functions (sourced from the tool's own repository at
+# the commit or tag named in run.sh). Used by run.sh.
+[workspace]
+name = "dropest-oracles"
+channels = ["conda-forge"]
+platforms = ["linux-64", "osx-64", "osx-arm64"]
+
+[dependencies]
+r-base = "4.4.*"

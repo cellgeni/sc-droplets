@@ -398,3 +398,123 @@ jobs:
           name: oracles-alevin
           path: oracle-out/
           retention-days: 30
+
+  dropseq:
+    needs: changes
+    if: contains(needs.changes.outputs.tools, ' dropseq ')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    name: Drop-seq dropbead
+
+    env:
+      SC_DROPLETS_DATA: ${{ github.workspace }}/.cache/datasets
+      MPLBACKEND: Agg
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3.2.4
+        with:
+          version: "0.13.1"
+          enable-cache: false
+
+      - uses: prefix-dev/setup-pixi@9936258fee697aff89b3fed6ca1f80a382ef694e # v0.11.3
+        with:
+          pixi-version: v0.80.0
+          run-install: false
+          cache: false
+
+      - name: Install
+        run: uv sync --frozen
+
+      - name: Run dropbead
+        run: bash oracles/dropseq/run.sh oracle-out/dropseq
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()  # a release that fails should not hide the ones that ran
+        with:
+          name: oracles-dropseq
+          path: oracle-out/
+          retention-days: 30
+
+  dropest:
+    needs: changes
+    if: contains(needs.changes.outputs.tools, ' dropest ')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    name: dropEst EstimateCellsNumber
+
+    env:
+      SC_DROPLETS_DATA: ${{ github.workspace }}/.cache/datasets
+      MPLBACKEND: Agg
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3.2.4
+        with:
+          version: "0.13.1"
+          enable-cache: false
+
+      - uses: prefix-dev/setup-pixi@9936258fee697aff89b3fed6ca1f80a382ef694e # v0.11.3
+        with:
+          pixi-version: v0.80.0
+          run-install: false
+          cache: false
+
+      - name: Install
+        run: uv sync --frozen
+
+      - name: Run dropestr
+        run: bash oracles/dropest/run.sh oracle-out/dropest
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()  # a release that fails should not hide the ones that ran
+        with:
+          name: oracles-dropest
+          path: oracle-out/
+          retention-days: 30
+
+  zumis:
+    needs: changes
+    if: contains(needs.changes.outputs.tools, ' zumis ')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    name: zUMIs cell barcodes
+
+    env:
+      SC_DROPLETS_DATA: ${{ github.workspace }}/.cache/datasets
+      MPLBACKEND: Agg
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3.2.4
+        with:
+          version: "0.13.1"
+          enable-cache: false
+
+      - uses: prefix-dev/setup-pixi@9936258fee697aff89b3fed6ca1f80a382ef694e # v0.11.3
+        with:
+          pixi-version: v0.80.0
+          run-install: false
+          cache: false
+
+      - name: Install
+        run: uv sync --frozen
+
+      - name: Run zUMIs
+        run: bash oracles/zumis/run.sh oracle-out/zumis
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()  # a release that fails should not hide the ones that ran
+        with:
+          name: oracles-zumis
+          path: oracle-out/
+          retention-days: 30

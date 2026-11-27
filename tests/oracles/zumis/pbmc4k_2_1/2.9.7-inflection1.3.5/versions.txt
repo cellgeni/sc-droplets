@@ -1,0 +1,5 @@
+R version 4.4.3 (2025-02-28)
+platform x86_64-conda-linux-gnu
+data.table 1.18.6.1
+zUMIs 2.9.7 3a786f89bd778164a79c3361abc2834f24560d3e
+inflection 1.3.5 3089d3f72640969261c3e18b5c769db823013ebf

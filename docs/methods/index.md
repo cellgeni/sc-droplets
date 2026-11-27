@@ -25,6 +25,8 @@ come.
 | `cellranger-ordmag` | Cell Ranger | rank-threshold | v2: ≥2.0, <4.0; v7.2: ≥7.2, <8.0; v8.0: ≥8.0, <8.0.1; v8.0.1: ≥8.0.1, <9.0; v9.0: ≥9.0, <10.0; v10.0: ≥10.0, <10.1; v10.1: ≥10.1 | [Cell Ranger OrdMag](cellranger/ordmag.md) |
 | `cellbender-prior` | CellBender | density | v0.1: ≥0.1.0, <0.2.0; v0.2: ≥0.2.0, <0.3.0; v0.3: ≥0.3.0 | [CellBender priors](cellbender/prior.md) |
 | `cellsweep-empty` | cellsweep | knee | v0.1: ≥0.1.0, <1.0.2; v1.0.2: ≥1.0.2 | [cellsweep empty droplets](cellsweep/empty.md) |
+| `dropseq-dropbead` | Drop-seq (dropbead) | knee | default: ≥0.3.1 | [Drop-seq cell number (dropbead)](dropseq/dropbead.md) |
+| `dropest-bounds` | dropEst | knee | default: ≥0.6.0 | [dropEst cell-number bounds](dropest/bounds.md) |
 | `dropletutils-barcoderanks` | DropletUtils | knee | v1.0: ≥1.0, <1.10; v1.10: ≥1.10, <1.12; v1.12: ≥1.12, <1.28; v1.28: ≥1.28, <1.30; v1.30: ≥1.30 | [DropletUtils barcodeRanks](dropletutils/barcoderanks.md) |
 | `dropletutils-defaultdrops` | DropletUtils | rank-threshold | v1.0: ≥1.0 | [DropletUtils defaultDrops](dropletutils/defaultdrops.md) |
 | `dropletutils-emptydrops` | DropletUtils | statistical-test | v1.0: ≥1.0, <1.2; v1.2: ≥1.2, <1.4; v1.4: ≥1.4, <1.6; v1.6: ≥1.6, <1.8; v1.8: ≥1.8, <1.10; v1.10: ≥1.10, <1.12; v1.12: ≥1.12, <1.20; v1.20: ≥1.20, <1.28; v1.28: ≥1.28, <1.30; v1.30: ≥1.30 | [DropletUtils emptyDrops](dropletutils/emptydrops.md) |
@@ -38,6 +40,7 @@ come.
 | `starsolo-topcells` | STARsolo | rank-threshold | v1: ≥2.7.3a, <2.7.5a; v2: ≥2.7.5a, <2.7.6a; v3: ≥2.7.6a | [STARsolo TopCells](starsolo/topcells.md) |
 | `umitools-density` | UMI-tools | density | v0.5: ≥0.5.0 | [UMI-tools whitelist, density valley](umitools/density.md) |
 | `umitools-distance` | UMI-tools | knee | v1.0: ≥1.0.0 | [UMI-tools whitelist, distance knee](umitools/distance.md) |
+| `zumis-cell-barcodes` | zUMIs | knee | v2.5.6b: ≥2.5.6b | [zUMIs cell barcodes](zumis/cell-barcodes.md) |
 <!-- methods-table:end -->
 
 ## Reading a method name
