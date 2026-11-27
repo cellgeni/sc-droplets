@@ -114,7 +114,7 @@ $$\operatorname{arcsinh}$$ scales: identical thresholds in all 64 cases.
 
 - Liao, Chen & Chung 2001, A fast algorithm for multilevel thresholding, *Journal of Information
   Science and Engineering* 17:713, [doi:10.6688/JISE.2001.17.5.1](https://doi.org/10.6688/JISE.2001.17.5.1).
-- Heiser, Wang, Chen, Hughes & Lau 2021, Automated quality control and cell identification of
+- Heiser, Wang, Chen, Hughey & Lau 2021, Automated quality control and cell identification of
   droplet-based single-cell data using dropkick, *Genome Research* 31:1742,
   [doi:10.1101/gr.271908.120](https://doi.org/10.1101/gr.271908.120).
 - Source: [`skimage/filters/_multiotsu.pyx`](https://github.com/scikit-image/scikit-image/blob/v0.26.0/src/skimage/filters/_multiotsu.pyx)
