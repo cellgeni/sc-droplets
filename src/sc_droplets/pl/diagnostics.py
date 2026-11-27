@@ -7,7 +7,9 @@ for OrdMag, the spread of its bootstraps; for barcodeRanks, the knee, the
 inflection and what found them (the fitted spline, the chord, or the knee's
 window). UMI-tools adds a second panel: for distance, the cumulative curve of
 the last pass with its chord and each pass's knee; for density, the kernel
-density of log10 counts with every valley and the chosen one. Kneedle adds its
+density of log10 counts with every valley and the chosen one (the generic
+kernel-density valley adds its peaks). MAD, Otsu and multi-Otsu add the
+candidates' histogram on their scale with the median and limit, or the cuts. Kneedle adds its
 difference curve with the maxima, their thresholds and the knee; cellsweep its
 rule's own curve (the second derivative, the Kneedle difference curve, or the
 two Gaussian components and their entropy).
@@ -60,6 +62,7 @@ def diagnostics(adata: Any, call: str, *, fig: Any = None):
         return fig
     second = (_cellsweep_panel if diag.get("rule") in ("threshold", "kneed", "mx_filter")
               else _cumulative_panel if "passes" in diag else _density_panel if "density" in diag
+              else _histogram_panel if "histogram_counts" in diag
               else _difference_panel if "difference_x" in diag else None)
     if fig is None:
         fig = plt.figure(figsize=(13, 4.2) if has_test else (12.8, 4.8) if second else (6.4, 4.8))
@@ -174,9 +177,32 @@ def _density_panel(ax, record, curve) -> None:
             label = None if other_labelled else "other valleys"
             other_labelled = True
         ax.axvline(t, color=PALETTE[1] if picked else "#999999", ls="--", lw=1.2 if picked else 0.8, label=label)
+    if "peaks" in diag:
+        peaks = np.asarray(diag["peaks"], dtype=float)
+        heights = np.interp(peaks, grid, np.asarray(diag["density"], dtype=float))
+        ax.plot(peaks, heights, ls="none", marker="v", ms=6, color=PALETTE[2], label="peaks", zorder=3)
     ax.set_title(diag.get("density_title", "Density of log10 counts (UMI-tools density)"), fontsize="medium")
     ax.set_xlabel("log10 count per barcode")
     ax.set_ylabel("density")
+    ax.legend(frameon=False, fontsize="small")
+    ax.grid(True, alpha=0.3)
+
+
+def _histogram_panel(ax, record, curve) -> None:
+    """MAD, Otsu, multi-Otsu: the candidates' histogram on the rule's scale, and its cuts."""
+    diag = dict(record.get("diagnostics", {}))
+    counts = np.asarray(diag["histogram_counts"], dtype=float)
+    edges = np.asarray(diag["histogram_edges"], dtype=float)
+    ax.stairs(counts, edges, fill=True, color=CURVE_COLOUR, alpha=0.35, label="candidates")
+    ax.stairs(counts, edges, color=CURVE_COLOUR, lw=0.8)
+    cuts = np.asarray(diag.get("cuts", []), dtype=float)
+    labels = list(diag.get("cut_labels", []))
+    for i, (cut, label) in enumerate(zip(cuts, labels)):
+        ax.axvline(cut, color=PALETTE[(1 + i) % len(PALETTE)], ls="--", lw=1.2, label=f"{label}: {cut:.3g}")
+    ax.set_yscale("log")
+    ax.set_xlabel(str(diag.get("histogram_label", "value")))
+    ax.set_ylabel("barcodes")
+    ax.set_title(f"{record.get('title', '')}: the candidates", fontsize="medium")
     ax.legend(frameon=False, fontsize="small")
     ax.grid(True, alpha=0.3)
 

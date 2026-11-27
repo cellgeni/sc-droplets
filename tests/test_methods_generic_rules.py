@@ -6,6 +6,7 @@ import math
 import re
 
 import anndata as ad
+import matplotlib
 import numpy as np
 import pytest
 import scipy.sparse as sp
@@ -16,6 +17,7 @@ from sc_droplets.cli import app
 from sc_droplets.methods.generic import GRID_POINTS, RuleError, density_valley
 from sc_droplets.primitives.rmath import clog2
 
+matplotlib.use("Agg")
 runner = CliRunner()
 
 
@@ -173,3 +175,23 @@ def test_cli_reports_a_bad_bandwidth_as_an_error(sim, tmp_path):
     sim.write_h5ad(path)
     bad = runner.invoke(app, ["call", "kde-valley", str(path), "--json", "--bandwidth", "wide"])
     assert bad.exit_code == 1 and "Error:" in _out(bad)
+
+
+# ---------------------------------------------------------------------------
+# Plots
+# ---------------------------------------------------------------------------
+
+
+def test_diagnostics_of_the_histogram_rules_draw_their_cuts(adata):
+    for spec, n_cuts in (("mad", 2), ("otsu", 1), ("multiotsu", 2)):
+        figure = scd.pl.diagnostics(adata, spec)
+        panel = figure.axes[1]
+        dashed = [line for line in panel.get_lines() if line.get_linestyle() == "--"]
+        assert len(dashed) == n_cuts and panel.get_yscale() == "log"
+
+
+def test_diagnostics_of_kde_valley_marks_the_peaks_and_the_valley(adata):
+    figure = scd.pl.diagnostics(adata, "kde-valley")
+    panel = figure.axes[1]
+    labels = [line.get_label() for line in panel.get_lines()]
+    assert "peaks" in labels and any(label.startswith("chosen valley") for label in labels)
