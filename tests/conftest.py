@@ -156,7 +156,8 @@ def write_kb(adata, folder: Path, nac: bool = False) -> Path:
     if nac:
         _write_mtx(folder / "cells_x_genes.mature.mtx", adata.layers["spliced"], False)
         _write_mtx(folder / "cells_x_genes.nascent.mtx", adata.layers["unspliced"], False)
-        _write_mtx(folder / "cells_x_genes.ambiguous.mtx", sp.csr_matrix(adata.shape, dtype=np.int64), False)
+        ambiguous = adata.layers["ambiguous"] if "ambiguous" in adata.layers else sp.csr_matrix(adata.shape, dtype=np.int64)
+        _write_mtx(folder / "cells_x_genes.ambiguous.mtx", ambiguous, False)
     else:
         _write_mtx(folder / "cells_x_genes.mtx", adata.X, False)
     return folder
@@ -185,8 +186,8 @@ def write_alevin_fry(adata, folder: Path, usa: bool = False) -> Path:
     """alevin-fry's alevin/ quant folder; USA mode has S, U, A column blocks."""
     folder.mkdir(parents=True)
     if usa:
-        zeros = sp.csr_matrix(adata.shape, dtype=np.int64)
-        matrix = sp.hstack([adata.layers["spliced"], adata.layers["unspliced"], zeros], format="csr")
+        ambiguous = adata.layers["ambiguous"] if "ambiguous" in adata.layers else sp.csr_matrix(adata.shape, dtype=np.int64)
+        matrix = sp.hstack([adata.layers["spliced"], adata.layers["unspliced"], ambiguous], format="csr")
     else:
         matrix = adata.X
     _write_mtx(folder / "quants_mat.mtx", matrix, False)

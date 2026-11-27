@@ -34,8 +34,8 @@ Counts stay integers, as the pipeline wrote them.
 | STARsolo | `matrix.mtx`, `barcodes.tsv`, `features.tsv` | `Solo.out/<feature>/raw/` |
 | STARsolo Velocyto | `spliced.mtx`, `unspliced.mtx`, `ambiguous.mtx` | counts are their sum; each is also a layer |
 | kb | `cells_x_genes.mtx`, `.barcodes.txt`, `.genes.txt` (`.genes.names.txt` for symbols) | barcodes are rows |
-| kb `--workflow nac` | `cells_x_genes.mature.mtx`, `.nascent.mtx`, `.ambiguous.mtx` | counts are their sum; mature and nascent become `spliced` and `unspliced` |
-| alevin-fry | `quants_mat.mtx`, `quants_mat_rows.txt`, `quants_mat_cols.txt` | barcodes are rows; in USA mode the three column blocks (S, U, A) are summed and kept as layers |
+| kb `--workflow nac` | `cells_x_genes.mature.mtx`, `.nascent.mtx`, `.ambiguous.mtx` | counts are their sum; mature + ambiguous become `spliced`, nascent `unspliced` |
+| alevin-fry | `quants_mat.mtx`, `quants_mat_rows.txt`, `quants_mat_cols.txt` | barcodes are rows; in USA mode the three column blocks (S, U, A) are summed, S + A become `spliced`, U `unspliced` |
 
 ## Pipeline output folders
 
@@ -61,10 +61,16 @@ spliced and unspliced counts, whichever of these holds them:
 | velocyto `.loom` | `spliced` | `unspliced` |
 | STARsolo `Solo.out/Velocyto/raw/` | `spliced.mtx` | `unspliced.mtx` |
 | STARsolo `Solo.out/` with `Gene/raw` and `GeneFull/raw` but no Velocyto | Gene | GeneFull − Gene: the reads on introns, an estimate |
-| kb `--workflow nac` | `mature` | `nascent` |
-| alevin-fry USA mode | S block | U block |
+| kb `--workflow nac` | `mature` + `ambiguous` | `nascent` |
+| alevin-fry USA mode | S + A blocks | U block |
 
-Ambiguous counts are left out of the fraction. Only gene-expression features count.
+Reads within exons count as spliced, whichever tool counted them. velocyto and STARsolo count them
+as spliced themselves; their ambiguous molecules (exonic in one transcript model, intronic in
+another) are left out of the fraction. kb's nac `ambiguous` counts and alevin-fry's A block are the
+reads that fit both the spliced and the unspliced sequence, mostly reads within exons: they are
+added to the spliced counts, as kb's `--sum cell` and pyroe's velocity output add them. Left out,
+they would double the fraction: on 10x's PBMC 1k, kb's counts give the cells 0.63 and the
+barcodes left out 0.50 without them, 0.32 and 0.14 with them. Only gene-expression features count.
 
 `--splicing SRC` (and `splicing=` in `scd.add_metrics`) reads another output for the same sample
 and matches it by barcode: by name, or else by the barcode sequence alone, so velocyto's

@@ -126,7 +126,9 @@ Then splicing and the measures that judge a call:
 
 - `scd.add_metrics` and `--splicing`: each barcode's unspliced fraction, from the input's layers or
   another output matched by barcode (a velocyto `.loom`, now read; STARsolo Velocyto, or
-  GeneFull − Gene without it; kb nac; alevin-fry USA), and its mitochondrial fraction.
+  GeneFull − Gene without it; kb nac; alevin-fry USA), and its mitochondrial fraction. Reads
+  within exons count as spliced from every source: kb nac's ambiguous counts and alevin-fry's A
+  block are added to the spliced counts, as kb's `--sum cell` and pyroe's velocity output add them.
 - `scd.separation`, and in `compare`: each call's median fractions in its cells and in the
   barcodes it left out, and the AUROC between them.
 - `scd.pl.splicing` and `plot splicing`; `pl.knee` / `plot knee` colour the curve by a measure
