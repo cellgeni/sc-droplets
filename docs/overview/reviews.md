@@ -1,7 +1,7 @@
 ---
 title: Reviews and benchmarks
 parent: Overview
-nav_order: 1
+nav_order: 3
 ---
 
 # Reviews and benchmarks

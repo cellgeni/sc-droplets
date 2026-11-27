@@ -44,6 +44,12 @@ Several methods with different names compute the same thing:
 - **A robust maximum divided by ten**: Cell Ranger 2 OrdMag, STARsolo CellRanger2.2,
   alevin `--expectCells`, DropletUtils `defaultDrops`, alevin-fry `--expect-cells` (with a
   twist: it takes the 0.99·N-th barcode, not the 0.01·N-th).
+- **A test against the ambient profile**: DropletUtils emptyDrops, Cell Ranger 3+, STARsolo
+  EmptyDrops_CR, DropletUtils `emptyDropsCellRanger`.
+
+[Same idea, different tools](families.md) sets each family's members side by side on the same
+matrices. [Reads, UMIs, ties and rounding](arithmetic.md) collects the details that move a call
+within a family: what is counted, which barcodes enter, ties, rounding and random numbers.
 
 ## Every method, and where it stands
 
