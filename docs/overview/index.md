@@ -96,7 +96,7 @@ the methods' pages describe:
 | DropletUtils | 1.28 | emptyDrops back to a plain multinomial |
 | STARsolo | 2.7.8a | EmptyDrops_CR added; CellRanger2.2 rounding changed |
 | CellBender | 0.3.0 | priors from Otsu thresholding and a density peak instead of mode and median |
-| salmon | 2.0 | alevin removed; its rules are historical |
+| salmon | 1.11 | alevin removed; its rules are historical |
 | kneed | 0.8.6, 0.9.0 | knee detection changed, which moves cellsweep's call |
 
 Previous comparisons of these methods are collected in [Reviews and benchmarks](reviews.md); this
