@@ -192,8 +192,11 @@ Milestones, each its own pull request after the scaffold:
     package runs), Ambimux, AmbientMapper. Found in the sources: CB2's cluster test is not
     reproducible (unseeded workers); SiftCell needs xgboost < 1.6; ScaleBio 2.1's
     Benjamini-Hochberg may pad with too many zeros (a reading of the source).
-  - [ ] The guides: choosing a method, reproducing a pipeline's calls, comparing methods on a
-    sample, read-based methods, multiplexed and Flex runs.
+  - [x] The guides (`milestone-5-guides`): choosing a method, reproducing a pipeline's calls,
+    comparing methods on a sample, read-based methods, multiplexed and Flex runs, beside
+    *Visualising calls*. Their commands were run on a simulated matrix; that found a test's
+    diagnostics (and so the report) failing when no barcode was tested (Cell Ranger on fewer
+    barcodes than its ambient range), now fixed.
   - [ ] Release 0.1.0.
 
 Needs the maintainer of the GitHub organisation (not doable from here): a PyPI pending trusted
