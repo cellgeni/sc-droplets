@@ -80,8 +80,12 @@ splits the validation suite into two jobs, each on every core with pytest-xdist'
     (DropletUtils' alpha) depend on those bits. Square with `x * x`, not `x ** 2` (libm `pow`).
 - `pl/`: plots take an AnnData, draw stored calls or run specs, return the Axes, accept `ax=`.
   `knee.py` also colours by an obs column and adds rolling-median tracks; `density.py` the
-  histogram of log totals; `splicing.py` the unspliced fraction against the calls (a Figure);
+  histogram of log totals; `compare.py` several calls side by side (rank strips, counts,
+  Jaccard), `qc.py` genes and mito against count, `splicing.py` the unspliced fraction against
+  the calls (these three return a Figure, grouping barcodes with `_data.agreement_groups`);
   `diagnostics.py` each method's own view; `terminal.py` draws the knee in braille for `inspect`.
+- `report.py`: `scd.report`, one self-contained HTML page (inline SVG, dense scatters
+  rasterised inside it; the input's file name, never its path).
 - `cli.py`: typer. `call <id>` subcommands are generated from the registry
   (`_add_call_command`): options from `Params`, plus the shared ones. Results and data to
   stdout; messages to stderr (`console`); a failure is one `Error:` line and exit 1 (`_fail`).

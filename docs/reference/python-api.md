@@ -90,6 +90,17 @@ is no separation). Unsupervised indicators, not ground truth.
 scd.separation(adata, ["cellranger", "otsu"])
 ```
 
+### `scd.report(adata, calls=None, path=None, *, title=None, layer=None, feature_types=None)`
+
+One self-contained HTML page of the calls, as `sc-droplets report` writes it; written to `path`
+when given, and returned as a string. `calls` takes stored keys or method specs; `None` reports
+every stored call.
+
+```python
+scd.add_metrics(adata, splicing="Solo.out")
+scd.report(adata, ["cellranger", "otsu", "gmm"], "report.html", title="PBMC 4k")
+```
+
 ### `scd.agreement(adata, keys=None)`
 
 The pairwise Jaccard index of the cell sets of stored calls (all of them by default).
@@ -151,6 +162,28 @@ barcodes hold.
 ```python
 scd.pl.density(adata, ["otsu", "kde-valley"])
 scd.pl.density(adata, "mad", weighted=True)
+```
+
+### `scd.pl.compare(adata, calls=None, *, layer=None, feature_types=None, fig=None)`
+
+Several calls side by side, as `plot compare` draws them; returns the Figure: the rank curve with
+each call's cut and a strip per call shaded by the share of each log-spaced rank bin it took, the
+cells per call, and the Jaccard index of their cell sets.
+
+```python
+scd.pl.compare(adata, ["cellranger", "otsu", "gmm"])
+```
+
+### `scd.pl.qc(adata, calls=None, *, min_counts=10, layer=None, feature_types=None, fig=None)`
+
+Genes detected (and the mitochondrial fraction, when `obs` has it) against count, each barcode
+coloured by how many calls took it; with calls that disagree, the genes per count of the barcodes
+they disagree on beside those every call took and those none took in the band. Returns the
+Figure.
+
+```python
+scd.add_metrics(adata)
+scd.pl.qc(adata, ["cellranger", "gmm"])
 ```
 
 ### `scd.pl.splicing(adata, calls=None, *, metric="unspliced_fraction", min_counts=10, layer=None, feature_types=None, fig=None)`

@@ -6,22 +6,11 @@ from typing import Any, Optional, Sequence, Union
 
 import numpy as np
 
-from sc_droplets.pl._data import curve_for, resolve_calls
-from sc_droplets.pl.knee import PALETTE
+from sc_droplets.pl._data import agreement_groups, curve_for, resolve_calls
+from sc_droplets.pl.knee import GROUP_COLOURS, PALETTE
 
 #: Points drawn in the scatter panel, at most.
 MAX_POINTS = 20000
-GROUP_COLOURS = {"every call": PALETTE[0], "some calls": PALETTE[1], "no call": "#999999",
-                 "cell": PALETTE[0], "not a cell": "#999999"}
-
-
-def _groups(cells: np.ndarray) -> np.ndarray:
-    """Each barcode's agreement: called by every call, by some, by none (one call: cell or not)."""
-    n = cells.shape[1]
-    hits = cells.sum(axis=1)
-    if n == 1:
-        return np.where(hits == 1, "cell", "not a cell").astype(object)
-    return np.where(hits == n, "every call", np.where(hits > 0, "some calls", "no call")).astype(object)
 
 
 def splicing(
@@ -57,7 +46,7 @@ def splicing(
     values = adata.obs[metric].to_numpy(dtype=np.float64)
     shown = (totals >= max(min_counts, 1)) & ~np.isnan(values)
     cells = np.column_stack([adata.obs[k].to_numpy(dtype=bool) for k in keys])
-    groups = _groups(cells)
+    groups = agreement_groups(cells)
 
     several = len(keys) > 1
     if fig is None:

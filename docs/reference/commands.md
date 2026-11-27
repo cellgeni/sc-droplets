@@ -157,6 +157,44 @@ calls and neither `-m` nor `--key`, it draws every stored call.
 | `--title` | Figure title |
 | `--feature-type`, `--layer`, `--genome`, `--solo-feature` | As for `inspect` |
 
+## `plot compare`
+
+```bash
+sc-droplets plot compare raw_feature_bc_matrix.h5 -m cellranger -m otsu -m gmm -o compare.png
+sc-droplets plot compare calls.h5ad -o compare.pdf
+```
+
+Several calls side by side. Left: the barcode-rank curve with each call's cut, and under it one
+strip per call, shaded by the share of each log-spaced bin of rank the call took, so where the
+calls part is plain. Right: the number of cells per call, and the pairwise Jaccard index of
+their cell sets.
+
+| Option | Meaning |
+|---|---|
+| `--output`, `-o` | The figure (`.png`, `.pdf`, `.svg`); required |
+| `--method`, `-m` | Run this method spec and draw it (repeatable) |
+| `--key` | Draw this stored call (repeatable) |
+| `--feature-type`, `--layer`, `--genome`, `--solo-feature` | As for `inspect` |
+
+## `plot qc`
+
+```bash
+sc-droplets plot qc raw_feature_bc_matrix.h5 -m cellranger -m gmm -o qc.png
+```
+
+Genes detected against count, and the mitochondrial fraction against count when genes are named
+`MT-`, each barcode coloured by how many calls took it. With calls that disagree, a third panel
+compares the genes per count of the barcodes some calls took with those every call took and
+those none took in the band of totals where the calls disagree.
+
+| Option | Meaning |
+|---|---|
+| `--output`, `-o` | The figure (`.png`, `.pdf`, `.svg`); required |
+| `--method`, `-m` | Run this method spec and draw it (repeatable) |
+| `--key` | Draw this stored call (repeatable) |
+| `--min-counts` | Leave out barcodes below this total (10) |
+| `--feature-type`, `--layer`, `--genome`, `--solo-feature` | As for `inspect` |
+
 ## `plot splicing`
 
 ```bash
@@ -198,3 +236,24 @@ candidates' log-likelihood against their total, and the histogram of their p-val
 | `--feature-type`, `--layer`, `--genome`, `--solo-feature` | As for `inspect` |
 
 Exactly one of `--method` and `--key`.
+
+## `report`
+
+```bash
+sc-droplets report raw_feature_bc_matrix.h5 -m cellranger -m otsu -m gmm -o report.html
+sc-droplets report calls.h5ad --splicing velocyto.loom -o report.html --title "PBMC 4k"
+```
+
+One self-contained HTML page for a sample: a table of the calls (with the separation scores
+when the unspliced or mitochondrial fraction can be had), the knee, density, agreement, quality
+and splicing plots, and for each call its parameters, thresholds, notes and diagnostic view.
+The figures are inline SVG (dense scatters as images inside them); nothing is loaded from
+elsewhere, so the page can be mailed or archived. The page names the input file, not its path.
+
+| Option | Meaning |
+|---|---|
+| `--output`, `-o` | The page to write; required |
+| `--method`, `-m` | Run this method spec and report it (repeatable) |
+| `--key` | Report this stored call (repeatable); default: every stored call |
+| `--title` | The page's title (default: the input's file name) |
+| `--feature-type`, `--layer`, `--genome`, `--solo-feature`, `--splicing` | As for `inspect` |

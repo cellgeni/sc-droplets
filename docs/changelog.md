@@ -130,4 +130,13 @@ Then splicing and the measures that judge a call:
   barcodes it left out, and the AUROC between them.
 - `scd.pl.splicing` and `plot splicing`; `pl.knee` / `plot knee` colour the curve by a measure
   (`--color`) and add rolling-median tracks under it (`--track`).
+
+Then the views of several calls at once:
+
+- `scd.pl.compare` and `plot compare`: where the calls part along the rank curve, cells per call,
+  and the Jaccard index of their cell sets.
+- `scd.pl.qc` and `plot qc`: genes and the mitochondrial fraction against count, and the barcodes
+  the calls disagree on beside the agreed cells and the uncalled barcodes around them.
+- `scd.report` and `sc-droplets report`: one self-contained HTML page with every plot, the
+  separation scores and each call's parameters.
 - A validation suite on public data (`-m integration`), and an oracle workflow that runs STAR.

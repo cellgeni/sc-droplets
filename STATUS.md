@@ -132,7 +132,12 @@ Milestones, each its own pull request after the scaffold:
     else by sequence (velocyto's `sample:...x`, `-1`); separation against uncalled barcodes with
     at least 10 counts; the scores are indicators, not truth. No public splicing data in the
     validation suite yet: the comparison page's sample (kb nac on pbmc_1k_v3) brings it.
-  - [ ] `pl.compare`, `pl.qc`, `report`.
+  - [x] Compare, QC, report (`milestone-4-compare-report`): `pl.compare` (rank strips per call,
+    cells, Jaccard), `pl.qc` (genes and mito against count; the disputed barcodes' genes per
+    count beside the agreed cells and the uncalled ones in the band), `scd.report` (HTML, inline
+    SVG with dense scatters rasterised, about 1.5 MB for five calls on pbmc4k; the input's file
+    name, not its path). Finding on pbmc4k: the barcodes the calls disagree on look more like
+    cells than like the uncalled barcodes around them (genes per count).
   - [ ] The comparison-on-public-data page and the *Visualising calls* guide.
   - Moved: the negative-binomial mixture (Cell Ranger ATAC's EM) goes to 0.3 with Cell Ranger
     ATAC, where 10x's own ATAC calls (`singlecell.csv`) can check it; on RNA there is no original

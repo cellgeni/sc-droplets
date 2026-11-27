@@ -62,6 +62,12 @@ def write_barcodes(barcodes: Iterable[str], path: Path) -> None:
             temporary.write_bytes(text)
 
 
+def write_text(text: str, path: Path) -> None:
+    """UTF-8 text, such as an HTML report."""
+    with _staged(Path(path)) as temporary:
+        temporary.write_text(text, encoding="utf-8")
+
+
 def write_table(frame: pd.DataFrame, path: Path) -> None:
     """CSV, or TSV when the name ends in .tsv / .tsv.gz; gzipped for .gz."""
     path = Path(path)

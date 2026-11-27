@@ -35,7 +35,8 @@ uv run pytest -m "not integration"
 | `src/sc_droplets/methods/` | one module per tool page |
 | `src/sc_droplets/primitives/` | each tool's arithmetic, shared: Good-Turing variants, numpy's classic quicksort, C++, R and Boost random numbers, R's `smooth.spline`, `lgamma`, long-double sums and statistics, the Monte Carlo engines, scikit-image's Otsu and multi-Otsu |
 | `oracles/` | scripts that run the original tools on public data (`.github/workflows/oracles.yml`); their output goes to `tests/oracles/`. `oracles/dropletutils/` runs every DropletUtils release from bioconda with pixi, `oracles/umitools/` UMI-tools' own whitelist functions, `oracles/kneedle/` kneed's `KneeLocator`, `oracles/cellsweep/` cellsweep's `infer_empty_droplets`, `oracles/cellbender/` CellBender's `SingleCellRNACountsDataset` from each release's tagged source, `oracles/bustools/` bustools' `whitelist` on a BUS file written from the matrix, `oracles/alevinfry/` programs built from alevin-fry's source at each tag, `oracles/alevin/` programs built from salmon's `Alevin.cpp` at each tag, `oracles/dropseq/`, `oracles/dropest/` and `oracles/zumis/` the tools' own R functions sourced at a commit or tag, `oracles/generic/` scuttle's `isOutlier`, scikit-image's Otsu and multi-Otsu and scikit-learn's `GaussianMixture` (with mclust's fit for comparison) for the generic rules |
-| `src/sc_droplets/pl/` | plots: knee (with colour and tracks), density, splicing, each method's diagnostics |
+| `src/sc_droplets/pl/` | plots: knee (with colour and tracks), density, compare, QC, splicing, each method's diagnostics |
+| `src/sc_droplets/report.py` | the self-contained HTML report |
 | `src/sc_droplets/cli.py` | the command; `call <id>` subcommands are built from the registry |
 | `docs/` | this site; `docs/_research/` holds the source-reading notes the pages start from |
 | `tests/` | the unit suite; `integration` tests download public data |
