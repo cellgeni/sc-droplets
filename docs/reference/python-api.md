@@ -145,6 +145,18 @@ scd.pl.density(adata, ["otsu", "kde-valley"])
 scd.pl.density(adata, "mad", weighted=True)
 ```
 
+### `scd.pl.splicing(adata, calls=None, *, metric="unspliced_fraction", min_counts=10, layer=None, feature_types=None, fig=None)`
+
+A per-barcode measure against the calls, as `plot splicing` draws it; returns the Figure. Panels:
+the measure against log10 count, each barcode coloured by how many calls took it; for each call,
+the measure in its cells and in the barcodes it left out, with the AUROC; with several calls, the
+measure in barcodes every call took, some took and none took. `obs[metric]` must exist.
+
+```python
+scd.add_metrics(adata, splicing="Solo.out")
+scd.pl.splicing(adata, ["cellranger", "otsu", "gmm"])
+```
+
 ### `scd.pl.diagnostics(adata, call, *, fig=None)`
 
 One call's own view, as `plot diagnostics` draws it; returns the Figure. `call` is a stored key or

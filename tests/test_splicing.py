@@ -1,8 +1,10 @@
-"""The unspliced and mitochondrial fractions: their sources and their separation scores."""
+"""The unspliced and mitochondrial fractions: their sources, their separation scores, and the plots
+that use them."""
 from __future__ import annotations
 
 
 import anndata as ad
+import matplotlib
 import numpy as np
 import pandas as pd
 import pytest
@@ -13,6 +15,7 @@ import sc_droplets as scd
 from sc_droplets.io.loom import is_loom
 from sc_droplets.metrics import MetricError, auroc, barcode_key
 
+matplotlib.use("Agg")
 
 def _expected(adata) -> np.ndarray:
     s = np.asarray(adata.layers["spliced"].sum(axis=1)).ravel().astype(float)
@@ -180,3 +183,31 @@ def test_compare_scores_each_call_when_the_fractions_are_there(spliced):
     assert "mito_fraction_auroc" not in summary.columns
     plain = scd.compare(scd.simulate_droplets(n_cells=50, n_empty=200, n_low=500, n_genes=50, seed=2), ["otsu"])
     assert "unspliced_fraction_auroc" not in plain.columns
+
+
+# ---------------------------------------------------------------------------
+# Plots
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def measured(spliced):
+    adata = spliced.copy()
+    scd.add_metrics(adata)
+    return adata
+
+
+def test_splicing_plot_has_a_disagreement_panel_only_for_several_calls(measured):
+    one = scd.pl.splicing(measured, "otsu")
+    assert len(one.axes) == 2
+    several = scd.pl.splicing(measured, ["otsu", "top-n:n_cells=600"])
+    assert len(several.axes) == 3
+    labels = [t.get_text() for t in several.axes[1].get_xticklabels()]
+    assert all("AUROC" in label for label in labels)
+    legend = [t.get_text() for t in several.axes[0].get_legend().get_texts()]
+    assert any(text.startswith("some calls") for text in legend)
+
+
+def test_splicing_plot_needs_the_metric(sim):
+    with pytest.raises(KeyError, match="add_metrics"):
+        scd.pl.splicing(sim.copy(), "otsu")
