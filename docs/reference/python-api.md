@@ -101,6 +101,18 @@ scd.pl.knee(adata, ["top_n", "threshold"])
 scd.pl.knee(adata, "top-n:n_cells=3000", rotated=True)
 ```
 
+### `scd.pl.density(adata, calls=None, *, layer=None, feature_types=None, min_counts=1, bins=100, weighted=False, ax=None, title=None, legend=True)`
+
+The histogram of $$\log_{10}$$ totals (barcodes with at least `min_counts`), on a logarithmic
+y axis, with a dashed line at each call's smallest cell total; returns the Axes. `calls` as for
+`knee`. `weighted` weights each barcode by its total, so a bar shows the share of all counts its
+barcodes hold.
+
+```python
+scd.pl.density(adata, ["otsu", "kde-valley"])
+scd.pl.density(adata, "mad", weighted=True)
+```
+
 ### `scd.pl.diagnostics(adata, call, *, fig=None)`
 
 One call's own view, as `plot diagnostics` draws it; returns the Figure. `call` is a stored key or

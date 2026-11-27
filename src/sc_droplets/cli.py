@@ -639,6 +639,68 @@ def plot_knee(
         raise _fail(e)
 
 
+@plot_app.command("density")
+def plot_density(
+    input: Path = _input_argument(),
+    output: Path = typer.Option(..., "--output", "-o", help="Figure to write (.png, .pdf or .svg)."),
+    method: Optional[List[str]] = typer.Option(
+        None, "--method", "-m", help="Run this method spec and draw it (repeatable); see compare."
+    ),
+    key: Optional[List[str]] = typer.Option(
+        None, "--key", help="Draw this call stored in an .h5ad input (repeatable). Default: every stored call."
+    ),
+    min_counts: float = typer.Option(1, "--min-counts", help="Leave out barcodes below this total.", min=0),
+    bins: int = typer.Option(100, "--bins", help="Histogram bins.", min=2),
+    weighted: bool = typer.Option(False, "--weighted", help="Weight each barcode by its total."),
+    title: Optional[str] = typer.Option(None, "--title", help="Figure title."),
+    feature_type: Optional[List[str]] = _feature_type_option(),
+    layer: Optional[str] = _layer_option(),
+    genome: Optional[str] = _genome_option(),
+    solo_feature: str = _solo_feature_option(),
+) -> None:
+    """Histogram of log10 totals with each call's cut-off.
+
+    Examples:
+        sc-droplets plot density raw_feature_bc_matrix.h5 -m otsu -m kde-valley -o density.png
+        sc-droplets plot density calls.h5ad -o density.pdf --weighted
+    """
+    from sc_droplets.io.write import check_outputs
+
+    try:
+        check_outputs([output], [input])
+        adata = _load(input, solo_feature, genome)
+        types = _feature_types(feature_type)
+        keys: List[str] = list(key or [])
+        stored = adata.uns.get("sc_droplets", {})
+        missing = [k for k in keys if k not in stored]
+        if missing:
+            raise KeyError(f"no stored call {', '.join(missing)} in {input}; stored: {', '.join(stored) or 'none'}")
+        if method:
+            from sc_droplets.api import call
+
+            for spec in method:
+                keys.append(call(adata, spec, layer=layer, feature_types=types, genome=genome).key)
+        if not keys:
+            keys = list(adata.uns.get("sc_droplets", {}))
+        import matplotlib
+
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+
+        from sc_droplets.pl import density
+
+        ax = density(adata, keys, layer=layer, feature_types=types, min_counts=min_counts, bins=bins,
+                     weighted=weighted, title=title)
+        ax.figure.tight_layout()
+        ax.figure.savefig(output, dpi=150)
+        plt.close(ax.figure)
+        console.print(f"Wrote {escape(str(output))}")
+    except typer.Exit:
+        raise
+    except Exception as e:
+        raise _fail(e)
+
+
 @plot_app.command("diagnostics")
 def plot_diagnostics(
     input: Path = _input_argument(),

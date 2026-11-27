@@ -195,3 +195,25 @@ def test_diagnostics_of_kde_valley_marks_the_peaks_and_the_valley(adata):
     panel = figure.axes[1]
     labels = [line.get_label() for line in panel.get_lines()]
     assert "peaks" in labels and any(label.startswith("chosen valley") for label in labels)
+
+
+def test_density_plot_has_a_line_at_each_calls_smallest_cell(adata):
+    scd.call(adata, "otsu")
+    scd.call(adata, "top-n", n_cells=100)
+    ax = scd.pl.density(adata, ["otsu", "top_n"])
+    totals = np.asarray(adata.X.sum(axis=1)).ravel()
+    lines = {line.get_label().split(":")[0]: line.get_xdata()[0] for line in ax.get_lines()}
+    assert lines["otsu"] == np.log10(totals[adata.obs["otsu"].to_numpy()].min())
+    assert lines["top_n"] == np.log10(totals[adata.obs["top_n"].to_numpy()].min())
+    assert ax.get_yscale() == "log" and ax.get_ylabel() == "barcodes"
+    weighted = scd.pl.density(adata, "otsu", weighted=True)
+    assert weighted.get_ylabel() == "share of UMIs"
+
+
+def test_cli_plots_the_density_with_each_calls_cut(sim, tmp_path):
+    path = tmp_path / "sim.h5ad"
+    sim.write_h5ad(path)
+    figure = tmp_path / "density.png"
+    result = runner.invoke(app, ["plot", "density", str(path), "-m", "otsu", "-m", "kde-valley", "-o", str(figure)])
+    assert result.exit_code == 0, _out(result)
+    assert figure.stat().st_size > 0
