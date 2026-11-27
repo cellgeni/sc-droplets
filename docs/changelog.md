@@ -160,3 +160,8 @@ Then the comparison:
 - The *Visualising calls* guide, its figures drawn by `docs/_scripts/figures.py`.
 - `oracles/splicing/run.sh`: kb's nac counts for pbmc_1k_v3 (kallisto's prebuilt human index), the
   splicing data of the comparison and the guide.
+
+Then the review:
+
+- *Reads, UMIs, ties and rounding*: what each tool counts, which barcodes it sees, how it orders
+  ties, rounds and draws random numbers.
