@@ -1,4 +1,4 @@
-"""The unspliced and mitochondrial fractions and their sources."""
+"""The unspliced and mitochondrial fractions: their sources and their separation scores."""
 from __future__ import annotations
 
 
@@ -11,7 +11,7 @@ from conftest import write_alevin_fry, write_kb, write_loom, write_starsolo
 
 import sc_droplets as scd
 from sc_droplets.io.loom import is_loom
-from sc_droplets.metrics import MetricError, barcode_key
+from sc_droplets.metrics import MetricError, auroc, barcode_key
 
 
 def _expected(adata) -> np.ndarray:
@@ -138,3 +138,45 @@ def test_add_metrics_takes_the_mitochondrial_fraction_from_mt_genes(spliced):
     expected = np.where(total > 0, mito / np.where(total > 0, total, 1), np.nan)
     assert np.allclose(adata.obs["mito_fraction"].to_numpy(), expected, equal_nan=True)
     assert scd.add_metrics(scd.simulate_droplets(n_cells=10, n_empty=10, n_low=10, n_genes=20, seed=1)) == []
+
+
+# ---------------------------------------------------------------------------
+# Separation scores
+# ---------------------------------------------------------------------------
+
+
+def test_auroc_is_the_share_of_pairs_ordered_ties_counting_half():
+    assert auroc(np.array([3.0, 4.0]), np.array([1.0, 2.0])) == 1.0
+    assert auroc(np.array([1.0, 2.0]), np.array([3.0, 4.0])) == 0.0
+    assert auroc(np.array([2.0]), np.array([2.0, 1.0])) == 0.75
+    assert np.isnan(auroc(np.array([]), np.array([1.0])))
+
+
+def test_separation_compares_a_calls_cells_with_the_barcodes_it_left_above_the_floor():
+    totals = [500, 400, 300, 50, 20, 5]
+    adata = ad.AnnData(sp.csr_matrix(np.asarray(totals, float).reshape(-1, 1)))
+    adata.obs_names = [f"B{i}" for i in range(6)]
+    adata.var_names = ["G0"]
+    adata.obs["unspliced_fraction"] = [0.3, 0.25, 0.1, 0.05, 0.2, 0.9]
+    scd.call(adata, "top-n", n_cells=2)
+    row = scd.separation(adata, min_counts=10).loc["top_n"]
+    assert row["unspliced_fraction_cells"] == 0.275
+    assert row["unspliced_fraction_others"] == 0.1  # 0.1, 0.05, 0.2: the barcode with 5 is below the floor
+    assert row["unspliced_fraction_auroc"] == 1.0
+
+
+def test_separation_needs_the_metric(sim):
+    adata = sim.copy()
+    scd.call(adata, "otsu")
+    with pytest.raises(MetricError, match="add_metrics"):
+        scd.separation(adata)
+
+
+def test_compare_scores_each_call_when_the_fractions_are_there(spliced):
+    adata = spliced.copy()
+    scd.add_metrics(adata)
+    summary = scd.compare(adata, ["otsu", "top-n:n_cells=600"])
+    assert summary.loc["otsu", "unspliced_fraction_auroc"] > summary.loc["top_n_n_cells_600", "unspliced_fraction_auroc"]
+    assert "mito_fraction_auroc" not in summary.columns
+    plain = scd.compare(scd.simulate_droplets(n_cells=50, n_empty=200, n_low=500, n_genes=50, seed=2), ["otsu"])
+    assert "unspliced_fraction_auroc" not in plain.columns

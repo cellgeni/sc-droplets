@@ -103,8 +103,13 @@ def compare(
     Each entry of `methods` is a spec, `id[@tool_version][:name=value,...]`,
     e.g. `"top-n:n_cells=3000"` or `"dropletutils-emptydrops@1.26"`. `common`
     holds options for every call (`layer`, `feature_types`, `reads`...).
-    Every call is stored on `adata`.
+    Every call is stored on `adata`. When `obs` holds `unspliced_fraction` or
+    `mito_fraction` (`add_metrics`), each row also has their medians in the
+    call's cells and in the other barcodes, and the AUROC between them
+    (`separation`).
     """
+    from sc_droplets.metrics import MITO, UNSPLICED, separation
+
     rows = []
     keys = []
     for spec in methods:
@@ -120,7 +125,11 @@ def compare(
                 "min_cell_total": result.min_cell_total,
             }
         )
-    return pd.DataFrame(rows).set_index("key")
+    summary = pd.DataFrame(rows).set_index("key")
+    for metric in (UNSPLICED, MITO):
+        if metric in adata.obs.columns:
+            summary = summary.join(separation(adata, keys, metric=metric))
+    return summary
 
 
 def agreement(adata: Any, keys: Optional[Sequence[str]] = None) -> pd.DataFrame:

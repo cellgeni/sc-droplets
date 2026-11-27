@@ -1,4 +1,4 @@
-"""Per-barcode measures beside the counts.
+"""Per-barcode measures beside the counts, and how well each call separates them.
 
 The unspliced fraction U / (S + U) is the share of a barcode's molecules from unspliced
 (intron-containing) RNA: DropletQC's nuclear fraction, DropSift's `pct_intronic`. Ambient RNA is
@@ -6,19 +6,22 @@ mostly cytoplasmic and spliced, so in whole-cell data empty droplets sit low, ce
 damaged cells or stripped nuclei high; in nuclei data the nuclei sit high. The mitochondrial
 fraction is the share of counts in genes named `MT-` (`mt-` in mouse).
 
+`separation` scores a call by how the measure differs between its cells and the barcodes it
+left out: unsupervised indicators, not ground truth.
 """
 
 from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional, Sequence, Union
 
 import numpy as np
 import pandas as pd
 import scipy.sparse as sp
 
-from sc_droplets.counts import feature_type_column
+from sc_droplets.counts import Droplets, feature_type_column
+from sc_droplets.result import UNS_KEY
 
 UNSPLICED = "unspliced_fraction"
 MITO = "mito_fraction"
@@ -171,3 +174,55 @@ def add_metrics(adata: Any, splicing: Union[None, str, Path, Any, pd.Series] = N
         adata.obs[MITO] = mito
         written.append(MITO)
     return written
+
+
+def _totals(adata: Any, key: str) -> np.ndarray:
+    """The totals a stored call counted: its layer and feature types."""
+    record = adata.uns.get(UNS_KEY, {}).get(key, {})
+    counting = record.get("counting", {}) if hasattr(record, "get") else {}
+    types = counting.get("feature_types")
+    if types is None:
+        column = feature_type_column(adata.var)
+        types = "Gene Expression" if column is None or "Gene Expression" in set(adata.var[column].astype(str)) else "all"
+    elif not isinstance(types, str):
+        types = [str(t) for t in np.atleast_1d(types)]
+    return Droplets.from_anndata(adata, layer=counting.get("layer"), feature_types=types).totals
+
+
+def auroc(higher: np.ndarray, lower: np.ndarray) -> float:
+    """P(a value of `higher` exceeds one of `lower`), ties counting half: the Mann-Whitney U over
+    the number of pairs."""
+    from scipy.stats import mannwhitneyu
+
+    if higher.size == 0 or lower.size == 0:
+        return float("nan")
+    return float(mannwhitneyu(higher, lower).statistic / (higher.size * lower.size))
+
+
+def separation(
+    adata: Any,
+    keys: Optional[Sequence[str]] = None,
+    metric: str = UNSPLICED,
+    min_counts: float = MIN_COUNTS,
+) -> pd.DataFrame:
+    """How each stored call separates a measure: its median in the call's cells and in the barcodes
+    it left out that have at least `min_counts`, and the AUROC between the two (0.5: no
+    separation; above: the cells' values are higher). One row per call."""
+    if metric not in adata.obs.columns:
+        raise MetricError(f"no obs column {metric!r}: run scd.add_metrics first (with splicing= for the unspliced fraction)")
+    values = adata.obs[metric].to_numpy(dtype=np.float64)
+    keys = list(keys) if keys is not None else list(adata.uns.get(UNS_KEY, {}))
+    rows = []
+    for key in keys:
+        cells = adata.obs[key].to_numpy(dtype=bool)
+        known = ~np.isnan(values)
+        others = ~cells & (_totals(adata, key) >= min_counts) & known
+        inside = values[cells & known]
+        outside = values[others]
+        rows.append({
+            "key": key,
+            f"{metric}_cells": float(np.median(inside)) if inside.size else float("nan"),
+            f"{metric}_others": float(np.median(outside)) if outside.size else float("nan"),
+            f"{metric}_auroc": auroc(inside, outside),
+        })
+    return pd.DataFrame(rows).set_index("key")

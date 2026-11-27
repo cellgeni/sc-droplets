@@ -50,7 +50,8 @@ result = scd.call(adata, "threshold:min_counts=200,unit=genes", key_added="genes
 
 Runs every spec in `methods` with the same `common` options (`layer`, `feature_types`, ...) and
 returns a table with one row per call: key, method, tool version, variant, number of cells and
-smallest cell total. Every call is stored on `adata`.
+smallest cell total. Every call is stored on `adata`. When `obs` holds `unspliced_fraction` or
+`mito_fraction` (`add_metrics`), each row also has `separation`'s columns.
 
 ```python
 scd.compare(adata, ["top-n:n_cells=3000", "threshold:min_counts=500"])
@@ -75,6 +76,17 @@ Each barcode's U / (S + U) as a Series indexed by barcode (NaN where it has neit
 an AnnData with `spliced` and `unspliced` layers, or a path: a velocyto `.loom`, STARsolo's
 `Velocyto/raw/` or `Solo.out/` (with `Gene` and `GeneFull` but no Velocyto, the estimate
 (GeneFull − Gene) / GeneFull), kb `--workflow nac`, alevin-fry USA mode, an `.h5ad`.
+
+### `scd.separation(adata, keys=None, metric="unspliced_fraction", min_counts=10)`
+
+For each stored call: the median of `obs[metric]` in its cells (`<metric>_cells`) and in the
+barcodes it left out with at least `min_counts` (`<metric>_others`), and the AUROC between them
+(`<metric>_auroc`: the chance that a cell's value exceeds an outsider's, ties counting half; 0.5
+is no separation). Unsupervised indicators, not ground truth.
+
+```python
+scd.separation(adata, ["cellranger", "otsu"])
+```
 
 ### `scd.agreement(adata, keys=None)`
 
