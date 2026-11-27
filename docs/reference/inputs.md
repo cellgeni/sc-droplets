@@ -68,7 +68,9 @@ Ambiguous counts are left out of the fraction. Only gene-expression features cou
 
 `--splicing SRC` (and `splicing=` in `scd.add_metrics`) reads another output for the same sample
 and matches it by barcode: by name, or else by the barcode sequence alone, so velocyto's
-`sample:ACGT...x` matches Cell Ranger's `ACGT...-1`. Barcodes the source lacks get no value. Cell
+`sample:ACGT...x` matches Cell Ranger's `ACGT...-1`. Barcodes the source lacks get no value. When two barcodes share a sequence
+(two samples in one loom, two GEM groups in one matrix), matching by sequence would be a guess,
+and it is refused: give a source whose barcode names match the input's. Cell
 Ranger's own outputs have no spliced/unspliced matrix (the intron flag lives in the BAM's `RE`
 tag); run velocyto or STARsolo with `--soloFeatures Gene GeneFull Velocyto` on the same reads.
 

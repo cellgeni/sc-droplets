@@ -65,6 +65,8 @@ AnnData's own `spliced` and `unspliced` layers), and `mito_fraction`, the share 
 named `MT-` or `mt-` (when there are any). `splicing` is anything `unspliced_fraction` takes, or a
 Series of fractions indexed by barcode. Barcodes match by name, or else by the sequence alone
 (velocyto's `sample:` prefix and `x` suffix and a `-1` suffix dropped); unmatched barcodes get NaN.
+When two barcodes on either side share a sequence (two samples, two GEM groups), matching by
+sequence is refused.
 
 ```python
 scd.add_metrics(adata, splicing="velocyto/sample.loom")

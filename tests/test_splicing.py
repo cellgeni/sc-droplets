@@ -140,6 +140,19 @@ def test_add_metrics_leaves_unmatched_barcodes_unmeasured(spliced, sim):
         scd.add_metrics(sim.copy(), splicing=unrelated)
 
 
+def test_matching_by_sequence_refuses_barcodes_that_share_one():
+    """Two source barcodes with one sequence (two samples) used to give both targets the first one's
+    value; two target barcodes with one sequence the same source value."""
+    target = ad.AnnData(sp.csr_matrix(np.ones((2, 1))))
+    target.obs_names = ["ACGTACGT-1", "ACGTACGT-2"]
+    two_samples = pd.Series([0.1, 0.9], index=["sample1:ACGTACGTx", "sample2:ACGTACGTx"])
+    with pytest.raises(MetricError, match="splicing source share a sequence"):
+        scd.add_metrics(target, splicing=two_samples)
+    one = pd.Series([0.1], index=["sample1:ACGTACGTx"])
+    with pytest.raises(MetricError, match="input share a sequence"):
+        scd.add_metrics(target, splicing=one)
+
+
 def test_add_metrics_takes_the_mitochondrial_fraction_from_mt_genes(spliced):
     adata = spliced.copy()
     names = list(adata.var_names)

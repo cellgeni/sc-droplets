@@ -147,10 +147,19 @@ def _matched(target: pd.Index, values: pd.Series) -> np.ndarray:
     if values.index.isin(target).any():
         return values.reindex(target).to_numpy(dtype=np.float64)
     keyed = pd.Series(values.to_numpy(), index=[barcode_key(b) for b in values.index])
-    keyed = keyed[~keyed.index.duplicated()]
-    keys = [barcode_key(b) for b in target]
-    if not keyed.index.isin(keys).any():
+    keys = pd.Index([barcode_key(b) for b in target])
+    shared = keyed.index.intersection(keys)
+    if shared.empty:
         raise MetricError("no barcode of the splicing source matches a barcode of the input")
+    # Two barcodes with one sequence (two samples or GEM groups) cannot be told apart by sequence.
+    for side, index, names in (("splicing source", keyed.index, values.index), ("input", keys, target)):
+        twice = index[index.duplicated() & index.isin(shared)]
+        if not twice.empty:
+            examples = [str(n) for n, k in zip(names, index) if k == twice[0]][:2]
+            raise MetricError(
+                f"barcodes of the {side} share a sequence ({' and '.join(examples)}): they cannot be matched by "
+                "sequence; give a source whose barcodes match the input's names"
+            )
     return keyed.reindex(keys).to_numpy(dtype=np.float64)
 
 
