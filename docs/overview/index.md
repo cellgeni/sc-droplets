@@ -63,10 +63,10 @@ closed).
 | UMI-tools | whitelist [distance](../methods/umitools/distance.md) and [density](../methods/umitools/density.md) | implemented |
 | alevin (salmon 0.11 – 1.10) | [initial whitelist](../methods/alevin/initial-whitelist.md): tangent knee with a kernel-density correction, expected cells, forced cells; the low-confidence band | implemented; the naive Bayes classifier is planned |
 | alevin-fry | [permit list](../methods/alevinfry/permit-list.md): knee distance, expect cells, force cells, unfiltered permit list; 0.12–0.17's own rules for Flex | implemented |
-| Drop-seq | dropbead knee | planned, 0.1.0 |
+| Drop-seq | [dropbead](../methods/dropseq/dropbead.md): farthest from the diagonal of the cumulative fraction | implemented |
 | bustools / kb | [allowlist](../methods/bustools/allowlist.md) (`kb --filter bustools`) | implemented |
-| dropEst | cell-number bounds | planned, 0.1.0 |
-| zUMIs | UIK knee; Gaussian mixture (before Nov 2019) | planned, 0.1.0 |
+| dropEst | [cell-number bounds](../methods/dropest/bounds.md): lagged log-log derivatives, High / Unknown / Low | implemented; the classifier is planned |
+| zUMIs | [cell barcodes](../methods/zumis/cell-barcodes.md): the UIK of the cumulative reads (2.5.6b on) | implemented; the earlier Gaussian mixture is a gap (unseeded) |
 | Kneedle | [kneed's KneeLocator](../methods/kneedle/kneedle.md) on the rank curve (0.5.1 – 0.9.0), with yascp's sensitivity search | implemented |
 | CB2, DIEM, DropletQC, DropSift, dropEst classifier, alevin naive Bayes, valiDrops, SiftCell | statistical tests and classifiers | planned, 0.2 |
 | Cell Ranger ATAC and ARC, EmptyDropsMultiome, BAP, SADE | ATAC and multiome | planned, 0.3 |

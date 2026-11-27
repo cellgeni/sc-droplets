@@ -54,7 +54,9 @@ splits the validation suite into two jobs, each on every core with pytest-xdist'
   `cellsweep.py` holds cellsweep's empty-droplet step; `cellbender.py` CellBender's priors (the
   mode and median of 0.1–0.2, the Otsu and kernel-density heuristics of 0.3+); `alevinfry.py`
   alevin-fry's permit-list rules; `bustools.py` bustools' allowlist (the sample of the first BUS
-  blocks simulated from the matrix); `alevin.py` alevin's initial whitelist (salmon 0.11 – 1.10).
+  blocks simulated from the matrix); `alevin.py` alevin's initial whitelist (salmon 0.11 – 1.10);
+  `dropseq.py` dropbead's cell number; `dropest.py` dropestr's bounds; `zumis.py` zUMIs' detection
+  with inflection's `uik`.
 - `primitives/`: the arithmetic of each tool, reused across methods: `goodturing` (Cell Ranger's,
   STAR's and edgeR's), `legacysort` (numpy's classic quicksort, with a `window` so a slice is
   cheap: tie order decides Cell Ranger's ambient droplets), `stdrandom` (C++ `mt19937` and
@@ -119,7 +121,9 @@ splits the validation suite into two jobs, each on every core with pytest-xdist'
   `tests/oracles/alevinfry/` (`oracles/alevinfry/run.sh`: `harness.py` copies the knee and the
   rules out of each tag), alevin against programs built from salmon's own `Alevin.cpp` in
   `tests/oracles/alevin/` (`oracles/alevin/run.sh`: `harness.py` copies its functions out of
-  each tag; conda-forge's gcc). A new method adds its cases here.
+  each tag; conda-forge's gcc), dropbead, dropEst and zUMIs against their own R functions in
+  `tests/oracles/{dropseq,dropest,zumis}/` (`oracles/<tool>/run.sh`: the R files sourced from each
+  repository at a commit or tag, R from conda-forge). A new method adds its cases here.
 - `tests/oracles/dropletutils/fixtures/` (from `oracles/dropletutils/fixtures.R`): R's own values
   for the primitives (`smooth.spline`, `lgamma`, `sum`, Good-Turing, Monte Carlo counts).
 - CLI tests use a module-level `CliRunner`; strip ANSI codes and collapse whitespace before
