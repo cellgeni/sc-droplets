@@ -1,6 +1,6 @@
 ---
 title: Changelog
-nav_order: 8
+nav_order: 9
 ---
 
 # Changelog
@@ -28,6 +28,7 @@ Then Cell Ranger and STARsolo, each checked against the original on public data:
   numpy's classic quicksort (for tie order), C++ `mt19937` and libstdc++'s
   `discrete_distribution`, and the Cell Ranger and STAR Monte Carlo engines.
 - `scd.pl.diagnostics` and `sc-droplets plot diagnostics`: each call's own view.
+- A validation suite on public data (`-m integration`), and an oracle workflow that runs STAR.
 
 Then DropletUtils, checked against every release from 1.0 to 1.30 run in R:
 
@@ -125,7 +126,9 @@ Then splicing and the measures that judge a call:
 
 - `scd.add_metrics` and `--splicing`: each barcode's unspliced fraction, from the input's layers or
   another output matched by barcode (a velocyto `.loom`, now read; STARsolo Velocyto, or
-  GeneFull − Gene without it; kb nac; alevin-fry USA), and its mitochondrial fraction.
+  GeneFull − Gene without it; kb nac; alevin-fry USA), and its mitochondrial fraction. Reads
+  within exons count as spliced from every source: kb nac's ambiguous counts and alevin-fry's A
+  block are added to the spliced counts, as kb's `--sum cell` and pyroe's velocity output add them.
 - `scd.separation`, and in `compare`: each call's median fractions in its cells and in the
   barcodes it left out, and the AUROC between them.
 - `scd.pl.splicing` and `plot splicing`; `pl.knee` / `plot knee` colour the curve by a measure
@@ -139,7 +142,6 @@ Then the views of several calls at once:
   the calls disagree on beside the agreed cells and the uncalled barcodes around them.
 - `scd.report` and `sc-droplets report`: one self-contained HTML page with every plot, the
   separation scores and each call's parameters.
-- A validation suite on public data (`-m integration`), and an oracle workflow that runs STAR.
 
 Then Cell Ranger 4.0 to 7.1, which published no source, from 10x's own outputs:
 
@@ -149,3 +151,12 @@ Then Cell Ranger 4.0 to 7.1, which published no source, from 10x's own outputs:
   datasets and one 5.0 dataset (`--aggregate-barcodes` and `--filter-aggregates` apply from 5.0).
 - 6.0 to 7.1 stay refused: on twelve public datasets of those releases the closest rule is
   identical on six and differs at the FDR cut on the others. The page lists each.
+
+Then the comparison:
+
+- *Comparison on public data*: every method with its defaults on five public 10x samples (PBMC 4k
+  v2, PBMC 1k v3, PBMC 5k GEM-X, mouse spinal cord nuclei, a Flex sample), set against 10x's own
+  call, with separation scores; made by `docs/_scripts/comparison.py`.
+- The *Visualising calls* guide, its figures drawn by `docs/_scripts/figures.py`.
+- `oracles/splicing/run.sh`: kb's nac counts for pbmc_1k_v3 (kallisto's prebuilt human index), the
+  splicing data of the comparison and the guide.

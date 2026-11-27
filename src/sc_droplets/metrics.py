@@ -189,15 +189,13 @@ def add_metrics(
 
 
 def _totals(adata: Any, key: str) -> np.ndarray:
-    """The totals a stored call counted: its layer and feature types."""
+    """The gene-expression totals on a stored call's layer and genome, for the floor of the
+    barcodes it left out. Gene expression whatever features the call counted: a call that also
+    counts antibodies must be judged against the same outsiders as one that does not."""
     record = adata.uns.get(UNS_KEY, {}).get(key, {})
     counting = record.get("counting", {}) if hasattr(record, "get") else {}
-    types = counting.get("feature_types")
-    if types is None:
-        column = feature_type_column(adata.var)
-        types = "Gene Expression" if column is None or "Gene Expression" in set(adata.var[column].astype(str)) else "all"
-    elif not isinstance(types, str):
-        types = [str(t) for t in np.atleast_1d(types)]
+    column = feature_type_column(adata.var)
+    types = "Gene Expression" if column is None or "Gene Expression" in set(adata.var[column].astype(str)) else "all"
     return Droplets.from_anndata(adata, layer=counting.get("layer"), feature_types=types,
                                  genome=counting.get("genome")).totals
 
@@ -219,8 +217,9 @@ def separation(
     min_counts: float = MIN_COUNTS,
 ) -> pd.DataFrame:
     """How each stored call separates a measure: its median in the call's cells and in the barcodes
-    it left out that have at least `min_counts`, and the AUROC between the two (0.5: no
-    separation; above: the cells' values are higher). One row per call."""
+    it left out that have at least `min_counts` gene-expression counts, and the AUROC between the
+    two (0.5: no separation; above: the cells' values are higher). One row per call. The floor
+    counts gene expression whatever the call counted, so every call meets the same outsiders."""
     if metric not in adata.obs.columns:
         raise MetricError(f"no obs column {metric!r}: run scd.add_metrics first (with splicing= for the unspliced fraction)")
     values = adata.obs[metric].to_numpy(dtype=np.float64)

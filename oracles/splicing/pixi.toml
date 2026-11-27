@@ -1,0 +1,15 @@
+# kb (kallisto | bustools) from bioconda, for the spliced and unspliced counts of a public sample.
+# Used by run.sh.
+[workspace]
+name = "splicing-data"
+channels = ["conda-forge", "bioconda"]
+platforms = ["linux-64", "osx-64"]
+
+[dependencies]
+# The releases of kallisto's prebuilt nac indices (November 2023): kallisto 0.52 cannot read them.
+kb-python = "==0.28.2"
+# kb-python's conda package brings no kallisto or bustools binary; run.sh hands it these.
+kallisto = "==0.50.1"
+bustools = "==0.43.2"
+python = "3.12.*"
+scipy = "*"

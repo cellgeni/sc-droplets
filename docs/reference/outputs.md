@@ -53,7 +53,7 @@ and any parameters given in the spec: `top-n:n_cells=3000` is stored as `top_n_n
 | `obs["mito_fraction"]` | the share of gene-expression counts in genes named `MT-` or `mt-` |
 
 With either present, `compare`'s summary adds, per call, `<metric>_cells` and `<metric>_others`
-(the medians in its cells and in the barcodes it left out with at least 10 counts) and
+(the medians in its cells and in the barcodes it left out with at least 10 gene-expression counts) and
 `<metric>_auroc` (`scd.separation`).
 
 ## Files

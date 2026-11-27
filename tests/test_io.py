@@ -105,7 +105,39 @@ def test_alevin_fry_quants_are_read_and_usa_blocks_summed(tmp_path, usa):
     _same_counts(read, adata)
     if usa:
         # anndata 0.13 lists X as the layer None
-        assert {k for k in read.layers.keys() if k is not None} == {"spliced", "unspliced", "ambiguous"}
+        assert {k for k in read.layers.keys() if k is not None} == {"spliced", "unspliced"}
+
+
+def _split_ambiguous(adata):
+    """Move about half of each spliced count to an `ambiguous` layer, as kb nac and alevin-fry USA
+    split the reads within exons from those across a junction; X stays the same."""
+    spliced = sp.csr_matrix(adata.layers["spliced"])
+    ambiguous = spliced.copy()
+    ambiguous.data = ambiguous.data // 2
+    ambiguous.eliminate_zeros()
+    adata.layers["ambiguous"] = ambiguous
+    adata.layers["spliced"] = (spliced - ambiguous).tocsr()
+    return spliced
+
+
+@pytest.mark.parametrize("layout", ["kb", "alevin-fry"])
+def test_kb_nac_and_alevin_fry_count_ambiguous_reads_as_spliced(tmp_path, layout):
+    """kb nac's ambiguous counts and alevin-fry's A block (reads within exons, mostly) used to be
+    left out of the unspliced fraction: on 10x's PBMC 1k, kb's counts put the cells at 0.63 and the
+    barcodes left out at 0.50; with those reads spliced, as velocyto counts them, 0.32 and 0.14."""
+    adata = scd.simulate_droplets(n_cells=50, n_empty=200, n_low=300, n_genes=50, splicing=True, seed=6)
+    whole_spliced = _split_ambiguous(adata)
+    if layout == "kb":
+        read = scd.read(write_kb(adata, tmp_path / "counts_unfiltered", nac=True))
+    else:
+        read = scd.read(write_alevin_fry(adata, tmp_path / "alevin", usa=True))
+    _same_counts(read, adata)
+    assert {k for k in read.layers.keys() if k is not None} == {"spliced", "unspliced"}
+    assert (read.layers["spliced"] != whole_spliced).nnz == 0
+    unspliced = np.asarray(adata.layers["unspliced"].sum(axis=1)).ravel()
+    whole = unspliced + np.asarray(whole_spliced.sum(axis=1)).ravel()
+    expected = np.divide(unspliced, whole, out=np.full(whole.shape, np.nan), where=whole > 0)
+    assert np.allclose(scd.unspliced_fraction(read).to_numpy(), expected, equal_nan=True)
 
 
 def test_a_cell_ranger_outs_folder_gives_its_raw_matrix(sim, tmp_path):

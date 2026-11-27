@@ -91,4 +91,5 @@ the methods' pages describe:
 | salmon | 2.0 | alevin removed; its rules are historical |
 | kneed | 0.8.6, 0.9.0 | knee detection changed, which moves cellsweep's call |
 
-Previous comparisons of these methods are collected in [Reviews and benchmarks](reviews.md).
+Previous comparisons of these methods are collected in [Reviews and benchmarks](reviews.md); this
+package's own, every method on five public samples, is the [Comparison on public data](comparison.md).

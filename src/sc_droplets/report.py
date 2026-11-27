@@ -137,8 +137,8 @@ def report(
                 row += [scores.loc[key, f"{metric}_cells"], scores.loc[key, f"{metric}_others"],
                         scores.loc[key, f"{metric}_auroc"]]
     note = ("<p>Separation scores: the median in each call's cells and in the barcodes it left out with "
-            "at least 10 counts, and the AUROC between them (0.5: no separation). Indicators, not ground "
-            "truth.</p>") if len(header) > 6 else ""
+            "at least 10 gene-expression counts, and the AUROC between them (0.5: no separation). Indicators, "
+            "not ground truth.</p>") if len(header) > 6 else ""
     section("summary", "Calls", _table(header, rows) + note)
 
     plots = [("knee", "Knee", pl.knee(adata, keys, **drawing).figure,
