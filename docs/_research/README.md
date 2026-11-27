@@ -10,6 +10,12 @@ folder).
 | [dropletutils-cellbender-cellsweep.md](dropletutils-cellbender-cellsweep.md) | DropletUtils 1.0–1.34, CellBender 0.1–0.4, cellsweep 0.1–1.0.2, existing Python ports |
 | [other-methods-and-reviews.md](other-methods-and-reviews.md) | Reviews and benchmarks, every other knee heuristic, statistical and ML methods, mixture models |
 | [cellranger-4.0-7.1-outputs.md](cellranger-4.0-7.1-outputs.md) | Cell Ranger 4.0–7.1 from 10x's published outputs (no source), with `cellranger-4.0-7.1-survey.py` |
+| [planned-rna.md](planned-rna.md) | The 0.2 methods: CB2, DIEM, DropletQC, DropSift, valiDrops, SiftCell, miQC, dropEst's classifier, alevin's naive Bayes whitelist |
+| [planned-atac.md](planned-atac.md) | The 0.3 methods: Cell Ranger ATAC and ARC, EmptyDropsMultiome, BAP, SADE |
+| [docs-only.md](docs-only.md) | Methods documented, not implemented: CellBender's model, EmptyNN, dropkick, BD Rhapsody, ScaleBio, CeleScope, Ambimux, AmbientMapper |
+
+Code from sources this project may not copy (Cell Ranger 2.x, 7.2 and later, Cell Ranger ATAC
+and ARC) is described in words and formulas only, never set out as code.
 
 Tags used in the notes:
 

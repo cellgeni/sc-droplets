@@ -194,6 +194,10 @@ GitHub Pages from `main`, `/docs`.
 
 ## Follow-ups noticed
 
+- Research notes: `docs/_research/cellranger-starsolo.md` set out Cell Ranger 2.x, 7.2+ and
+  Cell Ranger ATAC steps as code-shaped blocks; they are now words and formulas, with the
+  provenance of the remaining blocks (3.0.2 and STAR, MIT) stated. The earlier text is still in
+  git history on `main` and `dev`; rewriting that history is the maintainer's decision.
 - DropletUtils 1.2's default (Dirichlet-multinomial with R's `rgamma`): needs R's `rgamma`,
   `exp_rand` and `norm_rand` (inversion, `qnorm`) ported and drawn one value at a time from the
   single R stream; about 3·10^8 draws per run, too slow in pure Python without a compiled helper.

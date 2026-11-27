@@ -59,6 +59,11 @@ old versions `https://github.com/lfperales/cellranger/blob/3.0.2/lib/python/cell
 
 ## 3. Cell Ranger, rule by rule
 
+Where this file sets steps out as code, they are from Cell Ranger 3.0.2 (MIT licence, Copyright (c)
+2018 10X Genomics) or STAR (MIT licence, Copyright (c) 2019 Alexander Dobin), which may be ported.
+Cell Ranger 2.x (AGPL), 7.2 and later (10x licence) and Cell Ranger ATAC are described in words and
+formulas only, never as code: their implementations here are written from the method pages.
+
 ### 3.0 Shared primitives
 
 - **UMI counts per barcode**: column sums of the feature × barcode UMI matrix, restricted to the
@@ -115,25 +120,26 @@ Constants: `ORDMAG_RECOVERED_CELLS_QUANTILE = 0.99`, `ORDMAG_NUM_BOOTSTRAP_SAMPL
 (metric and assert only). Inputs: `--expect-cells` N (absent → 3000 per GEM group),
 `--force-cells` (top N), `cell_barcodes` JSON (manual). Priority: manual > force > ordmag.
 
-```
-random.seed(0); np.random.seed(0)                # once per stage; stream shared across loops
-for genome in genomes:                            # each genome's own features
-  for gg in gem_groups:
-    counts = UMIs per barcode (this genome, this gg)
-    N = int(float(expect)/n_gg) if expect else 3000
-    nz = counts[counts > 0]; if empty: no cells
-    b = int(round(N*(1-0.99)))                    # Python-2 round; N*(1-0.99) is slightly > N/100
-    b = min(b, len(nz)-1)
-    top = [find_within_ordmag(np.random.choice(nz, len(nz)), b) for _ in range(100)]
-       # find_within_ordmag: xs = sort(x); baseline = xs[-b]        <- 30th largest for N=3000; b==0 -> xs[0]!
-       #                     cutoff = max(1, round(0.1*baseline)); return len(x) - searchsorted(xs, cutoff)
-    n = round(mean(top))                          # 2.1+: int(round(...))
-    cells = np.sort(np.argsort(counts)[::-1][:n]) # default quicksort: tie order arbitrary
-force: top min(force//n_gg, #nonzero) by count.  manual: listed ∩ present.
-```
+In words (the specification is the [OrdMag page](../methods/cellranger/ordmag.md)):
 
-Each genome's filtered matrix gets its own barcode set (barnyard). Metrics: lb/ub =
-round(norm.ppf(0.025/0.975, mean, sd)), cv = sd/mean.
+- Python's and numpy's global generators are seeded 0 once per stage; one stream serves every
+  genome and GEM group in turn.
+- For each genome (on its own features) and each GEM group: $$N$$ is the expected cells divided by
+  the number of GEM groups, or 3,000. Only the barcodes with a count take part; with none, no cells.
+- $$b = \operatorname{round}(0.01 N)$$ with Python 2's rounding (halves away from zero); $$1 - 0.99$$
+  in floating point is slightly above 0.01. $$b$$ is capped at the number of nonzero totals − 1.
+- 100 times: resample the nonzero totals with replacement; the baseline is the $$b$$-th largest
+  (the 30th for $$N = 3000$$; for $$b = 0$$ the indexing gives the smallest); the cut is
+  $$\max(1, \operatorname{round}(\text{baseline}/10))$$; count the resampled values at or above it.
+- $$n$$ = the mean of the 100 counts, rounded. The cells are the $$n$$ barcodes with the largest
+  totals in numpy's default (quicksort) order, so ties at the boundary fall where that sort puts
+  them.
+- Forced cells: the top $$\min(F / \text{GEM groups}, \#\text{nonzero})$$ by count. Manual: the
+  listed barcodes that are present.
+
+Each genome's filtered matrix gets its own barcode set (barnyard). Metrics: the bounds are the
+2.5 % and 97.5 % quantiles of a normal distribution with the bootstrap counts' mean and standard
+deviation, rounded; the coefficient of variation is their ratio.
 
 ### 3.3 `cellranger_v3_emptydrops` (CR 3.0.0–3.0.2; 3.1 ≈ same) [SRC 3.0.2 + Space Ranger 1.0]
 
@@ -167,10 +173,13 @@ for s in range(num_sims):
   for i>=1: step = n_i - n_{i-1}
     if step >= 1000: x += multinomial.rvs(step, p); ll = logpmf(x, n_i)
     else: for n in n_{i-1}+1..n_i: j = block[k]; k += 1 (refill at 1e6); x[j] += 1; ll += log p_j + log(n/x[j])
-          # 7.2+: if 20 <= step < 1000, add `step` block draws at once:
-          #       ll += Σc_f log p_f + lgamma(n_i+1) - lgamma(n_{i-1}+1) - Σ[lgamma(x_f+c_f+1) - lgamma(x_f+1)]
     L[i,s] = ll
 ```
+
+The block above is 3.0.2's (MIT). From 7.2 [SRC 7.2, described, not copied]: a gap of 20 to 999
+UMIs takes that many block draws at once, with counts $$c_f$$ per feature, and adds
+$$\sum_f c_f \log p_f + \log\Gamma(n_i + 1) - \log\Gamma(n_{i-1} + 1) - \sum_f \big[\log\Gamma(x_f + c_f + 1) - \log\Gamma(x_f + 1)\big]$$
+to the log-likelihood; see the [Cell Ranger page](../methods/cellranger/cellranger.md).
 
 Antibody aggregates (3.0), before step 1 if an Antibody library is present: remove a barcode if
 `umi_corrected_reads/reads > 0.5` and `reads > 10000` (needs per-barcode read counts, not in the
@@ -200,35 +209,31 @@ the changed OrdMag index. Exact versions unverifiable.
 `NP_SORT_KIND="stable"`, `MIN_RECOVERED_CELLS_PER_GEM_GROUP=50`,
 `MAX_RECOVERED_CELLS_PER_GEM_GROUP=1<<18`.
 
-```
-rs = np.random.RandomState(0)                           # fresh per (genome, gg) call
-nz = counts[counts>0]
-find_within_ordmag(x, b): xs = sort(x); baseline = xs[-(b+1)]          # (b+1)-th largest; was xs[-b] in v2/v3
-                          cutoff = max(1, np.round(0.1*baseline)).astype(int)   # banker's rounding
-                          return len(x) - searchsorted(xs, cutoff)
-if expect-cells absent:
-   maxE = min(get_empty_drops_range(chem, nProbeBC)[0], 2**18) if chem else 2**18    # 7.0: always 2**18 [DOC]
-   grid = unique(round(2**linspace(1, log2(maxE), 2000)).astype(int))              # 2 .. maxE
-   per bootstrap s = rs.choice(nz, len(nz)) (100 of them):
-       b = minimum(round(grid*(1-0.99)).astype(int), len(nz)-1); f = find_within_ordmag(s, b)
-       loss = (f-grid)**2/grid; keep (grid[argmin], loss[argmin])
-   N = max(int(np.round(mean of 100 grid picks)), 50)
-else: N = max(expect//n_gg, 50)
-b = min(int(np.round(N*(1-0.99))), len(nz)-1)
-top = [find_within_ordmag(rs.choice(nz, len(nz)), b) for 100]     # continues the same rs stream
-n = int(np.round(mean(top)))
-# tie extension, as coded:
-s = nz sorted desc (stable argsort reversed); cutoff = s[n-1]; idx = n-1
-7.2:  while idx+1 < len(s) and s[idx] == cutoff: idx += 1; if idx+1-n > 0.2*n: return n
-      n_final = idx+1
-8.0+: same loop, but sets n_final = idx+1 inside the loop before testing again
-      (on overflow it returns the partial value, not n)
-cells = sort(argsort(counts, kind="stable")[::-1][:n_final])
-```
+In words (the specification is the [OrdMag page](../methods/cellranger/ordmag.md), section
+*From 7.2*):
 
-As written, the tie-extension loop always runs once, so `n_final = n + 1` whenever
-n < #nonzero, even with no ties (checked with a minimal replica: no ties, n = 5 → 6). The ≤ 7.2 and
-≥ 8.0 variants differ only in the overflow case. To confirm against 10x public datasets.
+- A fresh numpy legacy generator seeded 0 for each genome and GEM group; only nonzero totals take
+  part.
+- The OrdMag count for a rank $$b$$: the baseline is the $$(b+1)$$-th largest value (2.x and 3.x
+  took the $$b$$-th); the cut is $$\max(1, \text{baseline}/10)$$ rounded half to even; the count
+  is the number of values at or above the cut.
+- Expected cells not given: candidates $$r$$ are 2,000 values spaced evenly on a log scale from 2
+  to a cap, rounded and de-duplicated. The cap is the low end of the chemistry's ambient range, at
+  most $$2^{18}$$, or $$2^{18}$$ when the chemistry is unknown (7.0: always $$2^{18}$$ [DOC]). In
+  each of 100 resamples of the nonzero totals, every $$r$$ gets
+  $$b = \operatorname{round}(0.01 r)$$ (capped) and its OrdMag count $$f(r)$$, and the $$r$$ with
+  the least $$(f(r) - r)^2 / r$$ is picked. $$N$$ is the mean pick, rounded, at least 50. Given:
+  $$N = \max(\text{expected per GEM group}, 50)$$.
+- $$b = \operatorname{round}(0.01 N)$$, capped; 100 further resamples continue the same stream;
+  $$n_0$$ is the mean OrdMag count, rounded.
+- Tie extension: starting at position $$n_0$$ of the nonzero totals in descending order (a stable
+  sort, reversed), the boundary moves down past the run of totals equal to the $$n_0$$-th. As
+  coded it always moves at least one place, so $$n_0 + 1$$ cells result even with no ties (checked
+  with a minimal replica: no ties, $$n_0 = 5$$ gives 6). If the extension would add more than 20 %
+  of $$n_0$$, 7.2 keeps $$n_0$$; 8.0+ keeps the extension as far as it got. The two differ only
+  in that case. To confirm against 10x public datasets.
+- The cells are the first $$n$$ barcodes of the reversed stable order of all totals: of equal
+  totals, the barcode later in the matrix first.
 
 7.1 release notes: grid cap became the ambient lower bound; "fixed a bug in OrdMag… all barcodes
 called when very few cells" (the `xs[-0]` case). Which 7.x introduced the +1 index, tie extension
@@ -244,10 +249,10 @@ Changes from v3:
   several genomes.
 - Ambient range `get_empty_drops_range` → (N/2, N): LT (`SC3Pv3LT`) 9000; multiplexed Flex
   (nProbeBC > 1) 45000 × nProbeBC; otherwise 90000.
-- Candidates: every non-initial barcode with
-  `umis ≥ int(max(emptydrops_minimum_umis, ceil(0.01·median(orig))))`; default 500, settable via
-  multi-config `emptydrops-minimum-umis` (parsed in 7.2, documented from 9.0). **No 20000 cap.**
-  Candidates sorted by index.
+- Candidates: every non-initial barcode with at least
+  $$\max(m, \lceil 0.01 \cdot \text{median of the initial cells} \rceil)$$ UMIs, $$m$$ = 500 by
+  default, settable as the multi-config `emptydrops-minimum-umis` (parsed in 7.2, documented from
+  9.0). **No 20000 cap.** Candidates in matrix order.
 - `simulate_v1`, `NUM_SIMS=10000`, FDR 0.01.
 
 Pipeline (`filter_barcodes/__init__.py`): method precedence `cell_barcodes` → MANUAL;
@@ -261,8 +266,8 @@ cells with 0 target-gene UMIs.
 
 ### 3.7 `cellranger_v8_emptydrops` (8.0.0, 8.0.1) [SRC]
 
-- Candidate minimum `max(emptydrops_minimum_umis, 1 + max(umis[empty_bcs]))`; the 1 %-of-median
-  rule is gone; candidates lie above the ambient range.
+- Candidate minimum: $$\max(m, 1 + \text{the largest total among the ambient droplets})$$; the
+  1 %-of-median rule is gone; candidates lie above the ambient range.
 - FDR 0.001 if chemistry in `SC3P_V4 + SC5P_V3`, else 0.01.
 - Ranges: LT 9000; v4 / 5′v3 160000, or 80000 × nProbeBC if > 1; 8.0.1 adds HT (`SC3Pv3HT`,
   `SC5PHT`) 160000 (only when chemistry is set manually); else 90000, or 45000 × nProbeBC if > 1.
@@ -281,14 +286,12 @@ cells with 0 target-gene UMIs.
   ARC, SC-FB…).
 - Ranges: LT 9000; HT / 3′v4 / 5′v3 no tag 160000; HT / 3′v4 / 5′v3 with OCM tags 40000 × nTags;
   Flex v1 multiplexed 90000 × nProbeBC; else 90000.
-- Sparse log-likelihood and new simulator:
-  ```
-  RNG = np.random.default_rng(seed=42)    # created at module import; stream continues across genome/gg calls
-  max_n = max(cand umis); pcum = cumsum(p)
-  per sim: draws = searchsorted(pcum, RNG.random(max_n))
-           rank_t = occurrence number of draws[t] among draws[0..t] (1-based)
-           ll = cumsum(log t - log rank_t + log p[draws_t]); compare ll[n_b - 1] < obs_b
-  ```
+- Sparse log-likelihood and a new simulator (described, not copied). One PCG64 generator seeded
+  42, created once per run, its stream continuing across genomes and GEM groups. Each simulation
+  draws as many features as the largest candidate's total, each by inverting the profile's
+  cumulative sum at a uniform number. At draw $$t$$ (1-based) of feature $$g$$, seen for the
+  $$k$$-th time, the log-likelihood grows by $$\log t - \log k + \log p_g$$. A candidate with total
+  $$n$$ is compared with the simulated log-likelihood after $$n$$ draws.
 - A Dirichlet-multinomial option exists in 9.0/10.0 (`method="dirichlet"`) but the pipeline never
   passes it; removed in 10.1.
 - EmptyDrops output has a `sample` column; loop order gg then genome.
@@ -309,19 +312,27 @@ cells with 0 target-gene UMIs.
 (2000 for LT, LT removed in 10.0), `TARGETED_CC_MIN_UMIS_ADDITIONAL_CELLS=10`,
 `TARGETED_CC_MIN_UMIS_FROM_TARGET_GENES=1`.
 
-1. N = expect or 3000, floored at 50.
-2. On descending nonzero counts: `base = s[round(N*0.01)]`; `lower = #(s ≥ base/10) - 1`;
-   `upper = clip(min(lower+maxAdd, #(s≥10)), lower, len-1)`.
-3. Points: for each unique count u, x = log10(#(s≥u)), y = log10(u); append (log10(1+Σs), 0).
-4. `UnivariateSpline(k=min(3,len-1), s=0)`; with > 50 points refit `LSQUnivariateSpline` on
-   `get_spline_num_knots(n)` interior knots from the original knots by
-   `linspace(1, len-2, n-2, int)`.
-5. Knots: n<50 → n; <200 → 2^(log2 50+(log2 100−log2 50)(n−50)/150); <800 →
-   2^(log2 100+(log2 140−log2 100)(n−200)/600); <3200 → 2^(log2 140+(log2 200−log2 140)(n−800)/2400);
-   else 200+(n−3200)^0.2.
-6. Derivatives at the points, zeroed outside rank ∈ [lower, upper]; `cut = round(10**y[argmin])`;
-   `n = max(#(s > cut), lower+1)`.
-7. TARGETED keeps cells with ≥ 1 target-gene UMI.
+Described, not copied; the specification is in
+[cellranger-7.2-plus-spec.md](cellranger-7.2-plus-spec.md) §11.
+
+1. $$N$$ = the expected cells or 3,000, at least 50.
+2. On the nonzero totals in descending order $$s$$: the baseline is the total at rank
+   $$\operatorname{round}(0.01 N)$$; the lower rank bound is the number of totals at or above a
+   tenth of the baseline, less one; the upper bound adds at most the maximum number of extra
+   candidates (20,000; 2,000 for LT) and at most reaches the number of totals of 10 or more, kept
+   between the lower bound and the last rank.
+3. One point per distinct total $$u$$: $$x = \log_{10} \#\{s \ge u\}$$, $$y = \log_{10} u$$; and a
+   final point $$(\log_{10}(1 + \sum s), 0)$$.
+4. An interpolating cubic spline through the points (degree lowered when there are few). With more
+   than 50 points, a least-squares spline refit on a reduced set of interior knots taken evenly
+   from the interpolating spline's knots.
+5. The number of knots grows with the number of points $$n$$: $$n$$ below 50; then geometric
+   interpolation from 50 to 100 knots over 50–200 points, from 100 to 140 over 200–800, from 140
+   to 200 over 800–3,200; beyond that $$200 + (n - 3200)^{0.2}$$.
+6. The spline's derivative at the points, set to zero outside the rank bounds; the cut is
+   $$10^{y}$$ at the most negative derivative, rounded; the cells are the totals above the cut,
+   at least the lower bound + 1 of them.
+7. TARGETED keeps cells with at least one UMI in the target genes.
 
 **`cellranger_ab_aggregates_v3`** (3.0–4.x?): the read-based "highly corrected" rule above.
 
@@ -337,13 +348,18 @@ cells with 0 target-gene UMIs.
 
 **`cellranger_flex_hog_poisson`** (7.1?–9.x; [SRC] 7.2) and **`cellranger_flex_hog_nb`** (10.0+),
 multiplexed Flex only. Constants `TOTAL_INSTRUMENT_PARTITIONS=115000`, `RECOVERY_FACTOR=1/1.65`.
-GEM barcode = `[:16]` + probe barcode; `total_gems = max(int(115000/1.65), #GEMs with cells)`;
-λ = cells/total_gems. Simulation (`np.random.seed(0)`): 1,000,000 GEMs, Poisson(λ) (7.2) or
-NB(n=λ, p=0.5) (10.0+); keep occupied; assign each cell a probe barcode with observed frequencies;
-count distinct probe barcodes per GEM. Threshold: 7.2 `ceil(quantile(counts, 0.999))`; 10.0
-smallest k with cumulative fraction of cells (k·freq) ≥ 0.999. Remove every cell in a GEM above it.
+Described, not copied. A GEM is the first 16 bases of the barcode; each cell also has a probe
+barcode. The number of GEMs is $$\max(\lfloor 115000/1.65 \rfloor, \text{GEMs holding a cell})$$,
+and $$\lambda$$ = cells / GEMs. A simulation (numpy's legacy generator seeded 0) of 1,000,000 GEMs
+draws the cells per GEM from Poisson($$\lambda$$) (7.2) or a negative binomial with $$\lambda$$
+successes and probability 0.5 (10.0+), keeps the occupied GEMs, gives each cell a probe barcode at
+the observed frequencies, and counts the distinct probe barcodes per GEM. The threshold is the
+0.999 quantile of those counts, rounded up (7.2), or the smallest $$k$$ at which the cumulative
+fraction of cells (GEMs with $$k$$ probe barcodes weighted by $$k$$) reaches 0.999 (10.0). Every
+cell in a GEM above it is removed.
 
-**TOP_N / force-cells**: `min(force//n_gg, #nonzero)` top barcodes by stable argsort.
+**TOP_N / force-cells**: the top $$\min(F / \text{GEM groups}, \#\text{nonzero})$$ barcodes in the
+reversed stable order.
 **MANUAL**: a list of barcodes.
 
 ## 4. Cell Ranger ATAC and ARC
@@ -364,20 +380,32 @@ frac_in_peaks < bp within peaks padded ±2000 / genome bp; 2.1+ docs say ±250),
 Constants: `CELL_CALLING_THRESHOLD=100000` (odds), `MAXIMUM_CELLS_PER_SPECIES=20000`,
 `MINIMUM_COUNT=5`, `WHITELIST_CONTAM_RATE=0.02`.
 
-```
-shift = max(5, int(total_fragments*0.02/len(whitelist)))      # whitelist = 737K-cratac-v1
-y = counts[counts >= shift] - shift;  cd = Counter(y);  if len(cd) < 10: 0 cells
-init threshold: smallest-mass cut so that values <= t hold <= 1% of Σ value*mult (else values[1]);
-     clamp to [values[1], values[-2]]
-NB(mu, alpha) as scipy nbinom(n=1/alpha, p=1/(1+alpha*mu))
-EM (maxiter 250, eps 1e-6 relative on all 5 params): responsibilities (columns where both pmfs are 0
-   zeroed); mu = weighted mean; alpha = MLE dispersion (fixed point from MOM, floor 1e-6, maxiter
-   10000, tol 1e-6; MOM if var <= mu); frac_noise; swap so mu_signal > mu_noise
-threshold = first k in [max(int(mu_noise), nbinom.ppf(0.001, signal)), int(mu_signal)]
-     with (1-f)·NB_s(k) / (f·NB_n(k)) >= 100000 (else int(mu_signal)); + shift
-cells = counts >= threshold
-if #cells > 20000, or --force-cells N (capped at 20000): threshold = N-th largest of y>0 + shift
-```
+In words (described, not copied; cellranger-atac 1.2 is MIT with a clause limiting use to 10x
+products, so the never-copy rule applies, see [planned-atac.md](planned-atac.md)):
+
+- A shift $$\delta = \max(5, \lfloor 0.02 \cdot F / W \rfloor)$$, with $$F$$ the total fragments and
+  $$W$$ the size of the barcode whitelist (737K). Barcodes with at least $$\delta$$ count, as
+  $$y = \text{count} - \delta$$; fewer than 10 distinct values call no cells.
+- A starting threshold: the smallest value $$t$$ such that the values up to $$t$$ hold at most
+  1 % of the total mass (otherwise the second distinct value), kept between the second and the
+  second-to-last distinct values.
+- Two negative binomials, noise and signal, each with mean $$\mu$$ and dispersion $$\alpha$$
+  (number of successes $$1/\alpha$$, success probability $$1/(1 + \alpha\mu)$$), fitted by EM on
+  the histogram of $$y$$. At most 250 iterations, stopping when all five parameters change by less
+  than $$10^{-6}$$ relatively. Values where both probabilities are 0 get no weight. Each
+  dispersion by maximum likelihood: a fixed-point iteration started at the method-of-moments
+  value, floored at $$10^{-6}$$, at most 10,000 steps, tolerance $$10^{-6}$$; the method of
+  moments alone when the variance does not exceed the mean. The components are labelled so the
+  signal has the larger mean.
+- The threshold is the first integer $$k$$ from $$\max(\lfloor\mu_\text{noise}\rfloor, q)$$ to
+  $$\lfloor\mu_\text{signal}\rfloor$$, $$q$$ the signal's 0.1 % quantile, at which
+  $$(1 - f)\,\mathrm{NB}_\text{signal}(k) / (f\,\mathrm{NB}_\text{noise}(k)) \ge 100{,}000$$
+  ($$f$$ the noise fraction); otherwise $$\lfloor\mu_\text{signal}\rfloor$$. Cells have a count of
+  at least $$k + \delta$$.
+- With more than 20,000 cells, or `--force-cells` $$N$$ (at most 20,000), the threshold becomes the
+  $$N$$-th largest positive $$y$$ plus $$\delta$$.
+- Corrections from [planned-atac.md](planned-atac.md): 1.0 used odds of 1,000, not 100,000; 2.x
+  drops the floor at the signal's 0.1 % quantile.
 
 Barnyard second pass is coded with an inverted condition, so it does not mask non-cells as
 documented. Versions [DOC]: 1.0 no low-targeting filter; 1.1 adds it; 1.2 GB doublets and
