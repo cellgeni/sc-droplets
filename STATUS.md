@@ -104,9 +104,27 @@ Milestones, each its own pull request after the scaffold:
     their commits and tags in R 4.4 from conda-forge, 24 cases, all identical. Findings: on raw
     10x matrices dropestr's bounds land among the empty droplets (125,227 expected on pbmc_1k_v3);
     zUMIs' UIK is conservative (594 cells against Cell Ranger's 1,222).
-- [ ] 4. Generic MAD / Otsu / multi-Otsu / KDE valley / GMM (1-D, 2-D) / NB mixture; splicing
-  readers, `pl.splicing`, knee tracks, separation scores; `pl.density`, `pl.compare`, `pl.qc`,
-  `report`; the comparison-on-public-data page.
+- [ ] 4. Generic MAD / Otsu / multi-Otsu / KDE valley / GMM (1-D, 2-D); splicing readers,
+  `pl.splicing`, knee tracks, separation scores; `pl.density`, `pl.compare`, `pl.qc`, `report`;
+  the comparison-on-public-data page. One pull request per group:
+  - [x] Distribution rules (`milestone-4-generic-thresholds`): `mad` (scuttle's `isOutlier`, lower
+    tail, on log2), `otsu` and `multiotsu` (scikit-image's, 32-bit floats as 0.20+),
+    `kde-valley` (lowest point between the two highest peaks of SciPy's `gaussian_kde` on a
+    10,000-point grid), and `pl.density` / `plot density`. Each takes candidates above a floor
+    (`--min-counts`: 100, DropletUtils' `lower`; multi-Otsu 1). Oracle: `oracles/generic/run.sh`
+    runs scuttle 1.0.4 and 1.22.0 and scikit-image 0.20.0 and 0.26.0 on pbmc_1k_v3 and pbmc4k:
+    identical in all 120 cases. scikit-image's arm64 builds fuse a multiply-add in multi-Otsu's
+    moments and can break a near-tie the other way (1 in 300 random histograms); the port and the
+    committed outputs follow x86-64. `kde-valley` is this package's rule: checked on simulated
+    populations and against SciPy, not against a tool.
+  - [ ] Mixtures: `gmm` (1-D log totals; posterior or zUMIs' 1 % quantile rule) and `gmm-2d`
+    (log UMIs and log genes), scikit-learn's `GaussianMixture`, cross-checked against mclust.
+  - [ ] Splicing readers, `pl.splicing`, knee tracks, separation scores.
+  - [ ] `pl.compare`, `pl.qc`, `report`.
+  - [ ] The comparison-on-public-data page and the *Visualising calls* guide.
+  - Moved: the negative-binomial mixture (Cell Ranger ATAC's EM) goes to 0.3 with Cell Ranger
+    ATAC, where 10x's own ATAC calls (`singlecell.csv`) can check it; on RNA there is no original
+    to check it against.
 - [ ] 5. Overview pages in full, *planned* and *docs only* pages, guides; release 0.1.0.
 
 Needs the maintainer of the GitHub organisation (not doable from here): a PyPI pending trusted

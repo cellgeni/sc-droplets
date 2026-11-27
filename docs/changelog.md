@@ -102,4 +102,14 @@ Then Drop-seq, dropEst and zUMIs:
   earlier Gaussian mixture is a documented gap (mclust initialises on an unseeded random subset).
 - Identical results to the tools' own R functions, sourced at their commits and tags, on
   pbmc_1k_v3 and pbmc4k.
+
+Then the first generic rules on the distribution of totals:
+
+- `mad` (scuttle's `isOutlier`, lower tail), `otsu` and `multiotsu` (scikit-image's), and
+  `kde-valley` (the lowest point between the two highest peaks of a kernel density). Each takes
+  the barcodes above a floor, `--min-counts`.
+- `mad` is identical to scuttle 1.0.4 and 1.22.0, `otsu` and `multiotsu` to scikit-image 0.20.0
+  and 0.26.0, on pbmc_1k_v3 and pbmc4k.
+- `scd.pl.density` and `sc-droplets plot density`: the histogram of log totals with each call's
+  cut.
 - A validation suite on public data (`-m integration`), and an oracle workflow that runs STAR.
