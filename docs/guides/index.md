@@ -10,3 +10,4 @@ has_children: true
 |---|---|
 | [Visualising calls](visualising.md) | every plot and the HTML report, what each shows and how to make it |
 | [Read-based methods](reads.md) | the tools that rank reads, and how to give the package the reads |
+| [Multiplexed and Flex runs](multiplexed.md) | calling each sample, and Cell Ranger's filter of crowded GEMs |
