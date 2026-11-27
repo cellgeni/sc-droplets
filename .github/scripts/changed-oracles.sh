@@ -8,7 +8,7 @@
 #   EVENT=pull_request BASE=<sha> HEAD=<sha> bash .github/scripts/changed-oracles.sh
 set -euo pipefail
 
-all="starsolo dropletutils umitools kneedle cellsweep cellbender bustools alevinfry alevin dropseq dropest zumis"
+all="starsolo dropletutils umitools kneedle cellsweep cellbender bustools alevinfry alevin dropseq dropest zumis generic"
 tools=""
 if [ "$EVENT" = workflow_dispatch ] || [ -z "${BASE:-}" ] || ! git cat-file -e "${BASE}^{commit}" 2>/dev/null; then
   tools=$all
@@ -16,8 +16,9 @@ else
   while read -r path; do
     case "$path" in
       .github/workflows/oracles.yml | .github/scripts/changed-oracles.sh) tools="$all" ;;
-      oracles/make_counts.py) tools="$tools umitools kneedle cellsweep alevinfry alevin dropseq dropest zumis" ;;
+      oracles/make_counts.py) tools="$tools umitools kneedle cellsweep alevinfry alevin dropseq dropest zumis generic" ;;
       oracles/starsolo/make_mtx.py) tools="$tools starsolo dropletutils" ;;
+      oracles/dropletutils/stub/*) tools="$tools dropletutils generic" ;;
       oracles/*/*) tools="$tools $(cut -d/ -f2 <<< "$path")" ;;
     esac
   done < <(git diff --name-only "${BASE}...${HEAD}")
