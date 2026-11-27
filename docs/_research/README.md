@@ -14,6 +14,9 @@ folder).
 | [planned-atac.md](planned-atac.md) | The 0.3 methods: Cell Ranger ATAC and ARC, EmptyDropsMultiome, BAP, SADE |
 | [docs-only.md](docs-only.md) | Methods documented, not implemented: CellBender's model, EmptyNN, dropkick, BD Rhapsody, ScaleBio, CeleScope, Ambimux, AmbientMapper |
 
+Code from sources this project may not copy (Cell Ranger 2.x, 7.2 and later, Cell Ranger ATAC
+and ARC) is described in words and formulas only, never set out as code.
+
 Tags used in the notes:
 
 - **[SRC]**: read in the tool's source at the tag named.
