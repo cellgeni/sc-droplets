@@ -1,9 +1,9 @@
 """Generic rules that belong to no single tool: top N, a fixed threshold, MAD outliers, Otsu and
-multi-Otsu thresholds, a kernel-density valley, and a Gaussian mixture.
+multi-Otsu thresholds, a kernel-density valley, and Gaussian mixtures in one and two dimensions.
 
-Pages: docs/methods/generic/{top-n,threshold,mad,otsu,multiotsu,kde-valley,gmm}.md. MAD
+Pages: docs/methods/generic/{top-n,threshold,mad,otsu,multiotsu,kde-valley,gmm,gmm-2d}.md. MAD
 follows scuttle's `isOutlier` (R's `log2`, `median` and `mad`); Otsu and multi-Otsu are
-scikit-image's (`primitives/otsu.py`); the mixture is scikit-learn's `GaussianMixture`.
+scikit-image's (`primitives/otsu.py`); the mixtures are scikit-learn's `GaussianMixture`.
 """
 
 from __future__ import annotations
@@ -502,4 +502,69 @@ class Gmm(Method):
             type(self), variant, params, droplets, is_cell,
             columns={"probability": _probability_column(values.size, index, probability)},
             thresholds=thresholds, diagnostics=diagnostics, notes=notes,
+        )
+
+
+#: Candidates drawn in the two-dimensional diagnostics, at most.
+MAX_POINTS = 5000
+
+
+@register
+class Gmm2d(Method):
+    info = MethodInfo(
+        id="gmm-2d",
+        title="Gaussian mixture in two dimensions",
+        tool=_GENERIC,
+        category="mixture",
+        summary="A Gaussian mixture with full covariances (scikit-learn's GaussianMixture) fitted to log UMIs and "
+                "log genes detected of the barcodes above a floor; the component with the most UMIs is the cells.",
+        docs="methods/generic/gmm-2d.md",
+        deterministic=True,
+        default_seed=0,
+        references=(
+            Reference("Pedregosa et al. 2011, Scikit-learn: machine learning in Python, Journal of Machine "
+                      "Learning Research 12:2825"),
+            Reference(
+                "Muskovic & Powell 2021, DropletQC: improved identification of empty droplets and damaged cells "
+                "in single-cell RNA-seq data, Genome Biology 22:329",
+                doi="10.1186/s13059-021-02547-0",
+            ),
+        ),
+        source="https://github.com/scikit-learn/scikit-learn/blob/1.9.1/sklearn/mixture/_gaussian_mixture.py",
+        original_license="BSD-3-Clause",
+    )
+
+    @dataclass
+    class Params:
+        components: int = param(2, "Gaussians in the mixture", original="n_components", minimum=2, maximum=10)
+        min_counts: float = param(100.0, "Candidates have at least this many UMIs; the others are empty", minimum=0)
+        tol: float = param(1e-3, "Stop when the mean log-likelihood changes by less", original="tol", minimum=0)
+        max_iter: int = param(100, "Stop after this many EM iterations", original="max_iter", minimum=1)
+
+    def run(self, droplets, params, variant, random_state):
+        umis = droplets.values("umis")
+        genes = droplets.values("genes")
+        index = candidates(umis, params.min_counts, log=True)
+        points = np.column_stack([clog10(umis[index]), clog10(genes[index])])
+        model, notes = fit_mixture(points, params, random_state)
+        top = int(np.argmax(model.means_[:, 0]))
+        probability = model.predict_proba(points)[:, top]
+        is_cell = np.zeros(umis.size, dtype=bool)
+        is_cell[index[probability > 0.5]] = True
+        shown = np.arange(index.size)
+        if shown.size > MAX_POINTS:
+            shown = np.sort(np.random.default_rng(0).choice(shown, MAX_POINTS, replace=False))
+        return result(
+            type(self), variant, params, droplets, is_cell,
+            columns={"probability": _probability_column(umis.size, index, probability)},
+            thresholds={"umis": _smallest_called(umis, is_cell)},
+            diagnostics={
+                "points_x": points[shown, 0], "points_y": points[shown, 1],
+                "points_cell": probability[shown] > 0.5,
+                "points_label_x": "log10 UMIs", "points_label_y": "log10 genes detected",
+                "mixture_means": model.means_, "mixture_covariances": model.covariances_,
+                "mixture_weights": model.weights_, "cell_component": top, "iterations": int(model.n_iter_),
+                "log_likelihood": float(model.score(points) * points.shape[0]),
+            },
+            notes=notes,
         )

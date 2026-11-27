@@ -1,4 +1,4 @@
-"""MAD outliers, Otsu and multi-Otsu thresholds, the kernel-density valley, and a Gaussian mixture."""
+"""MAD outliers, Otsu and multi-Otsu thresholds, the kernel-density valley, and Gaussian mixtures."""
 
 from __future__ import annotations
 
@@ -50,7 +50,7 @@ def _two_populations(low=(2.3, 0.15, 3000), high=(3.8, 0.2, 500)):
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("spec", ["mad", "otsu", "multiotsu:min_counts=10", "kde-valley", "gmm"])
+@pytest.mark.parametrize("spec", ["mad", "otsu", "multiotsu:min_counts=10", "kde-valley", "gmm", "gmm-2d"])
 def test_generic_rules_need_a_barcode_at_the_floor(spec):
     with pytest.raises(RuleError, match="--min-counts"):
         scd.call(_matrix([1, 2, 3]), spec, inplace=False)
@@ -77,7 +77,7 @@ def test_rules_off_a_log_scale_keep_zero_counts_as_candidates():
     assert unlogged.diagnostics["histogram_counts"].sum() == values.size + 50
 
 
-@pytest.mark.parametrize("name", ["mad", "otsu", "multiotsu", "kde-valley", "gmm"])
+@pytest.mark.parametrize("name", ["mad", "otsu", "multiotsu", "kde-valley", "gmm", "gmm-2d"])
 def test_cli_calls_the_generic_rule(name, sim, tmp_path):
     path = tmp_path / "sim.h5ad"
     sim.write_h5ad(path)
@@ -259,6 +259,32 @@ def test_gmm_notes_when_em_stops_before_it_converges():
 def test_gmm_needs_as_many_candidates_as_components():
     with pytest.raises(RuleError, match="cannot fit 3 components"):
         scd.call(_matrix([1, 150, 300]), "gmm", components=3, inplace=False)
+
+
+def test_gmm_2d_fits_log_umis_and_log_genes_and_calls_the_component_with_most_umis(sim):
+    result = scd.call(sim, "gmm-2d", inplace=False)
+    totals = np.asarray(result.totals)
+    genes = np.diff(sim.X.tocsr().indptr)
+    index = np.flatnonzero(totals >= 100)
+    points = np.column_stack([np.log10(totals[index]), np.log10(genes[index])])
+    model = _sklearn_fit(points)
+    assert np.array_equal(result.diagnostics["mixture_means"], model.means_)
+    top = int(np.argmax(model.means_[:, 0]))
+    assert result.diagnostics["cell_component"] == top
+    assert np.array_equal(result.is_cell[index], model.predict_proba(points)[:, top] > 0.5)
+    truth = np.asarray(sim.obs["truth"] == "cell")
+    assert np.array_equal(result.is_cell, truth)
+
+
+def test_mixture_probabilities_are_stored_on_the_anndata_and_survive_h5ad(adata, tmp_path):
+    scd.call(adata, "gmm")
+    scd.call(adata, "gmm-2d")
+    assert adata.obs["gmm_probability"].between(0, 1).all()
+    path = tmp_path / "calls.h5ad"
+    adata.write_h5ad(path)
+    back = ad.read_h5ad(path)
+    assert np.array_equal(back.uns["sc_droplets"]["gmm_2d"]["diagnostics"]["mixture_covariances"],
+                          adata.uns["sc_droplets"]["gmm_2d"]["diagnostics"]["mixture_covariances"])
 
 
 # ---------------------------------------------------------------------------
