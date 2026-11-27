@@ -192,6 +192,20 @@ def test_separation_compares_a_calls_cells_with_the_barcodes_it_left_above_the_f
     assert row["unspliced_fraction_auroc"] == 1.0
 
 
+def test_separation_floor_counts_the_genome_the_call_counted():
+    """The floor used to count every genome, so a barcode below it in the call's genome but above it
+    in another joined the outsiders."""
+    counts = np.array([[500, 0], [400, 0], [5, 300], [40, 0]], dtype=float)
+    adata = ad.AnnData(sp.csr_matrix(counts))
+    adata.obs_names = [f"B{i}" for i in range(4)]
+    adata.var_names = ["hg_G", "mm_G"]
+    adata.var["genome"] = ["GRCh38", "mm10"]
+    adata.obs["unspliced_fraction"] = [0.3, 0.3, 0.9, 0.1]
+    scd.call(adata, "top-n", n_cells=2, genome="GRCh38")
+    row = scd.separation(adata, min_counts=10).loc["top_n"]
+    assert row["unspliced_fraction_others"] == 0.1  # B2 has 5 GRCh38 counts: below the floor
+
+
 def test_separation_needs_the_metric(sim):
     adata = sim.copy()
     scd.call(adata, "otsu")

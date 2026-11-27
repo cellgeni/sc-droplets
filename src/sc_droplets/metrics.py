@@ -195,7 +195,8 @@ def _totals(adata: Any, key: str) -> np.ndarray:
         types = "Gene Expression" if column is None or "Gene Expression" in set(adata.var[column].astype(str)) else "all"
     elif not isinstance(types, str):
         types = [str(t) for t in np.atleast_1d(types)]
-    return Droplets.from_anndata(adata, layer=counting.get("layer"), feature_types=types).totals
+    return Droplets.from_anndata(adata, layer=counting.get("layer"), feature_types=types,
+                                 genome=counting.get("genome")).totals
 
 
 def auroc(higher: np.ndarray, lower: np.ndarray) -> float:
