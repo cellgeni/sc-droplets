@@ -25,3 +25,13 @@ implemented, its page moves to its tool and gains *Run it*, *Differences from th
 | [miQC](miqc.md) | miQC | a mixture of regressions of the mitochondrial fraction on genes detected |
 | [dropEst classifier](../dropest/classifier.md) | dropEst | a classifier on quality measures, trained on the bounds' high and low classes |
 | [alevin naive Bayes whitelist](../alevin/naive-bayes.md) | alevin | a naive Bayes classifier on the initial whitelist's cells and low-confidence band |
+
+## 0.3: ATAC and multiome
+
+| Method | Tool | Idea |
+|---|---|---|
+| [Cell Ranger ATAC](cellranger-atac.md) | Cell Ranger ATAC | a negative-binomial mixture on fragments in peaks |
+| [Cell Ranger ARC](cellranger-arc.md) | Cell Ranger ARC | k-means on ATAC and gene-expression counts together |
+| [EmptyDropsMultiome](emptydropsmultiome.md) | EmptyDropsMultiome | emptyDrops on each modality, the p-values combined |
+| [BAP bead knee](bap.md) | BAP | a density valley that picks beads |
+| [SADE](sade.md) | SADE | Shannon entropy of ATAC signal, and a spline knee |
