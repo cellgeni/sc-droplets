@@ -129,15 +129,15 @@ def unspliced_fraction(source: Union[str, Path, Any]) -> pd.Series:
     return _from_layers(adata)
 
 
-def mito_fraction(adata: Any) -> Optional[np.ndarray]:
-    """Each barcode's share of gene-expression counts in genes named `MT-` or `mt-`; None when no
-    gene is so named."""
+def mito_fraction(adata: Any, layer: Optional[str] = None) -> Optional[np.ndarray]:
+    """Each barcode's share of gene-expression counts in genes named `MT-` or `mt-`, from the raw
+    counts in `layer` (X by default); None when no gene is so named, or there are no counts."""
     expression = _gene_expression(adata)
     names = pd.Index(adata.var_names.astype(str))
     mito = expression & np.asarray(names.str.startswith(MITO_PREFIXES), dtype=bool)
-    if not mito.any():
+    matrix = adata.layers[layer] if layer is not None else adata.X
+    if not mito.any() or matrix is None:
         return None
-    matrix = adata.X
     return _fraction(_row_sums(matrix, mito), _row_sums(matrix, expression))
 
 
@@ -163,10 +163,13 @@ def _matched(target: pd.Index, values: pd.Series) -> np.ndarray:
     return keyed.reindex(keys).to_numpy(dtype=np.float64)
 
 
-def add_metrics(adata: Any, splicing: Union[None, str, Path, Any, pd.Series] = None) -> List[str]:
+def add_metrics(
+    adata: Any, splicing: Union[None, str, Path, Any, pd.Series] = None, layer: Optional[str] = None
+) -> List[str]:
     """Store each barcode's measures in `obs`: `unspliced_fraction` (from `splicing`, matched by
     barcode, or from the AnnData's own `spliced` and `unspliced` layers) and `mito_fraction` (when
-    genes are named `MT-` or `mt-`). Returns the columns written.
+    genes are named `MT-` or `mt-`, from the raw counts in `layer`, X by default). Returns the
+    columns written.
 
     `splicing` is anything `unspliced_fraction` takes, or a Series of fractions by barcode.
     """
@@ -178,7 +181,7 @@ def add_metrics(adata: Any, splicing: Union[None, str, Path, Any, pd.Series] = N
     elif has_splicing(adata):
         adata.obs[UNSPLICED] = _from_layers(adata).to_numpy()
         written.append(UNSPLICED)
-    mito = mito_fraction(adata)
+    mito = mito_fraction(adata, layer)
     if mito is not None:
         adata.obs[MITO] = mito
         written.append(MITO)

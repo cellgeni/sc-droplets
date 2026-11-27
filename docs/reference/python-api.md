@@ -57,16 +57,16 @@ smallest cell total. Every call is stored on `adata`. When `obs` holds `unsplice
 scd.compare(adata, ["top-n:n_cells=3000", "threshold:min_counts=500"])
 ```
 
-### `scd.add_metrics(adata, splicing=None)`
+### `scd.add_metrics(adata, splicing=None, layer=None)`
 
 Stores each barcode's measures in `obs` and returns the columns written: `unspliced_fraction`,
 U / (S + U) over gene-expression features (from `splicing`, matched by barcode, or from the
 AnnData's own `spliced` and `unspliced` layers), and `mito_fraction`, the share of counts in genes
-named `MT-` or `mt-` (when there are any). `splicing` is anything `unspliced_fraction` takes, or a
-Series of fractions indexed by barcode. Barcodes match by name, or else by the sequence alone
-(velocyto's `sample:` prefix and `x` suffix and a `-1` suffix dropped); unmatched barcodes get NaN.
-When two barcodes on either side share a sequence (two samples, two GEM groups), matching by
-sequence is refused.
+named `MT-` or `mt-` (when there are any), from the raw counts in `layer` (`X` by default).
+`splicing` is anything `unspliced_fraction` takes, or a Series of fractions indexed by barcode.
+Barcodes match by name, or else by the sequence alone (velocyto's `sample:` prefix and `x` suffix
+and a `-1` suffix dropped); unmatched barcodes get NaN. When two barcodes on either side share a
+sequence (two samples, two GEM groups), matching by sequence is refused.
 
 ```python
 scd.add_metrics(adata, splicing="velocyto/sample.loom")

@@ -167,6 +167,21 @@ def test_add_metrics_takes_the_mitochondrial_fraction_from_mt_genes(spliced):
     assert scd.add_metrics(scd.simulate_droplets(n_cells=10, n_empty=10, n_low=10, n_genes=20, seed=1)) == []
 
 
+def test_the_mitochondrial_fraction_reads_the_counts_layer():
+    """It used to read X even when the raw counts were in a layer, and failed when X was empty."""
+    counts = sp.csr_matrix(np.array([[10, 90], [50, 50]], dtype=float))
+    adata = ad.AnnData(counts.copy())
+    adata.var_names = ["MT-CO1", "ACTB"]
+    adata.layers["counts"] = counts
+    adata.X = counts.multiply(1 / np.asarray(counts.sum(axis=1))).tocsr()  # normalised: rows sum to 1
+    adata.X[0, 0] = 0.9
+    scd.add_metrics(adata, layer="counts")
+    assert adata.obs["mito_fraction"].tolist() == [0.1, 0.5]
+    adata.X = None
+    assert scd.add_metrics(adata, layer="counts") == ["mito_fraction"]
+    assert scd.add_metrics(adata) == []  # no X, no layer: nothing to measure
+
+
 # ---------------------------------------------------------------------------
 # Separation scores
 # ---------------------------------------------------------------------------

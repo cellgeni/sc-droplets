@@ -122,12 +122,13 @@ def _splicing_option():
     )
 
 
-def _add_metrics(adata, splicing: Optional[Path]) -> List[str]:
-    """The unspliced and mitochondrial fractions in obs, from --splicing or the input's layers."""
+def _add_metrics(adata, splicing: Optional[Path], layer: Optional[str] = None) -> List[str]:
+    """The unspliced and mitochondrial fractions in obs, from --splicing or the input's layers; the
+    mitochondrial one from the counts in --layer."""
     from sc_droplets.metrics import add_metrics
 
     with console.status("Reading the spliced and unspliced counts" if splicing else "Measuring the barcodes"):
-        added = add_metrics(adata, splicing)
+        added = add_metrics(adata, splicing, layer=layer)
     if added:
         console.print(f"Added {', '.join(added)} to obs")
     return added
@@ -329,7 +330,7 @@ def inspect_command(
                 table.add_row(f"total at rank {rank:,}", f"{ordered[rank - 1]:,.0f}")
         from sc_droplets.metrics import MIN_COUNTS, MITO, UNSPLICED
 
-        added = _add_metrics(adata, splicing)
+        added = _add_metrics(adata, splicing, layer)
         measured = totals >= MIN_COUNTS
         for column, label in ((UNSPLICED, "unspliced fraction"), (MITO, "mitochondrial fraction")):
             if column in added:
@@ -490,7 +491,7 @@ def _run_call(cls: Type[registry.Method], common: Dict[str, Any], given: Dict[st
     try:
         adata = _load(common["input"], common["solo_feature"], common["genome"])
         if common["splicing"] is not None:
-            _add_metrics(adata, common["splicing"])
+            _add_metrics(adata, common["splicing"], common["layer"])
         reads = _attach_reads(adata, common["reads"])
         result = call(
             adata,
@@ -562,7 +563,7 @@ def compare_command(
     try:
         check_outputs([output, table, plot], [input])
         adata = _load(input, solo_feature, genome)
-        metrics = _add_metrics(adata, splicing)
+        metrics = _add_metrics(adata, splicing, layer)
         reads_column = _attach_reads(adata, reads)
         summary = compare(
             adata,
@@ -693,7 +694,7 @@ def plot_knee(
         check_outputs([output], [input])
         adata = _load(input, solo_feature, genome)
         if color or track or splicing:
-            _add_metrics(adata, splicing)
+            _add_metrics(adata, splicing, layer)
         types = _feature_types(feature_type)
         keys = _plot_keys(adata, input, key, method, layer, types, genome)
         _save_knee(
@@ -787,7 +788,7 @@ def plot_splicing(
     try:
         check_outputs([output], [input])
         adata = _load(input, solo_feature, genome)
-        _add_metrics(adata, splicing)
+        _add_metrics(adata, splicing, layer)
         types = _feature_types(feature_type)
         keys = _plot_keys(adata, input, key, method, layer, types, genome)
         import matplotlib
