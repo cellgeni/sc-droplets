@@ -53,8 +53,9 @@ closed).
 
 | Tool | Methods | Status |
 |---|---|---|
-| Generic | [top N](../methods/generic/top-n.md), [fixed threshold](../methods/generic/threshold.md) | implemented |
-| Generic | MAD, Otsu, multi-Otsu, KDE valley, Gaussian mixtures (1-D, 2-D), negative-binomial mixture | planned, 0.1.0 |
+| Generic | [top N](../methods/generic/top-n.md), [fixed threshold](../methods/generic/threshold.md), [MAD outliers](../methods/generic/mad.md), [Otsu](../methods/generic/otsu.md), [multi-Otsu](../methods/generic/multiotsu.md), [kernel-density valley](../methods/generic/kde-valley.md) | implemented |
+| Generic | Gaussian mixtures (1-D, 2-D) | planned, 0.1.0 |
+| Generic | negative-binomial mixture (Cell Ranger ATAC's, on RNA) | planned, 0.3, with Cell Ranger ATAC |
 | Cell Ranger | [cell calling](../methods/cellranger/cellranger.md) (2.x, 3.x, 7.2, 8.0, 8.0.1, 9.0, 10.0, 10.1, with the antibody-aggregate, 8.0+ and high-occupancy filters), [OrdMag](../methods/cellranger/ordmag.md) | implemented; 1.x and 4.0–7.1 are documented gaps (no public source); targeted (gradient) calling planned |
 | STARsolo | [CellRanger2.2](../methods/starsolo/cellranger2-2.md), [TopCells](../methods/starsolo/topcells.md), [EmptyDrops_CR](../methods/starsolo/emptydrops-cr.md), [`soloBasicCellFilter.awk`](../methods/starsolo/basic-awk.md) | implemented |
 | DropletUtils | [barcodeRanks](../methods/dropletutils/barcoderanks.md) (four knee definitions), [emptyDrops](../methods/dropletutils/emptydrops.md) (ten behaviours), [emptyDropsCellRanger](../methods/dropletutils/emptydropscellranger.md), [defaultDrops](../methods/dropletutils/defaultdrops.md) | implemented; 1.0–1.2's Dirichlet-multinomial (R's `rgamma`) refused |
