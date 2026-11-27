@@ -44,6 +44,12 @@ Several methods with different names compute the same thing:
 - **A robust maximum divided by ten**: Cell Ranger 2 OrdMag, STARsolo CellRanger2.2,
   alevin `--expectCells`, DropletUtils `defaultDrops`, alevin-fry `--expect-cells` (with a
   twist: it takes the 0.99·N-th barcode, not the 0.01·N-th).
+- **A test against the ambient profile**: DropletUtils emptyDrops, Cell Ranger 3+, STARsolo
+  EmptyDrops_CR, DropletUtils `emptyDropsCellRanger`.
+
+[Same idea, different tools](families.md) sets each family's members side by side on the same
+matrices. [Reads, UMIs, ties and rounding](arithmetic.md) collects the details that move a call
+within a family: what is counted, which barcodes enter, ties, rounding and random numbers.
 
 ## Every method, and where it stands
 
@@ -55,7 +61,7 @@ closed).
 |---|---|---|
 | Generic | [top N](../methods/generic/top-n.md), [fixed threshold](../methods/generic/threshold.md), [MAD outliers](../methods/generic/mad.md), [Otsu](../methods/generic/otsu.md), [multi-Otsu](../methods/generic/multiotsu.md), [kernel-density valley](../methods/generic/kde-valley.md), [Gaussian mixtures](../methods/generic/gmm.md) (one and [two dimensions](../methods/generic/gmm-2d.md)) | implemented |
 | Generic | negative-binomial mixture (Cell Ranger ATAC's, on RNA) | planned, 0.3, with Cell Ranger ATAC |
-| Cell Ranger | [cell calling](../methods/cellranger/cellranger.md) (2.x, 3.x, 7.2, 8.0, 8.0.1, 9.0, 10.0, 10.1, with the antibody-aggregate, 8.0+ and high-occupancy filters), [OrdMag](../methods/cellranger/ordmag.md) | implemented; 1.x and 4.0–7.1 are documented gaps (no public source); targeted (gradient) calling planned |
+| Cell Ranger | [cell calling](../methods/cellranger/cellranger.md) (2.x, 3.x, 4.0, 5.x, 7.2, 8.0, 8.0.1, 9.0, 10.0, 10.1, with the antibody-aggregate, 8.0+ and high-occupancy filters), [OrdMag](../methods/cellranger/ordmag.md) | implemented; 4.0 and 5.x from 10x's outputs (no public source); 1.x and 6.0–7.1 are documented gaps; targeted (gradient) calling planned |
 | STARsolo | [CellRanger2.2](../methods/starsolo/cellranger2-2.md), [TopCells](../methods/starsolo/topcells.md), [EmptyDrops_CR](../methods/starsolo/emptydrops-cr.md), [`soloBasicCellFilter.awk`](../methods/starsolo/basic-awk.md) | implemented |
 | DropletUtils | [barcodeRanks](../methods/dropletutils/barcoderanks.md) (four knee definitions), [emptyDrops](../methods/dropletutils/emptydrops.md) (ten behaviours), [emptyDropsCellRanger](../methods/dropletutils/emptydropscellranger.md), [defaultDrops](../methods/dropletutils/defaultdrops.md) | implemented; 1.0–1.2's Dirichlet-multinomial (R's `rgamma`) refused |
 | CellBender | [priors](../methods/cellbender/prior.md): probable cells, analysed and surely-empty droplets, from mode and median (0.1, 0.2) or Otsu and a kernel density (0.3–0.4) | implemented; the VAE is docs only |
@@ -80,7 +86,9 @@ the methods' pages describe:
 | Tool | Release | Change |
 |---|---|---|
 | Cell Ranger | 3.0 | an EmptyDrops-style test added after OrdMag |
-| Cell Ranger | 7.x | expected cells estimated when not given; ambient range depends on chemistry |
+| Cell Ranger | 4.0 | the test's simulation draws from a random stream of its own |
+| Cell Ranger | 5.0 | antibody aggregates removed before calling |
+| Cell Ranger | 7.2 | expected cells estimated when not given; ambient range depends on chemistry |
 | Cell Ranger | 8.0 | candidates must lie above the ambient range; FDR 0.001 for some chemistries |
 | Cell Ranger | 9.0 | 100,000 simulations and a new simulator |
 | DropletUtils | 1.2 | emptyDrops fits a Dirichlet-multinomial by default |
@@ -88,7 +96,7 @@ the methods' pages describe:
 | DropletUtils | 1.28 | emptyDrops back to a plain multinomial |
 | STARsolo | 2.7.8a | EmptyDrops_CR added; CellRanger2.2 rounding changed |
 | CellBender | 0.3.0 | priors from Otsu thresholding and a density peak instead of mode and median |
-| salmon | 2.0 | alevin removed; its rules are historical |
+| salmon | 1.11 | alevin removed; its rules are historical |
 | kneed | 0.8.6, 0.9.0 | knee detection changed, which moves cellsweep's call |
 
 Previous comparisons of these methods are collected in [Reviews and benchmarks](reviews.md); this

@@ -5,7 +5,7 @@ one, not that.
 
 `sc-droplets` collects every method for calling cells vs empty droplets in droplet single-cell
 data, version by version: a review site (one page per algorithm), a Python package on AnnData,
-and a command line. The point is fidelity: `cellranger-emptydrops@9.0` must call the cells Cell
+and a command line. The point is fidelity: `cellranger@9.0` must call the cells Cell
 Ranger 9.0 called on the same matrix. A method that only resembles its original is a bug.
 
 Naming:
@@ -24,6 +24,7 @@ uv run pytest -m integration -n auto --dist worksteal tests/test_validation.py  
 uv run python docs/_scripts/methods_table.py         # regenerate the table on docs/methods/index.md
 uv run python docs/_scripts/comparison.py            # rerun the Comparison on public data page (minutes)
 uv run python docs/_scripts/figures.py               # redraw the Visualising calls guide's figures
+uv run python docs/_scripts/families.py              # rerun the Same idea, different tools tables
 ```
 
 Markers: `integration` (downloads public data or builds oracle environments; needs the network),
@@ -172,8 +173,9 @@ this file, for people; keep the two in step.
   KaTeX renders). A literal `\(` in a page shows as "("; the docs test refuses it.
 - Link between pages as relative `page.md`. Images: `{{ '/assets/...' | relative_url }}` (a
   relative path breaks under `permalink: pretty`); the docs test checks they exist.
-- `docs/_scripts/comparison.py` and `figures.py` write the comparison page's tables and figures and
-  the guide's figures; rerun them when a method's call changes.
+- `docs/_scripts/comparison.py`, `families.py` and `figures.py` write the comparison page's tables
+  and figures, the families page's tables and the guide's figures; rerun them when a method's call
+  changes.
 - Preview: `cd docs && bundle install && bundle exec jekyll serve`.
 
 ## Status

@@ -55,7 +55,7 @@ Method ids are `tool-algorithm`. A spec adds the release of the tool to reproduc
 parameters:
 
 ```
-cellranger-emptydrops@9.0
+cellranger@9.0
 dropletutils-emptydrops@1.26:lower=200
 top-n:n_cells=3000
 ```
