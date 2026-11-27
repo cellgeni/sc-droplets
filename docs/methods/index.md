@@ -21,8 +21,8 @@ come.
 | `alevin-initial-whitelist` | alevin | knee | v0.11: ≥0.11.0, <0.12.0; v0.12: ≥0.12.0, <0.13.0; v0.13: ≥0.13.0, <0.14.0; v0.14: ≥0.14.0, <0.14.1; v0.14.1: ≥0.14.1, <1.2.0; v1.2: ≥1.2.0 | [alevin initial whitelist](alevin/initial-whitelist.md) |
 | `alevinfry-permit-list` | alevin-fry | knee | v0.1: ≥0.1.0, <0.4.2; v0.4.2: ≥0.4.2, <0.12.0; v0.12: ≥0.12.0, <0.18.0; v0.18: ≥0.18.0 | [alevin-fry generate-permit-list](alevinfry/permit-list.md) |
 | `bustools-allowlist` | bustools | rank-threshold | default: ≥0.39.3 | [bustools allowlist](bustools/allowlist.md) |
-| `cellranger` | Cell Ranger | statistical-test | v2: ≥2.0, <3.0; v3: ≥3.0, <4.0; v7.2: ≥7.2, <8.0; v8.0: ≥8.0, <8.0.1; v8.0.1: ≥8.0.1, <9.0; v9.0: ≥9.0, <10.0; v10.0: ≥10.0, <10.1; v10.1: ≥10.1 | [Cell Ranger cell calling](cellranger/cellranger.md) |
-| `cellranger-ordmag` | Cell Ranger | rank-threshold | v2: ≥2.0, <4.0; v7.2: ≥7.2, <8.0; v8.0: ≥8.0, <8.0.1; v8.0.1: ≥8.0.1, <9.0; v9.0: ≥9.0, <10.0; v10.0: ≥10.0, <10.1; v10.1: ≥10.1 | [Cell Ranger OrdMag](cellranger/ordmag.md) |
+| `cellranger` | Cell Ranger | statistical-test | v2: ≥2.0, <3.0; v3: ≥3.0, <4.0; v4: ≥4.0, <5.0; v5: ≥5.0, <6.0; v7.2: ≥7.2, <8.0; v8.0: ≥8.0, <8.0.1; v8.0.1: ≥8.0.1, <9.0; v9.0: ≥9.0, <10.0; v10.0: ≥10.0, <10.1; v10.1: ≥10.1 | [Cell Ranger cell calling](cellranger/cellranger.md) |
+| `cellranger-ordmag` | Cell Ranger | rank-threshold | v2: ≥2.0, <6.0; v7.2: ≥7.2, <8.0; v8.0: ≥8.0, <8.0.1; v8.0.1: ≥8.0.1, <9.0; v9.0: ≥9.0, <10.0; v10.0: ≥10.0, <10.1; v10.1: ≥10.1 | [Cell Ranger OrdMag](cellranger/ordmag.md) |
 | `cellbender-prior` | CellBender | density | v0.1: ≥0.1.0, <0.2.0; v0.2: ≥0.2.0, <0.3.0; v0.3: ≥0.3.0 | [CellBender priors](cellbender/prior.md) |
 | `cellsweep-empty` | cellsweep | knee | v0.1: ≥0.1.0, <1.0.2; v1.0.2: ≥1.0.2 | [cellsweep empty droplets](cellsweep/empty.md) |
 | `dropseq-dropbead` | Drop-seq (dropbead) | knee | default: ≥0.3.1 | [Drop-seq cell number (dropbead)](dropseq/dropbead.md) |

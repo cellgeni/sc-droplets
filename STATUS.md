@@ -16,7 +16,9 @@ original tool, with a page per algorithm and the review pages. Decisions (Novemb
 - GPL-3.0-or-later. Cell Ranger 2.x (AGPL) and 7.2+ (10x licence) code is never copied: the
   method page is the specification and the implementation is written from it.
 - A method spec is `id[@tool_version][:name=value,...]`; each `Variant` covers a half-open range
-  of tool releases; `Gap` marks releases whose code is not public (Cell Ranger 4.0–7.1).
+  of tool releases; `Gap` marks releases that cannot be reproduced (Cell Ranger 6.0–7.1: no
+  code, and no rule matches 10x's outputs). Releases without code but whose outputs a rule
+  reproduces exactly get a variant (Cell Ranger 4.0, 5.x).
 - Heavy models are documented, not implemented: CellBender's VAE, EmptyNN, dropkick.
 - Branches (November 2026): `dev` collects merged work in progress, `main` only releases; each
   milestone is a pull request into `dev`, which the agent may merge once checks pass.
@@ -104,6 +106,13 @@ Milestones, each its own pull request after the scaffold:
     their commits and tags in R 4.4 from conda-forge, 24 cases, all identical. Findings: on raw
     10x matrices dropestr's bounds land among the empty droplets (125,227 expected on pbmc_1k_v3);
     zUMIs' UIK is conservative (594 cells against Cell Ranger's 1,222).
+- [x] Cell Ranger 4.0–7.1 from 10x's outputs (`cellranger-gap-4-7`): 17 public datasets of these
+  releases, SHA-256-pinned in `tests/datasets.py` (most dataset pages give `--expect-cells`).
+  4.0 and 5.x are 3.x with the simulation on its own stream seeded 0 (5.0: aggregate count rule
+  first): `cellranger` `v4`, `v5`, identical on 4 datasets. 6.0–7.1 stay a gap: the LT range of
+  9,000 is already in 6.0, 6.1 tests per genome, 7.x estimates cells, but no rule is exact on
+  every dataset (differences at the FDR cut; the 6.1 two-genome set further off). Evidence and
+  the survey script: `docs/_research/cellranger-4.0-7.1-outputs.md`.
 - [ ] 4. Generic MAD / Otsu / multi-Otsu / KDE valley / GMM (1-D, 2-D); splicing readers,
   `pl.splicing`, knee tracks, separation scores; `pl.density`, `pl.compare`, `pl.qc`, `report`;
   the comparison-on-public-data page. One pull request per group:
@@ -189,6 +198,13 @@ GitHub Pages from `main`, `/docs`.
   none is called).
 - A STARsolo run of pbmc_1k_v3 with Velocyto (the maintainer can make one) would set velocyto's
   unspliced fraction beside kb's on the same reads, and STARsolo's call beside Cell Ranger 3.0's.
+- Cell Ranger 6.0–7.1: the 4.0/5.x rule (plus LT's range) reproduces 6 of 8 6.x datasets exactly
+  and misses 1–3 barcodes at the FDR cut on two (brain tumour 6.0, PBMC Controller 6.1); 7.2's
+  rule misses 4–7 on three of four 7.x datasets. Ideas not yet tried: a different numpy/scipy in
+  the SGT fit or `multinomial.logpmf` (last-bit changes only matter at ties), a different BH or
+  p-value tie rule, 6.1's per-genome candidate rule. A variant for 6.0–6.1 with a
+  boundary-tolerant test (as 10.0) is possible if exactness is given up.
+- Cell Ranger 11.0 is out (the 7.2+ release notes list it); `LATEST` is 10.1.0.
 
 - anndata 0.13 lists `X` as the layer `None` in `adata.layers.keys()`; filter it wherever layer
   names are listed.

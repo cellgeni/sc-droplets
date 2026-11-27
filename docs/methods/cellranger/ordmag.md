@@ -22,12 +22,12 @@ antibody-only libraries.
 
 | Id | `cellranger-ordmag` |
 |---|---|
-| Tool | Cell Ranger 2.0 – 3.1 and 7.2 – 10.1 |
+| Tool | Cell Ranger 2.0 – 5.x and 7.2 – 10.1 |
 | Category | rank-threshold |
 | Counts | UMIs, Gene Expression features, per genome and GEM group |
-| Needs expected cells | 2.x/3.x: 3,000 per GEM group unless given; 7.2+: estimated unless given |
+| Needs expected cells | 2.x–5.x: 3,000 per GEM group unless given; 7.2+: estimated unless given |
 | Deterministic | yes: the bootstraps use Cell Ranger's seed |
-| Original licence | MIT (3.0.2 source); 10x licence (7.2+) |
+| Original licence | MIT (3.0.2 source); no source (4.0–5.x: from 10x's outputs); 10x licence (7.2+) |
 | Validated against | 10x's filtered matrices: pbmc4k (2.1.0); as the first step of [Cell Ranger cell calling](cellranger.md) for 3.0 – 10.0 |
 
 ## How it works
@@ -74,8 +74,8 @@ on its own features, and the cells are their union.
 | Cell Ranger | Variant | `--tool-version` | Behaviour |
 |---|---|---|---|
 | 1.0 – 1.3 | — | refused | no source; the paper's rule is "within an order of magnitude of the top 1 % of expected cells", without saying whether it bootstrapped |
-| 2.0 – 3.1 | `v2` | `2.1.0`, `3.0.2` … | as above |
-| 4.0 – 7.1 | — | refused | no source |
+| 2.0 – 5.x | `v2` | `2.1.0`, `3.0.2`, `4.0.0`, `5.0.1` … | as above (4.0 and 5.x: from 10x's outputs, see Validation) |
+| 6.0 – 7.1 | — | refused | no source, and no rule reproduces 10x's outputs exactly (see [Cell Ranger cell calling](cellranger.md#releases-60-to-71)) |
 | 7.2 | `v7.2` | `7.2.0` | as "From 7.2"; tie extension reverted beyond 20 % |
 | 8.0 – 10.1 | `v8.0`, `v8.0.1`, `v9.0`, `v10.0`, `v10.1` | `8.0.0` … `10.1.0` | tie extension truncated at 20 %; the estimate's cap follows each release's ambient ranges |
 
@@ -83,7 +83,7 @@ on its own features, and the cells are their union.
 
 | Option | Default | Original | Meaning |
 |---|---|---|---|
-| `--expect-cells` | 3,000 per GEM group (2.x/3.x); estimated (7.2+) | `--expect-cells` | expected number of cells |
+| `--expect-cells` | 3,000 per GEM group (2.x–5.x); estimated (7.2+) | `--expect-cells` | expected number of cells |
 | `--chemistry` | the input file's | `--chemistry` | chemistry, for the estimate's cap (7.2+) |
 | `--n-probe-barcodes` | none | `probe_barcode_ids` | probe barcodes / OCM tags of this sample, for the cap (7.2+) |
 
@@ -118,6 +118,12 @@ On 10x's pbmc4k (Cell Ranger 2.1.0, raw `raw_gene_bc_matrices_h5.h5`), `--expect
 gives exactly the 4,340 barcodes of 10x's filtered matrix. 10x does not publish the option it ran
 with; 5,000 is the value that reproduces it (1,000 to 4,000 call 19 to 236 fewer, 6,000 and above
 call more).
+
+Cell Ranger 4.0 and 5.0 published no source. Their OrdMag is this one, as the first step of
+[Cell Ranger cell calling](cellranger.md), which reproduces 10x's 4.0 and 5.0 datasets exactly.
+7.2's OrdMag in its place does not: on the 4.0 mouse E18 brain dataset, with the same 10,000
+expected cells, it calls 4 more cells and leaves 36 barcodes different from 10x's after the
+EmptyDrops step, however that step draws its random numbers.
 
 ## References
 
