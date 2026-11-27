@@ -42,8 +42,12 @@ splits the validation suite into two jobs, each on every core with pytest-xdist'
 - `result.py`: `CallResult` and `store`: `obs[k]`, `obs[k + "_class"]`, `obs[k + "_" + col]`,
   `uns["sc_droplets"][k]`. Everything in `uns` must survive `write_h5ad` (`h5ad_safe`).
 - `api.py`: `call`, `compare`, `agreement`, `list_methods`, `stored`.
+- `metrics.py`: per-barcode measures beside the counts: `unspliced_fraction` (U / (S + U) from
+  layers, a velocyto loom, STARsolo Velocyto or GeneFull − Gene, kb nac, alevin-fry USA),
+  `add_metrics` (matches a separate source by `barcode_key`), `mito_fraction`, and `separation`
+  (each call's medians in and out, and the AUROC), which `compare` joins in.
 - `io/`: `read` finds the raw matrix in any file or pipeline folder (`find_matrix`); `tenx.py`
-  (10x HDF5 v2/v3), `mtx.py` (Cell Ranger, STARsolo, Velocyto, kb incl. nac, alevin-fry incl.
+  (10x HDF5 v2/v3), `loom.py` (velocyto), `mtx.py` (Cell Ranger, STARsolo, Velocyto, kb incl. nac, alevin-fry incl.
   USA); `write.py` stages every output beside its name and renames it into place.
 - `methods/`: one module per tool page, listed in `methods/__init__.py::_MODULES`.
   `cellranger.py` holds the chemistry tables (ambient range and FDR per release and kit family),
@@ -75,7 +79,9 @@ splits the validation suite into two jobs, each on every core with pytest-xdist'
     numpy's vectorised `log` can differ in the last bit (AVX-512), and some results
     (DropletUtils' alpha) depend on those bits. Square with `x * x`, not `x ** 2` (libm `pow`).
 - `pl/`: plots take an AnnData, draw stored calls or run specs, return the Axes, accept `ax=`.
-  `terminal.py` draws the knee in braille for `inspect`.
+  `knee.py` also colours by an obs column and adds rolling-median tracks; `density.py` the
+  histogram of log totals; `splicing.py` the unspliced fraction against the calls (a Figure);
+  `diagnostics.py` each method's own view; `terminal.py` draws the knee in braille for `inspect`.
 - `cli.py`: typer. `call <id>` subcommands are generated from the registry
   (`_add_call_command`): options from `Params`, plus the shared ones. Results and data to
   stdout; messages to stderr (`console`); a failure is one `Error:` line and exit 1 (`_fail`).
