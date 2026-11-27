@@ -1,6 +1,6 @@
 ---
 title: Changelog
-nav_order: 8
+nav_order: 9
 ---
 
 # Changelog
@@ -148,5 +148,6 @@ Then the comparison:
 - *Comparison on public data*: every method with its defaults on five public 10x samples (PBMC 4k
   v2, PBMC 1k v3, PBMC 5k GEM-X, mouse spinal cord nuclei, a Flex sample), set against 10x's own
   call, with separation scores; made by `docs/_scripts/comparison.py`.
+- The *Visualising calls* guide, its figures drawn by `docs/_scripts/figures.py`.
 - `oracles/splicing/run.sh`: kb's nac counts for pbmc_1k_v3 (kallisto's prebuilt human index), the
   splicing data of the comparison and the guide.

@@ -44,7 +44,9 @@ Flex they part: 8,369 cells for STARsolo's, 7,605 for DropletUtils'.
 **On whole cells, most rules land close together.** On the three PBMC samples, 17 of the 26
 methods are within Jaccard 0.9 of 10x's call on all three. Four more stay within 0.85 on all
 three: emptyDrops, UMI-tools' distance knee, cellsweep and multi-Otsu. They keep the same large
-cells and differ in how far down the curve they go.
+cells and differ in how far down the curve they go. Where they disagree, the
+[Visualising calls](../guides/visualising.md) guide's quality plot shows the barcodes in
+question.
 
 **On nuclei, the methods split in three.** The spinal cord's curve has two cliffs. The first,
 at about 15,000 barcodes, drops from the nuclei to a plateau near 250 counts. That plateau is the

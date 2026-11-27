@@ -23,6 +23,7 @@ uv run pytest -m "not integration and not perf" --cov=sc_droplets --cov-fail-und
 uv run pytest -m integration -n auto --dist worksteal tests/test_validation.py  # the oracle suite, on every core
 uv run python docs/_scripts/methods_table.py         # regenerate the table on docs/methods/index.md
 uv run python docs/_scripts/comparison.py            # rerun the Comparison on public data page (minutes)
+uv run python docs/_scripts/figures.py               # redraw the Visualising calls guide's figures
 ```
 
 Markers: `integration` (downloads public data or builds oracle environments; needs the network),
@@ -171,6 +172,8 @@ this file, for people; keep the two in step.
   KaTeX renders). A literal `\(` in a page shows as "("; the docs test refuses it.
 - Link between pages as relative `page.md`. Images: `{{ '/assets/...' | relative_url }}` (a
   relative path breaks under `permalink: pretty`); the docs test checks they exist.
+- `docs/_scripts/comparison.py` and `figures.py` write the comparison page's tables and figures and
+  the guide's figures; rerun them when a method's call changes.
 - Preview: `cd docs && bundle install && bundle exec jekyll serve`.
 
 ## Status
