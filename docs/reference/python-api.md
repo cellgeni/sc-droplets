@@ -153,6 +153,16 @@ scd.pl.density(adata, ["otsu", "kde-valley"])
 scd.pl.density(adata, "mad", weighted=True)
 ```
 
+### `scd.pl.compare(adata, calls=None, *, layer=None, feature_types=None, fig=None)`
+
+Several calls side by side, as `plot compare` draws them; returns the Figure: the rank curve with
+each call's cut and a strip per call shaded by the share of each log-spaced rank bin it took, the
+cells per call, and the Jaccard index of their cell sets.
+
+```python
+scd.pl.compare(adata, ["cellranger", "otsu", "gmm"])
+```
+
 ### `scd.pl.splicing(adata, calls=None, *, metric="unspliced_fraction", min_counts=10, layer=None, feature_types=None, fig=None)`
 
 A per-barcode measure against the calls, as `plot splicing` draws it; returns the Figure. Panels:
