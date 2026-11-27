@@ -120,4 +120,14 @@ Then Gaussian mixtures:
   each barcode's posterior is stored.
 - The same parameters and calls as scikit-learn 1.5.2 and 1.9.1; converged, `gmm`'s fit is at
   least as likely as mclust's.
+
+Then splicing and the measures that judge a call:
+
+- `scd.add_metrics` and `--splicing`: each barcode's unspliced fraction, from the input's layers or
+  another output matched by barcode (a velocyto `.loom`, now read; STARsolo Velocyto, or
+  GeneFull − Gene without it; kb nac; alevin-fry USA), and its mitochondrial fraction.
+- `scd.separation`, and in `compare`: each call's median fractions in its cells and in the
+  barcodes it left out, and the AUROC between them.
+- `scd.pl.splicing` and `plot splicing`; `pl.knee` / `plot knee` colour the curve by a measure
+  (`--color`) and add rolling-median tracks under it (`--track`).
 - A validation suite on public data (`-m integration`), and an oracle workflow that runs STAR.

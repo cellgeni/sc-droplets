@@ -112,6 +112,28 @@ def _reads_option():
     )
 
 
+def _splicing_option():
+    return typer.Option(
+        None,
+        "--splicing",
+        help="Where to read spliced and unspliced counts, matched by barcode: a velocyto .loom, "
+        "STARsolo Velocyto/raw or Solo.out (GeneFull − Gene without Velocyto), kb --workflow nac, "
+        "alevin-fry USA, an .h5ad with spliced and unspliced layers. Default: the input's own layers.",
+    )
+
+
+def _add_metrics(adata, splicing: Optional[Path], layer: Optional[str] = None) -> List[str]:
+    """The unspliced and mitochondrial fractions in obs, from --splicing or the input's layers; the
+    mitochondrial one from the counts in --layer."""
+    from sc_droplets.metrics import add_metrics
+
+    with console.status("Reading the spliced and unspliced counts" if splicing else "Measuring the barcodes"):
+        added = add_metrics(adata, splicing, layer=layer)
+    if added:
+        console.print(f"Added {', '.join(added)} to obs")
+    return added
+
+
 def _load(path: Path, solo_feature: str = "Gene", genome: Optional[str] = None):
     from sc_droplets.io import read
 
@@ -265,6 +287,7 @@ def inspect_command(
     layer: Optional[str] = _layer_option(),
     genome: Optional[str] = _genome_option(),
     solo_feature: str = _solo_feature_option(),
+    splicing: Optional[Path] = _splicing_option(),
     width: int = typer.Option(60, "--width", min=20, help="Width of the terminal knee plot, in characters."),
 ) -> None:
     """Summarise a raw matrix and draw its knee in the terminal.
@@ -272,6 +295,7 @@ def inspect_command(
     Examples:
         sc-droplets inspect raw_feature_bc_matrix.h5
         sc-droplets inspect Solo.out --solo-feature GeneFull
+        sc-droplets inspect raw_feature_bc_matrix.h5 --splicing velocyto.loom
     """
     try:
         import numpy as np
@@ -304,8 +328,18 @@ def inspect_command(
         for rank in (1, 10, 100, 1000, 10000, 100000):
             if rank <= ordered.size:
                 table.add_row(f"total at rank {rank:,}", f"{ordered[rank - 1]:,.0f}")
-        spliced = {"spliced", "unspliced"} <= set(adata.layers.keys())
-        table.add_row("spliced/unspliced", "yes (layers)" if spliced else "no")
+        from sc_droplets.metrics import MIN_COUNTS, MITO, UNSPLICED
+
+        added = _add_metrics(adata, splicing, layer)
+        measured = totals >= MIN_COUNTS
+        for column, label in ((UNSPLICED, "unspliced fraction"), (MITO, "mitochondrial fraction")):
+            if column in added:
+                values = adata.obs[column].to_numpy(dtype=float)[measured]
+                values = values[~np.isnan(values)]
+                where = f"median {np.median(values):.3f} of {values.size:,} barcodes with ≥ {MIN_COUNTS} counts" if values.size else "no barcode measured"
+                table.add_row(label, where)
+            elif column == UNSPLICED:
+                table.add_row(label, "none: no spliced/unspliced layers (see --splicing)")
         out_console.print(table)
         for line in knee_text(totals, width=width):
             out_console.print(line, highlight=False)
@@ -336,6 +370,7 @@ _COMMON = (
     "seed",
     "key",
     "solo_feature",
+    "splicing",
     "tool_version",
 )
 
@@ -392,6 +427,7 @@ def _common_parameters(versioned: bool) -> List[inspect.Parameter]:
             annotation=Optional[str],
         ),
         P("solo_feature", kind, default=_solo_feature_option(), annotation=str),
+        P("splicing", kind, default=_splicing_option(), annotation=Optional[Path]),
     ]
     if versioned:
         params.append(
@@ -454,6 +490,8 @@ def _run_call(cls: Type[registry.Method], common: Dict[str, Any], given: Dict[st
 
     try:
         adata = _load(common["input"], common["solo_feature"], common["genome"])
+        if common["splicing"] is not None:
+            _add_metrics(adata, common["splicing"], common["layer"])
         reads = _attach_reads(adata, common["reads"])
         result = call(
             adata,
@@ -506,14 +544,18 @@ def compare_command(
     genome: Optional[str] = _genome_option(),
     reads: Optional[str] = _reads_option(),
     solo_feature: str = _solo_feature_option(),
+    splicing: Optional[Path] = _splicing_option(),
 ) -> None:
     """Run several methods on one sample and compare their calls.
 
     Parameters go after a colon in each spec; every call is stored under its
-    own key.
+    own key. With splicing (the input's layers or --splicing), each call also
+    gets the median unspliced fraction in its cells and in the barcodes it
+    left out, and the AUROC between them; likewise the mitochondrial fraction.
 
     Examples:
         sc-droplets compare raw_feature_bc_matrix.h5 -m top-n:n_cells=3000 -m threshold:min_counts=500
+        sc-droplets compare raw_feature_bc_matrix.h5 -m otsu -m gmm --splicing velocyto.loom --table calls.csv
     """
     from sc_droplets.api import agreement, compare
     from sc_droplets.io.write import check_outputs, write_h5ad, write_table
@@ -521,6 +563,7 @@ def compare_command(
     try:
         check_outputs([output, table, plot], [input])
         adata = _load(input, solo_feature, genome)
+        metrics = _add_metrics(adata, splicing, layer)
         reads_column = _attach_reads(adata, reads)
         summary = compare(
             adata,
@@ -541,16 +584,21 @@ def compare_command(
             )
         else:
             grid = Table(title="Calls")
+            scored = [m for m in metrics if f"{m}_auroc" in summary.columns]
             for column in ("key", "variant", "cells", "smallest cell total"):
                 grid.add_column(column)
+            for metric in scored:
+                short = "unspliced" if metric.startswith("unspliced") else "mito"
+                grid.add_column(f"{short}: cells / others (AUROC)")
             for key, row in summary.iterrows():
                 low = "—" if row["min_cell_total"] is None else f"{row['min_cell_total']:g}"
-                grid.add_row(str(key), str(row["variant"]), f"{row['n_cells']:,}", low)
+                scores = [f"{row[f'{m}_cells']:.3f} / {row[f'{m}_others']:.3f} ({row[f'{m}_auroc']:.2f})" for m in scored]
+                grid.add_row(str(key), str(row["variant"]), f"{row['n_cells']:,}", low, *scores)
             out_console.print(grid)
         if table is not None:
             from sc_droplets.pl._data import curve_for
 
-            frame = adata.obs[list(summary.index)].copy()
+            frame = adata.obs[list(summary.index) + metrics].copy()
             # The totals the calls were made on (their layer and feature types).
             curve = curve_for(adata, list(summary.index), layer=layer, feature_types=_feature_types(feature_type))
             frame.insert(0, "total", curve.totals)
@@ -577,8 +625,12 @@ def _save_knee(adata, keys: Sequence[str], path: Path, **kwargs: Any) -> None:
     from sc_droplets.pl import knee
 
     ax = knee(adata, list(keys), **kwargs)
-    ax.figure.tight_layout()
-    ax.figure.savefig(path, dpi=150)
+    if kwargs.get("color") or kwargs.get("track"):
+        # A colour bar shared by the curve and its tracks defeats tight_layout; trim on saving instead.
+        ax.figure.savefig(path, dpi=150, bbox_inches="tight")
+    else:
+        ax.figure.tight_layout()
+        ax.figure.savefig(path, dpi=150)
     plt.close(ax.figure)
     console.print(f"Wrote {escape(str(path))}")
 
@@ -586,6 +638,22 @@ def _save_knee(adata, keys: Sequence[str], path: Path, **kwargs: Any) -> None:
 # ---------------------------------------------------------------------------
 # plot
 # ---------------------------------------------------------------------------
+
+
+def _plot_keys(adata, input: Path, key, method, layer, types, genome) -> List[str]:
+    """The calls a plot draws: stored keys asked for, then method specs run; every stored call when
+    neither is given."""
+    keys: List[str] = list(key or [])
+    stored = adata.uns.get("sc_droplets", {})
+    missing = [k for k in keys if k not in stored]
+    if missing:
+        raise KeyError(f"no stored call {', '.join(missing)} in {input}; stored: {', '.join(stored) or 'none'}")
+    if method:
+        from sc_droplets.api import call
+
+        for spec in method:
+            keys.append(call(adata, spec, layer=layer, feature_types=types, genome=genome).key)
+    return keys or list(stored)
 
 
 @plot_app.command("knee")
@@ -600,38 +668,38 @@ def plot_knee(
     ),
     rotated: bool = typer.Option(False, "--rotated", help="Totals on x, ranks on y."),
     cumulative: bool = typer.Option(False, "--cumulative", help="Cumulative share of counts against rank."),
+    color: Optional[str] = typer.Option(
+        None, "--color", help="Colour the barcodes by this obs column (unspliced_fraction, mito_fraction...)."
+    ),
+    track: Optional[List[str]] = typer.Option(
+        None, "--track", help="A panel under the curve with this obs column's median along rank (repeatable)."
+    ),
     title: Optional[str] = typer.Option(None, "--title", help="Figure title."),
     feature_type: Optional[List[str]] = _feature_type_option(),
     layer: Optional[str] = _layer_option(),
     genome: Optional[str] = _genome_option(),
     solo_feature: str = _solo_feature_option(),
+    splicing: Optional[Path] = _splicing_option(),
 ) -> None:
     """Barcode-rank (knee) plot with each call's cut-off.
 
     Examples:
         sc-droplets plot knee raw_feature_bc_matrix.h5 -m top-n:n_cells=3000 -o knee.png
         sc-droplets plot knee calls.h5ad -o knee.pdf --rotated
+        sc-droplets plot knee raw_feature_bc_matrix.h5 -m otsu --splicing velocyto.loom --color unspliced_fraction --track unspliced_fraction -o knee.png
     """
     from sc_droplets.io.write import check_outputs
 
     try:
         check_outputs([output], [input])
         adata = _load(input, solo_feature, genome)
+        if color or track or splicing:
+            _add_metrics(adata, splicing, layer)
         types = _feature_types(feature_type)
-        keys: List[str] = list(key or [])
-        stored = adata.uns.get("sc_droplets", {})
-        missing = [k for k in keys if k not in stored]
-        if missing:
-            raise KeyError(f"no stored call {', '.join(missing)} in {input}; stored: {', '.join(stored) or 'none'}")
-        if method:
-            from sc_droplets.api import call
-
-            for spec in method:
-                keys.append(call(adata, spec, layer=layer, feature_types=types, genome=genome).key)
-        if not keys:
-            keys = list(adata.uns.get("sc_droplets", {}))
+        keys = _plot_keys(adata, input, key, method, layer, types, genome)
         _save_knee(
-            adata, keys, output, rotated=rotated, cumulative=cumulative, title=title, layer=layer, feature_types=types
+            adata, keys, output, rotated=rotated, cumulative=cumulative, title=title, layer=layer, feature_types=types,
+            color=color, track=list(track or []) or None,
         )
     except typer.Exit:
         raise
@@ -670,18 +738,7 @@ def plot_density(
         check_outputs([output], [input])
         adata = _load(input, solo_feature, genome)
         types = _feature_types(feature_type)
-        keys: List[str] = list(key or [])
-        stored = adata.uns.get("sc_droplets", {})
-        missing = [k for k in keys if k not in stored]
-        if missing:
-            raise KeyError(f"no stored call {', '.join(missing)} in {input}; stored: {', '.join(stored) or 'none'}")
-        if method:
-            from sc_droplets.api import call
-
-            for spec in method:
-                keys.append(call(adata, spec, layer=layer, feature_types=types, genome=genome).key)
-        if not keys:
-            keys = list(adata.uns.get("sc_droplets", {}))
+        keys = _plot_keys(adata, input, key, method, layer, types, genome)
         import matplotlib
 
         matplotlib.use("Agg")
@@ -694,6 +751,56 @@ def plot_density(
         ax.figure.tight_layout()
         ax.figure.savefig(output, dpi=150)
         plt.close(ax.figure)
+        console.print(f"Wrote {escape(str(output))}")
+    except typer.Exit:
+        raise
+    except Exception as e:
+        raise _fail(e)
+
+
+@plot_app.command("splicing")
+def plot_splicing(
+    input: Path = _input_argument(),
+    output: Path = typer.Option(..., "--output", "-o", help="Figure to write (.png, .pdf or .svg)."),
+    method: Optional[List[str]] = typer.Option(
+        None, "--method", "-m", help="Run this method spec and draw it (repeatable); see compare."
+    ),
+    key: Optional[List[str]] = typer.Option(
+        None, "--key", help="Draw this call stored in an .h5ad input (repeatable). Default: every stored call."
+    ),
+    metric: str = typer.Option("unspliced_fraction", "--metric", help="The obs column to draw (mito_fraction...)."),
+    min_counts: float = typer.Option(10, "--min-counts", help="Leave out barcodes below this total.", min=0),
+    feature_type: Optional[List[str]] = _feature_type_option(),
+    layer: Optional[str] = _layer_option(),
+    genome: Optional[str] = _genome_option(),
+    solo_feature: str = _solo_feature_option(),
+    splicing: Optional[Path] = _splicing_option(),
+) -> None:
+    """The unspliced fraction against the calls: against count, in each call's cells and the
+    barcodes left out, and where the calls disagree.
+
+    Examples:
+        sc-droplets plot splicing raw_feature_bc_matrix.h5 -m cellranger -m otsu --splicing velocyto.loom -o splicing.png
+        sc-droplets plot splicing counts_unfiltered -m gmm -m kde-valley -o splicing.pdf
+    """
+    from sc_droplets.io.write import check_outputs
+
+    try:
+        check_outputs([output], [input])
+        adata = _load(input, solo_feature, genome)
+        _add_metrics(adata, splicing, layer)
+        types = _feature_types(feature_type)
+        keys = _plot_keys(adata, input, key, method, layer, types, genome)
+        import matplotlib
+
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+
+        from sc_droplets.pl import splicing as draw
+
+        figure = draw(adata, keys, metric=metric, min_counts=min_counts, layer=layer, feature_types=types)
+        figure.savefig(output, dpi=150)
+        plt.close(figure)
         console.print(f"Wrote {escape(str(output))}")
     except typer.Exit:
         raise

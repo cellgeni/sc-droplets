@@ -125,7 +125,13 @@ Milestones, each its own pull request after the scaffold:
     that optimum on pbmc4k and a worse one on pbmc_1k_v3. `gmm-2d` barely moves (4,475 / 4,451).
     Oracle: scikit-learn 1.5.2 and 1.9.1 give the same parameters and calls (32 cases); the
     converged fit is at least as likely as mclust's.
-  - [ ] Splicing readers, `pl.splicing`, knee tracks, separation scores.
+  - [x] Splicing (`milestone-4-splicing`): `metrics.py` (`unspliced_fraction`, `add_metrics`,
+    `mito_fraction`, `separation`), the velocyto loom reader, STARsolo's GeneFull − Gene
+    estimate, `--splicing` on `inspect`, `call`, `compare` and the plots; `pl.splicing`, knee
+    `color=` and `track=`. Decisions: U / (S + U) without ambiguous counts; barcodes match by name,
+    else by sequence (velocyto's `sample:...x`, `-1`); separation against uncalled barcodes with
+    at least 10 counts; the scores are indicators, not truth. No public splicing data in the
+    validation suite yet: the comparison page's sample (kb nac on pbmc_1k_v3) brings it.
   - [ ] `pl.compare`, `pl.qc`, `report`.
   - [ ] The comparison-on-public-data page and the *Visualising calls* guide.
   - Moved: the negative-binomial mixture (Cell Ranger ATAC's EM) goes to 0.3 with Cell Ranger

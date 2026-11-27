@@ -50,10 +50,44 @@ result = scd.call(adata, "threshold:min_counts=200,unit=genes", key_added="genes
 
 Runs every spec in `methods` with the same `common` options (`layer`, `feature_types`, ...) and
 returns a table with one row per call: key, method, tool version, variant, number of cells and
-smallest cell total. Every call is stored on `adata`.
+smallest cell total. Every call is stored on `adata`. When `obs` holds `unspliced_fraction` or
+`mito_fraction` (`add_metrics`), each row also has `separation`'s columns.
 
 ```python
 scd.compare(adata, ["top-n:n_cells=3000", "threshold:min_counts=500"])
+```
+
+### `scd.add_metrics(adata, splicing=None, layer=None)`
+
+Stores each barcode's measures in `obs` and returns the columns written: `unspliced_fraction`,
+U / (S + U) over gene-expression features (from `splicing`, matched by barcode, or from the
+AnnData's own `spliced` and `unspliced` layers), and `mito_fraction`, the share of counts in genes
+named `MT-` or `mt-` (when there are any), from the raw counts in `layer` (`X` by default).
+`splicing` is anything `unspliced_fraction` takes, or a Series of fractions indexed by barcode.
+Barcodes match by name, or else by the sequence alone (velocyto's `sample:` prefix and `x` suffix
+and a `-1` suffix dropped); unmatched barcodes get NaN. When two barcodes on either side share a
+sequence (two samples, two GEM groups), matching by sequence is refused.
+
+```python
+scd.add_metrics(adata, splicing="velocyto/sample.loom")
+```
+
+### `scd.unspliced_fraction(source)`
+
+Each barcode's U / (S + U) as a Series indexed by barcode (NaN where it has neither). `source` is
+an AnnData with `spliced` and `unspliced` layers, or a path: a velocyto `.loom`, STARsolo's
+`Velocyto/raw/` or `Solo.out/` (with `Gene` and `GeneFull` but no Velocyto, the estimate
+(GeneFull − Gene) / GeneFull), kb `--workflow nac`, alevin-fry USA mode, an `.h5ad`.
+
+### `scd.separation(adata, keys=None, metric="unspliced_fraction", min_counts=10)`
+
+For each stored call: the median of `obs[metric]` in its cells (`<metric>_cells`) and in the
+barcodes it left out with at least `min_counts` (`<metric>_others`), and the AUROC between them
+(`<metric>_auroc`: the chance that a cell's value exceeds an outsider's, ties counting half; 0.5
+is no separation). Unsupervised indicators, not ground truth.
+
+```python
+scd.separation(adata, ["cellranger", "otsu"])
 ```
 
 ### `scd.agreement(adata, keys=None)`
@@ -89,16 +123,22 @@ and page.
 
 ## Plots
 
-### `scd.pl.knee(adata, calls=None, *, layer=None, feature_types=None, rotated=False, cumulative=False, ax=None, title=None, legend=True)`
+### `scd.pl.knee(adata, calls=None, *, layer=None, feature_types=None, rotated=False, cumulative=False, ax=None, title=None, legend=True, color=None, track=None, bins=100)`
 
 The barcode-rank curve with the calls on it; returns the matplotlib Axes. `calls` takes stored
 keys or method specs (a spec not yet stored is run first); `None` draws every stored call. With
 one call its cells are marked on the curve; with several, each gets a dashed line at its smallest
 cell total.
 
+`color` colours each barcode on the curve by an obs column. `track` (a column or a list) adds a
+panel under the curve per column with its median in `bins` log-spaced bins of rank, as
+CellBender's Fig. 1d shows the exonic fraction along the rank curve; the function then makes its
+own figure, so `ax` must be left out.
+
 ```python
 scd.pl.knee(adata, ["top_n", "threshold"])
 scd.pl.knee(adata, "top-n:n_cells=3000", rotated=True)
+scd.pl.knee(adata, "otsu", color="unspliced_fraction", track=["unspliced_fraction", "mito_fraction"])
 ```
 
 ### `scd.pl.density(adata, calls=None, *, layer=None, feature_types=None, min_counts=1, bins=100, weighted=False, ax=None, title=None, legend=True)`
@@ -111,6 +151,18 @@ barcodes hold.
 ```python
 scd.pl.density(adata, ["otsu", "kde-valley"])
 scd.pl.density(adata, "mad", weighted=True)
+```
+
+### `scd.pl.splicing(adata, calls=None, *, metric="unspliced_fraction", min_counts=10, layer=None, feature_types=None, fig=None)`
+
+A per-barcode measure against the calls, as `plot splicing` draws it; returns the Figure. Panels:
+the measure against log10 count, each barcode coloured by how many calls took it; for each call,
+the measure in its cells and in the barcodes it left out, with the AUROC; with several calls, the
+measure in barcodes every call took, some took and none took. `obs[metric]` must exist.
+
+```python
+scd.add_metrics(adata, splicing="Solo.out")
+scd.pl.splicing(adata, ["cellranger", "otsu", "gmm"])
 ```
 
 ### `scd.pl.diagnostics(adata, call, *, fig=None)`

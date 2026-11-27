@@ -18,6 +18,7 @@ except PackageNotFoundError:  # pragma: no cover - running from a source tree wi
 from sc_droplets import pl
 from sc_droplets.api import agreement, call, compare, list_methods, stored
 from sc_droplets.io import read
+from sc_droplets.metrics import add_metrics, separation, unspliced_fraction
 from sc_droplets.registry import UnknownMethod, UnsupportedVersion
 from sc_droplets.result import CallResult
 from sc_droplets.simulate import simulate_droplets
@@ -27,12 +28,15 @@ __all__ = [
     "CallResult",
     "UnknownMethod",
     "UnsupportedVersion",
+    "add_metrics",
     "agreement",
     "call",
     "compare",
     "list_methods",
     "pl",
     "read",
+    "separation",
     "simulate_droplets",
     "stored",
+    "unspliced_fraction",
 ]

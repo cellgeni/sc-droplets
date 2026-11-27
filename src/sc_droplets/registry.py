@@ -57,6 +57,7 @@ RESERVED_PARAMS = frozenset(
         "key",
         "key_added",
         "solo_feature",
+        "splicing",
         "inplace",
     }
 )

@@ -9,6 +9,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import List, Optional
 
+from sc_droplets.io.loom import is_loom, read_loom
 from sc_droplets.io.mtx import detect_mtx, read_mtx_folder
 from sc_droplets.io.tenx import is_10x_h5, read_10x_h5
 from sc_droplets.io.write import write_barcodes, write_h5ad, write_table
@@ -76,7 +77,7 @@ def read(path, *, solo_feature: str = "Gene", genome: Optional[str] = None):
     """Read a raw count matrix into an AnnData (barcodes × features).
 
     `path` may be an `.h5ad`, a `.zarr` store, a 10x `.h5` (v2 or v3, also
-    CellBender's output), any MTX folder `detect_mtx` knows, or a pipeline
+    CellBender's output), velocyto's `.loom`, any MTX folder `detect_mtx` knows, or a pipeline
     output folder holding one (Cell Ranger `outs/`, STARsolo `Solo.out/`, kb,
     alevin-fry). `solo_feature` picks the STARsolo feature folder.
     """
@@ -96,8 +97,12 @@ def read(path, *, solo_feature: str = "Gene", genome: Optional[str] = None):
         if not is_10x_h5(target):
             raise ValueError(f"{target} is HDF5 but not a 10x feature-barcode matrix")
         return read_10x_h5(target, genome=genome)
+    elif suffix == ".loom":
+        if not is_loom(target):
+            raise ValueError(f"{target} is not a loom file (no /matrix, /row_attrs and /col_attrs)")
+        return read_loom(target)
     else:
-        raise ValueError(f"cannot tell what {target} is from its name (.h5ad, .zarr, .h5 or a folder)")
+        raise ValueError(f"cannot tell what {target} is from its name (.h5ad, .zarr, .h5, .loom or a folder)")
     return adata
 
 
@@ -106,6 +111,7 @@ def describe_inputs() -> List[str]:
     return [
         ".h5ad or .zarr (AnnData, barcodes × features, raw counts in X or a layer)",
         "10x .h5, v2 (Cell Ranger 2) or v3 (Cell Ranger 3+, CellBender)",
+        "velocyto .loom (spliced, unspliced and ambiguous layers)",
         "MTX folder: Cell Ranger 2 or 3+, STARsolo raw/ or Velocyto/raw/, kb, alevin-fry",
         "Cell Ranger outs/ (count or multi), STARsolo Solo.out/, kb output, simpleaf output",
     ]
