@@ -20,6 +20,7 @@ from sc_droplets.api import agreement, call, compare, list_methods, stored
 from sc_droplets.io import read
 from sc_droplets.metrics import add_metrics, separation, unspliced_fraction
 from sc_droplets.registry import UnknownMethod, UnsupportedVersion
+from sc_droplets.report import report
 from sc_droplets.result import CallResult
 from sc_droplets.simulate import simulate_droplets
 
@@ -35,6 +36,7 @@ __all__ = [
     "list_methods",
     "pl",
     "read",
+    "report",
     "separation",
     "simulate_droplets",
     "stored",

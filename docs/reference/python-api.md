@@ -90,6 +90,17 @@ is no separation). Unsupervised indicators, not ground truth.
 scd.separation(adata, ["cellranger", "otsu"])
 ```
 
+### `scd.report(adata, calls=None, path=None, *, title=None, layer=None, feature_types=None)`
+
+One self-contained HTML page of the calls, as `sc-droplets report` writes it; written to `path`
+when given, and returned as a string. `calls` takes stored keys or method specs; `None` reports
+every stored call.
+
+```python
+scd.add_metrics(adata, splicing="Solo.out")
+scd.report(adata, ["cellranger", "otsu", "gmm"], "report.html", title="PBMC 4k")
+```
+
 ### `scd.agreement(adata, keys=None)`
 
 The pairwise Jaccard index of the cell sets of stored calls (all of them by default).

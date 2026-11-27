@@ -1,4 +1,5 @@
-"""Several calls side by side (`pl.compare`) and quality measures against the calls (`pl.qc`)."""
+"""Several calls side by side (`pl.compare`), quality measures against the calls (`pl.qc`), and the
+HTML report."""
 
 from __future__ import annotations
 
@@ -85,3 +86,46 @@ def test_qc_plot_without_mito_has_no_mito_panel(sim):
     adata = sim.copy()
     scd.call(adata, "otsu")
     assert [ax.get_ylabel() for ax in scd.pl.qc(adata).axes] == ["log10 genes detected"]
+
+
+# ---------------------------------------------------------------------------
+# The report
+# ---------------------------------------------------------------------------
+
+
+def test_report_holds_every_section_inline(called, tmp_path):
+    path = tmp_path / "report.html"
+    page = scd.report(called, path=path, title="simulated")
+    assert path.read_text() == page
+    for anchor in ("summary", "knee", "density", "compare", "qc", "splicing", "calls"):
+        assert f'id="{anchor}"' in page
+    for key in scd.stored(called):
+        assert f'id="call-{key}"' in page and f'id="call-{key}-figure"' in page
+    assert page.count("<svg") == 5 + len(scd.stored(called))
+    assert "unspliced: AUROC" in page and "mito: AUROC" in page
+    assert "<script" not in page and 'src="http' not in page and "href=\"http" in page  # links only to method pages
+
+
+def test_report_lists_parameters_thresholds_and_notes(sim):
+    adata = sim.copy()
+    scd.call(adata, "gmm", max_iter=1, tol=1e-12)
+    page = scd.report(adata)
+    assert "<td>max_iter</td>" in page and "<td>cell_component</td>" not in page
+    assert 'class="note"' in page and "--max-iter 1" in page
+    assert 'id="compare"' not in page and 'id="splicing"' not in page  # one call, no splicing
+
+
+def test_report_names_the_input_file_not_its_path(sim, tmp_path):
+    path = tmp_path / "deep" / "sample.h5ad"
+    path.parent.mkdir()
+    sim.write_h5ad(path)
+    adata = scd.read(path)
+    adata.uns["sc_droplets_input"] = {"path": str(path), "format": "h5ad"}
+    scd.call(adata, "otsu")
+    page = scd.report(adata)
+    assert "sample.h5ad" in page and str(path.parent) not in page
+
+
+def test_report_needs_a_call(sim):
+    with pytest.raises(ValueError, match="nothing to report"):
+        scd.report(sim.copy())
