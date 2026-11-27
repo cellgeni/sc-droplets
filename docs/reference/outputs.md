@@ -43,7 +43,7 @@ plot can be redrawn from the file.
 
 The default key is the method id with `-` and `.` turned into `_`, followed by the tool version
 and any parameters given in the spec: `top-n:n_cells=3000` is stored as `top_n_n_cells_3000`,
-`cellranger-emptydrops@9.0` as `cellranger_emptydrops_9_0`.
+`cellranger@9.0` as `cellranger_9_0`.
 
 `scd.add_metrics` (and `--splicing`) write per-barcode measures that belong to no call:
 

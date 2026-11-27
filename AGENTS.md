@@ -5,7 +5,7 @@ one, not that.
 
 `sc-droplets` collects every method for calling cells vs empty droplets in droplet single-cell
 data, version by version: a review site (one page per algorithm), a Python package on AnnData,
-and a command line. The point is fidelity: `cellranger-emptydrops@9.0` must call the cells Cell
+and a command line. The point is fidelity: `cellranger@9.0` must call the cells Cell
 Ranger 9.0 called on the same matrix. A method that only resembles its original is a bug.
 
 Naming:
