@@ -142,3 +142,11 @@ Then the views of several calls at once:
   the calls disagree on beside the agreed cells and the uncalled barcodes around them.
 - `scd.report` and `sc-droplets report`: one self-contained HTML page with every plot, the
   separation scores and each call's parameters.
+
+Then the comparison:
+
+- *Comparison on public data*: every method with its defaults on five public 10x samples (PBMC 4k
+  v2, PBMC 1k v3, PBMC 5k GEM-X, mouse spinal cord nuclei, a Flex sample), set against 10x's own
+  call, with separation scores; made by `docs/_scripts/comparison.py`.
+- `oracles/splicing/run.sh`: kb's nac counts for pbmc_1k_v3 (kallisto's prebuilt human index), the
+  splicing data of the comparison and the guide.

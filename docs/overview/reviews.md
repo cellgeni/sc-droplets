@@ -69,6 +69,6 @@ passing. This page lists them so their results can be read with that in mind.
 
 No study has run the methods side by side on the same samples, with the versions stated, and
 with an independent ground truth. sc-droplets makes the first half easy: every method on one
-matrix, each at a named version. The *Comparison on public data* page (coming with 0.1.0) will
-use it on public samples, with unsupervised indicators such as the unspliced fraction of called
-and uncalled barcodes.
+matrix, each at a named version. The [Comparison on public data](comparison.md) page uses it on
+five public samples, with unsupervised indicators such as the unspliced fraction of called and
+uncalled barcodes.
