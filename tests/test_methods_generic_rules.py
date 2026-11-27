@@ -1,4 +1,4 @@
-"""MAD outliers."""
+"""MAD outliers, Otsu and multi-Otsu thresholds."""
 
 from __future__ import annotations
 
@@ -31,18 +31,30 @@ def _matrix(totals) -> ad.AnnData:
     return adata
 
 
+def _two_populations(low=(2.3, 0.15, 3000), high=(3.8, 0.2, 500)):
+    """Totals of two log-normal populations, at evenly spaced quantiles (no sampling noise), and
+    which barcodes are in the upper one."""
+    from scipy.stats import norm
+
+    def population(mean, sd, n):
+        return 10 ** norm.ppf((np.arange(n) + 0.5) / n, mean, sd)
+
+    values = np.concatenate([population(*low), population(*high)])
+    return np.round(values), np.r_[np.zeros(low[2], bool), np.ones(high[2], bool)]
+
+
 # ---------------------------------------------------------------------------
 # Every rule
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("spec", ['mad'])
+@pytest.mark.parametrize("spec", ['mad', 'otsu', 'multiotsu:min_counts=10'])
 def test_generic_rules_need_a_barcode_at_the_floor(spec):
     with pytest.raises(RuleError, match="--min-counts"):
         scd.call(_matrix([1, 2, 3]), spec, inplace=False)
 
 
-@pytest.mark.parametrize("name", ['mad'])
+@pytest.mark.parametrize("name", ['mad', 'otsu', 'multiotsu'])
 def test_cli_calls_the_generic_rule(name, sim, tmp_path):
     path = tmp_path / "sim.h5ad"
     sim.write_h5ad(path)
@@ -79,3 +91,42 @@ def test_mad_min_diff_widens_a_narrow_limit_and_no_log_works_on_counts():
     assert wide.thresholds["umis"] == 2.0 ** (math.log2(1000) - 4.0)
     plain = scd.call(_matrix(totals), "mad", log=False, inplace=False)
     assert plain.thresholds["median"] == 1000.0
+
+
+# ---------------------------------------------------------------------------
+# Otsu and multi-Otsu
+# ---------------------------------------------------------------------------
+
+
+def test_otsu_splits_two_clusters_between_them_and_calls_the_upper_one():
+    values, upper = _two_populations()
+    result = scd.call(_matrix(values), "otsu", inplace=False)
+    cut = result.thresholds["transformed"]
+    assert 2.6 < cut < 3.4 and result.thresholds["umis"] == 10.0 ** cut
+    assert np.array_equal(result.is_cell, np.log10(values) > cut)
+    assert (result.is_cell == upper).mean() > 0.995
+
+
+def test_otsu_of_identical_values_calls_nothing():
+    assert scd.call(_matrix([500] * 10), "otsu", inplace=False).n_cells == 0
+
+
+def test_otsu_arcsinh_transform_reports_the_cut_back_in_counts():
+    values, _ = _two_populations()
+    result = scd.call(_matrix(values), "otsu", transform="arcsinh", inplace=False)
+    assert result.thresholds["umis"] == pytest.approx(math.sinh(result.thresholds["transformed"]))
+
+
+def test_multiotsu_stores_each_barcodes_class_and_calls_the_top_one(sim):
+    result = scd.call(sim, "multiotsu", inplace=False)
+    classes = np.asarray(result.classes.astype(str))
+    assert set(classes) <= {"below floor", "class 1", "class 2", "class 3"}
+    assert np.array_equal(result.is_cell, classes == "class 3")
+    assert (classes == "below floor").sum() == (np.asarray(result.totals) < 1).sum()
+    top = 10.0 ** result.thresholds["threshold_2"]
+    assert result.thresholds["umis"] == top
+
+
+def test_multiotsu_refuses_more_than_four_classes(sim):
+    with pytest.raises(ValueError, match="classes"):
+        scd.call(sim, "multiotsu", classes=5, inplace=False)

@@ -1,7 +1,9 @@
-"""Generic rules that belong to no single tool: top N, a fixed threshold and MAD outliers.
+"""Generic rules that belong to no single tool: top N, a fixed threshold, MAD outliers, and Otsu
+and multi-Otsu thresholds.
 
-Pages: docs/methods/generic/{top-n,threshold,mad}.md. MAD follows scuttle's `isOutlier` (R's
-`log2`, `median` and `mad`).
+Pages: docs/methods/generic/{top-n,threshold,mad,otsu,multiotsu}.md. MAD follows scuttle's
+`isOutlier` (R's `log2`, `median` and `mad`); Otsu and multi-Otsu are scikit-image's
+(`primitives/otsu.py`).
 """
 
 from __future__ import annotations
@@ -11,16 +13,18 @@ from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
+import pandas as pd
 
 from sc_droplets.methods._common import result, top_by_rank
-from sc_droplets.primitives.otsu import histogram
-from sc_droplets.primitives.rmath import clog2
+from sc_droplets.primitives.otsu import histogram, threshold_multiotsu, threshold_otsu
+from sc_droplets.primitives.rmath import clog2, clog10
 from sc_droplets.primitives.rstats import r_mad, r_median
 from sc_droplets.registry import Method, MethodInfo, Reference, param, register
 
 _GENERIC = "Generic"
 _UNITS = ("umis", "reads", "genes")
 _UNIT_LABEL = {"umis": "UMIs", "reads": "reads", "genes": "genes"}
+_TRANSFORMS = ("log10", "arcsinh", "none")
 
 
 class RuleError(ValueError):
@@ -33,6 +37,29 @@ def candidates(values: np.ndarray, min_counts: float) -> np.ndarray:
     if index.size == 0:
         raise RuleError(f"no barcode has at least --min-counts {min_counts:g}")
     return index
+
+
+def transform(values: np.ndarray, how: str) -> np.ndarray:
+    """log10 or arcsinh with the C library's functions, element by element, or the values."""
+    if how == "log10":
+        return clog10(values)
+    if how == "arcsinh":
+        return np.array([math.asinh(v) for v in np.asarray(values, dtype=np.float64).tolist()], dtype=np.float64)
+    return np.asarray(values, dtype=np.float64)
+
+
+def untransform(value: float, how: str) -> float:
+    """A cut on the transformed scale, back in counts."""
+    if how == "log10":
+        return 10.0 ** value
+    if how == "arcsinh":
+        return math.sinh(value)
+    return float(value)
+
+
+def _scale_label(params) -> str:
+    unit = _UNIT_LABEL[params.unit]
+    return unit if params.transform == "none" else f"{params.transform} {unit}"
 
 
 def _histogram_diagnostics(x: np.ndarray, n_bins: int, label: str, cuts) -> dict:
@@ -183,4 +210,103 @@ class Mad(Method):
             type(self), variant, params, droplets, is_cell,
             thresholds={params.unit: back(lower), "median": back(median), "mad": float(mad)},
             diagnostics=_histogram_diagnostics(metric, 100, label, [(median, "median"), (lower, f"limit: {params.nmads:g} MADs")]),
+        )
+
+
+@register
+class Otsu(Method):
+    info = MethodInfo(
+        id="otsu",
+        title="Otsu threshold",
+        tool=_GENERIC,
+        category="density",
+        summary="Otsu's threshold (scikit-image's threshold_otsu) on the log totals of the barcodes above a "
+                "floor; the upper class is the cells.",
+        docs="methods/generic/otsu.md",
+        counts="either",
+        references=(
+            Reference(
+                "Otsu 1979, A threshold selection method from gray-level histograms, IEEE Transactions on "
+                "Systems, Man, and Cybernetics 9:62",
+                doi="10.1109/TSMC.1979.4310076",
+            ),
+        ),
+        source="https://github.com/scikit-image/scikit-image/blob/v0.26.0/src/skimage/filters/thresholding.py",
+        original_license="BSD-3-Clause",
+    )
+
+    @dataclass
+    class Params:
+        min_counts: float = param(100.0, "Candidates have at least this value; the others are empty", minimum=0)
+        transform: str = param("log10", "The scale the histogram is on", choices=_TRANSFORMS)
+        bins: int = param(256, "Histogram bins", original="nbins", minimum=2)
+        unit: str = param("umis", "What the rule applies to", choices=_UNITS)
+
+    def run(self, droplets, params, variant, random_state):
+        values = droplets.values(params.unit)
+        index = candidates(values, params.min_counts)
+        x = transform(values[index], params.transform)
+        cut = threshold_otsu(x, params.bins)
+        is_cell = np.zeros(values.size, dtype=bool)
+        is_cell[index[x > cut]] = True
+        return result(
+            type(self), variant, params, droplets, is_cell,
+            thresholds={params.unit: untransform(cut, params.transform), "transformed": float(cut)},
+            diagnostics=_histogram_diagnostics(x, params.bins, _scale_label(params), [(cut, "Otsu's cut")]),
+        )
+
+
+@register
+class MultiOtsu(Method):
+    info = MethodInfo(
+        id="multiotsu",
+        title="Multi-Otsu thresholds",
+        tool=_GENERIC,
+        category="density",
+        summary="Otsu's method with several classes (scikit-image's threshold_multiotsu) on the log totals of "
+                "every barcode with a count; the top class is the cells.",
+        docs="methods/generic/multiotsu.md",
+        counts="either",
+        references=(
+            Reference(
+                "Liao, Chen & Chung 2001, A fast algorithm for multilevel thresholding, Journal of Information "
+                "Science and Engineering 17:713",
+                doi="10.6688/JISE.2001.17.5.1",
+            ),
+            Reference(
+                "Heiser, Wang, Chen, Hughes & Lau 2021, Automated quality control and cell identification of "
+                "droplet-based single-cell data using dropkick, Genome Research 31:1742",
+                doi="10.1101/gr.271908.120",
+            ),
+        ),
+        source="https://github.com/scikit-image/scikit-image/blob/v0.26.0/src/skimage/filters/_multiotsu.pyx",
+        original_license="BSD-3-Clause",
+    )
+
+    @dataclass
+    class Params:
+        classes: int = param(3, "How many classes", original="classes", minimum=2, maximum=4)
+        min_counts: float = param(1.0, "Candidates have at least this value; the others are empty", minimum=0)
+        transform: str = param("log10", "The scale the histogram is on", choices=_TRANSFORMS)
+        bins: int = param(256, "Histogram bins", original="nbins", minimum=2)
+        unit: str = param("umis", "What the rule applies to", choices=_UNITS)
+
+    def run(self, droplets, params, variant, random_state):
+        values = droplets.values(params.unit)
+        index = candidates(values, params.min_counts)
+        x = transform(values[index], params.transform)
+        cuts = threshold_multiotsu(x, params.classes, params.bins)
+        level = np.digitize(x, bins=cuts)
+        names = ["below floor"] + [f"class {i + 1}" for i in range(params.classes)]
+        codes = np.zeros(values.size, dtype=np.int8)
+        codes[index] = level + 1
+        is_cell = codes == params.classes
+        thresholds = {params.unit: untransform(float(cuts[-1]), params.transform)}
+        thresholds.update({f"threshold_{i + 1}": float(c) for i, c in enumerate(cuts)})
+        return result(
+            type(self), variant, params, droplets, is_cell,
+            classes=pd.Categorical.from_codes(codes, categories=names),
+            thresholds=thresholds,
+            diagnostics=_histogram_diagnostics(x, params.bins, _scale_label(params),
+                                               [(c, f"threshold {i + 1}") for i, c in enumerate(cuts)]),
         )
