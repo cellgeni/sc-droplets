@@ -32,7 +32,8 @@ Python 3.12 or later. The command is `sc-droplets`; the import is `sc_droplets`.
 sc-droplets methods                                  # what is available
 sc-droplets inspect raw_feature_bc_matrix.h5         # a summary and a knee in the terminal
 sc-droplets call top-n raw_feature_bc_matrix.h5 --n-cells 3000 --barcodes cells.tsv.gz
-sc-droplets compare raw_feature_bc_matrix.h5 -m top-n -m threshold --plot knee.png
+sc-droplets compare raw_feature_bc_matrix.h5 -m cellranger -m otsu -m gmm --plot knee.png
+sc-droplets report raw_feature_bc_matrix.h5 -m cellranger -m otsu -m gmm -o report.html
 ```
 
 ```python
@@ -40,7 +41,8 @@ import sc_droplets as scd
 
 adata = scd.read("raw_feature_bc_matrix.h5")       # raw, unfiltered counts
 scd.call(adata, "threshold", min_counts=500)       # stored in adata.obs["threshold"]
-scd.pl.knee(adata)
+scd.call(adata, "cellranger")
+scd.pl.compare(adata)                               # every stored call, side by side
 ```
 
 ## Licence
