@@ -122,7 +122,11 @@ Each barcode's class is `initial` (above the cut), `rescued`, `candidate` (teste
 ## Validation
 
 Compared with `STAR --runMode soloCellFiltering --soloCellFilter EmptyDrops_CR` (2.7.10a and
-2.7.11b) on two public 10x raw matrices; the cell sets are identical. The building blocks are
+2.7.11b) on two public 10x raw matrices; the cell sets are identical. Also identical to STAR's
+own call in full alignment runs: the six nuclei samples of GEO GSE168243 (STAR 2.7.10a,
+`--soloMultiMappers EM`, `--soloFeatures Gene GeneFull Velocyto`), Gene and GeneFull each, 13,221
+cells in all, barcode for barcode. These runs are kept outside the repository, so that check is
+not part of CI. The building blocks are
 also checked one by one: the Good-Turing port against STAR's `sgt.h` compiled with GCC, and the
 random draws against libstdc++'s `discrete_distribution` with `mt19937`.
 
