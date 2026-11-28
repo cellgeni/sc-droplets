@@ -13,6 +13,13 @@ count matrix: `matrix.mtx` for 10x and STARsolo; for kb the plain
 `cells_x_genes.mtx`, or mature + nascent + ambiguous for nac; for alevin-fry
 USA the sum of the three blocks. Spliced and unspliced counts, where a layout
 has them, go to `layers["spliced"]` and `layers["unspliced"]`.
+
+"Ambiguous" means two things. STARsolo's and velocyto's ambiguous molecules are a
+class of their own (exonic in one transcript model, intronic in another): they
+stay a separate layer. kb's nac ambiguous counts and alevin-fry's A block are the
+reads compatible with both the spliced and the unspliced sequence, mostly reads
+within exons, which velocyto counts as spliced: they are added to `spliced`, as
+kb's `--sum cell` and pyroe's velocity output add them.
 """
 
 from __future__ import annotations
@@ -138,12 +145,10 @@ def read_mtx_folder(folder: Path):
     elif layout.name == "kb" and {"mature", "nascent"} <= set(layout.extra):
         mature = oriented(layout.extra["mature"])
         nascent = oriented(layout.extra["nascent"])
-        ambiguous = oriented(layout.extra["ambiguous"]) if "ambiguous" in layout.extra else None
-        layers["spliced"], layers["unspliced"] = mature, nascent
-        matrix = mature + nascent
-        if ambiguous is not None:
-            layers["ambiguous"] = ambiguous
-            matrix = matrix + ambiguous
+        # Ambiguous reads (mostly within exons) count as spliced: see the module's docstring.
+        spliced = mature + oriented(layout.extra["ambiguous"]) if "ambiguous" in layout.extra else mature
+        layers["spliced"], layers["unspliced"] = spliced.tocsr(), nascent
+        matrix = (spliced + nascent).tocsr()
     else:
         matrix = oriented(layout.matrix)
 
@@ -151,9 +156,10 @@ def read_mtx_folder(folder: Path):
         ids = np.array(_lines(layout.features), dtype=object)
         if layout.name == "alevin-fry" and matrix.shape[1] == 3 * len(ids):
             n = len(ids)
-            blocks = [matrix[:, i * n : (i + 1) * n] for i in range(3)]
-            layers["spliced"], layers["unspliced"], layers["ambiguous"] = blocks
-            matrix = (blocks[0] + blocks[1] + blocks[2]).tocsr()
+            s, u, a = (matrix[:, i * n : (i + 1) * n] for i in range(3))
+            # S + A is spliced, as pyroe's velocity output has it: see the module's docstring.
+            layers["spliced"], layers["unspliced"] = (s + a).tocsr(), u.tocsr()
+            matrix = (s + u + a).tocsr()
         names = np.array(_lines(layout.extra["names"]), dtype=object) if "names" in layout.extra else ids
         var = pd.DataFrame({"gene_ids": ids, "feature_types": "Gene Expression"})
     else:

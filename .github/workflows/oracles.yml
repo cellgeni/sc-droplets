@@ -1,0 +1,592 @@
+name: Oracles
+
+# Runs the original tools on public data and uploads what they called, for the
+# validation tests (tests/oracles/). Run by hand, or when a branch or pull
+# request changes an oracle script; a maintainer downloads the artifact and
+# commits it.
+on:
+  workflow_dispatch:
+  push:
+    branches-ignore: [main]
+    paths:
+      - "oracles/**"
+      - ".github/workflows/oracles.yml"
+      - ".github/scripts/changed-oracles.sh"
+  pull_request:
+    paths:
+      - "oracles/**"
+      - ".github/workflows/oracles.yml"
+      - ".github/scripts/changed-oracles.sh"
+
+permissions:
+  contents: read
+
+jobs:
+  # Each oracle job runs only when its tool's scripts (or a helper it uses) changed: a change to
+  # one oracle should not rebuild every R environment of DropletUtils. By hand, every job runs.
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    name: which oracles changed
+    outputs:
+      tools: ${{ steps.diff.outputs.tools }}
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - id: diff
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.sha }}
+        run: bash .github/scripts/changed-oracles.sh
+
+  starsolo:
+    needs: changes
+    if: contains(needs.changes.outputs.tools, ' starsolo ')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    name: STARsolo soloCellFiltering
+
+    env:
+      SC_DROPLETS_DATA: ${{ github.workspace }}/.cache/datasets
+      MPLBACKEND: Agg
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3.2.4
+        with:
+          version: "0.13.1"
+          enable-cache: false
+
+      - name: Install
+        run: uv sync --frozen
+
+      - name: Run STAR
+        run: bash oracles/starsolo/run.sh oracle-out/starsolo
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: oracles-starsolo
+          path: oracle-out/
+          retention-days: 30
+
+  dropletutils:
+    needs: changes
+    if: contains(needs.changes.outputs.tools, ' dropletutils ')
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    name: DropletUtils, every release
+
+    env:
+      SC_DROPLETS_DATA: ${{ github.workspace }}/.cache/datasets
+      MPLBACKEND: Agg
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3.2.4
+        with:
+          version: "0.13.1"
+          enable-cache: false
+
+      - uses: prefix-dev/setup-pixi@9936258fee697aff89b3fed6ca1f80a382ef694e # v0.11.3
+        with:
+          pixi-version: v0.80.0
+          run-install: false
+          cache: false
+
+      - name: Install
+        run: uv sync --frozen
+
+      - name: Run DropletUtils
+        run: bash oracles/dropletutils/run.sh oracle-out/dropletutils
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()  # a release that fails should not hide the ones that ran
+        with:
+          name: oracles-dropletutils
+          path: oracle-out/
+          retention-days: 30
+
+  umitools:
+    needs: changes
+    if: contains(needs.changes.outputs.tools, ' umitools ')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    name: UMI-tools whitelist
+
+    env:
+      SC_DROPLETS_DATA: ${{ github.workspace }}/.cache/datasets
+      MPLBACKEND: Agg
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3.2.4
+        with:
+          version: "0.13.1"
+          enable-cache: false
+
+      - uses: prefix-dev/setup-pixi@9936258fee697aff89b3fed6ca1f80a382ef694e # v0.11.3
+        with:
+          pixi-version: v0.80.0
+          run-install: false
+          cache: false
+
+      - name: Install
+        run: uv sync --frozen
+
+      - name: Run UMI-tools
+        run: bash oracles/umitools/run.sh oracle-out/umitools
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()  # a release that fails should not hide the ones that ran
+        with:
+          name: oracles-umitools
+          path: oracle-out/
+          retention-days: 30
+
+  kneedle:
+    needs: changes
+    if: contains(needs.changes.outputs.tools, ' kneedle ')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    name: kneed KneeLocator
+
+    env:
+      SC_DROPLETS_DATA: ${{ github.workspace }}/.cache/datasets
+      MPLBACKEND: Agg
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3.2.4
+        with:
+          version: "0.13.1"
+          enable-cache: false
+
+      - uses: prefix-dev/setup-pixi@9936258fee697aff89b3fed6ca1f80a382ef694e # v0.11.3
+        with:
+          pixi-version: v0.80.0
+          run-install: false
+          cache: false
+
+      - name: Install
+        run: uv sync --frozen
+
+      - name: Run kneed
+        run: bash oracles/kneedle/run.sh oracle-out/kneedle
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()  # a release that fails should not hide the ones that ran
+        with:
+          name: oracles-kneedle
+          path: oracle-out/
+          retention-days: 30
+
+  cellsweep:
+    needs: changes
+    if: contains(needs.changes.outputs.tools, ' cellsweep ')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    name: cellsweep empty droplets
+
+    env:
+      SC_DROPLETS_DATA: ${{ github.workspace }}/.cache/datasets
+      MPLBACKEND: Agg
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3.2.4
+        with:
+          version: "0.13.1"
+          enable-cache: false
+
+      - uses: prefix-dev/setup-pixi@9936258fee697aff89b3fed6ca1f80a382ef694e # v0.11.3
+        with:
+          pixi-version: v0.80.0
+          run-install: false
+          cache: false
+
+      - name: Install
+        run: uv sync --frozen
+
+      - name: Run cellsweep
+        run: bash oracles/cellsweep/run.sh oracle-out/cellsweep
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()  # a release that fails should not hide the ones that ran
+        with:
+          name: oracles-cellsweep
+          path: oracle-out/
+          retention-days: 30
+
+  cellbender:
+    needs: changes
+    if: contains(needs.changes.outputs.tools, ' cellbender ')
+    # torch 1.12.1, the last build for Python 3.7 (CellBender 0.1 and 0.2), asks for an executable
+    # stack, which the glibc of Ubuntu 26.04 refuses to load; 24.04's still allows it.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    name: CellBender priors
+
+    env:
+      SC_DROPLETS_DATA: ${{ github.workspace }}/.cache/datasets
+      MPLBACKEND: Agg
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3.2.4
+        with:
+          version: "0.13.1"
+          enable-cache: false
+
+      - uses: prefix-dev/setup-pixi@9936258fee697aff89b3fed6ca1f80a382ef694e # v0.11.3
+        with:
+          pixi-version: v0.80.0
+          run-install: false
+          cache: false
+
+      - name: Install
+        run: uv sync --frozen
+
+      - name: Run CellBender
+        run: bash oracles/cellbender/run.sh oracle-out/cellbender
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()  # a release that fails should not hide the ones that ran
+        with:
+          name: oracles-cellbender
+          path: oracle-out/
+          retention-days: 30
+
+  bustools:
+    needs: changes
+    if: contains(needs.changes.outputs.tools, ' bustools ')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    name: bustools allowlist
+
+    env:
+      SC_DROPLETS_DATA: ${{ github.workspace }}/.cache/datasets
+      MPLBACKEND: Agg
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3.2.4
+        with:
+          version: "0.13.1"
+          enable-cache: false
+
+      - uses: prefix-dev/setup-pixi@9936258fee697aff89b3fed6ca1f80a382ef694e # v0.11.3
+        with:
+          pixi-version: v0.80.0
+          run-install: false
+          cache: false
+
+      - name: Install
+        run: uv sync --frozen
+
+      - name: Run bustools
+        run: bash oracles/bustools/run.sh oracle-out/bustools
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()  # a release that fails should not hide the ones that ran
+        with:
+          name: oracles-bustools
+          path: oracle-out/
+          retention-days: 30
+
+  alevinfry:
+    needs: changes
+    if: contains(needs.changes.outputs.tools, ' alevinfry ')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    name: alevin-fry permit lists
+
+    env:
+      SC_DROPLETS_DATA: ${{ github.workspace }}/.cache/datasets
+      MPLBACKEND: Agg
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3.2.4
+        with:
+          version: "0.13.1"
+          enable-cache: false
+
+      - uses: prefix-dev/setup-pixi@9936258fee697aff89b3fed6ca1f80a382ef694e # v0.11.3
+        with:
+          pixi-version: v0.80.0
+          run-install: false
+          cache: false
+
+      - name: Install
+        run: uv sync --frozen
+
+      - name: Run alevin-fry
+        run: bash oracles/alevinfry/run.sh oracle-out/alevinfry
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()  # a release that fails should not hide the ones that ran
+        with:
+          name: oracles-alevinfry
+          path: oracle-out/
+          retention-days: 30
+
+  alevin:
+    needs: changes
+    if: contains(needs.changes.outputs.tools, ' alevin ')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    name: alevin initial whitelist
+
+    env:
+      SC_DROPLETS_DATA: ${{ github.workspace }}/.cache/datasets
+      MPLBACKEND: Agg
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3.2.4
+        with:
+          version: "0.13.1"
+          enable-cache: false
+
+      - uses: prefix-dev/setup-pixi@9936258fee697aff89b3fed6ca1f80a382ef694e # v0.11.3
+        with:
+          pixi-version: v0.80.0
+          run-install: false
+          cache: false
+
+      - name: Install
+        run: uv sync --frozen
+
+      - name: Run alevin
+        run: bash oracles/alevin/run.sh oracle-out/alevin
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()  # a release that fails should not hide the ones that ran
+        with:
+          name: oracles-alevin
+          path: oracle-out/
+          retention-days: 30
+
+  dropseq:
+    needs: changes
+    if: contains(needs.changes.outputs.tools, ' dropseq ')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    name: Drop-seq dropbead
+
+    env:
+      SC_DROPLETS_DATA: ${{ github.workspace }}/.cache/datasets
+      MPLBACKEND: Agg
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3.2.4
+        with:
+          version: "0.13.1"
+          enable-cache: false
+
+      - uses: prefix-dev/setup-pixi@9936258fee697aff89b3fed6ca1f80a382ef694e # v0.11.3
+        with:
+          pixi-version: v0.80.0
+          run-install: false
+          cache: false
+
+      - name: Install
+        run: uv sync --frozen
+
+      - name: Run dropbead
+        run: bash oracles/dropseq/run.sh oracle-out/dropseq
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()  # a release that fails should not hide the ones that ran
+        with:
+          name: oracles-dropseq
+          path: oracle-out/
+          retention-days: 30
+
+  dropest:
+    needs: changes
+    if: contains(needs.changes.outputs.tools, ' dropest ')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    name: dropEst EstimateCellsNumber
+
+    env:
+      SC_DROPLETS_DATA: ${{ github.workspace }}/.cache/datasets
+      MPLBACKEND: Agg
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3.2.4
+        with:
+          version: "0.13.1"
+          enable-cache: false
+
+      - uses: prefix-dev/setup-pixi@9936258fee697aff89b3fed6ca1f80a382ef694e # v0.11.3
+        with:
+          pixi-version: v0.80.0
+          run-install: false
+          cache: false
+
+      - name: Install
+        run: uv sync --frozen
+
+      - name: Run dropestr
+        run: bash oracles/dropest/run.sh oracle-out/dropest
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()  # a release that fails should not hide the ones that ran
+        with:
+          name: oracles-dropest
+          path: oracle-out/
+          retention-days: 30
+
+  zumis:
+    needs: changes
+    if: contains(needs.changes.outputs.tools, ' zumis ')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    name: zUMIs cell barcodes
+
+    env:
+      SC_DROPLETS_DATA: ${{ github.workspace }}/.cache/datasets
+      MPLBACKEND: Agg
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3.2.4
+        with:
+          version: "0.13.1"
+          enable-cache: false
+
+      - uses: prefix-dev/setup-pixi@9936258fee697aff89b3fed6ca1f80a382ef694e # v0.11.3
+        with:
+          pixi-version: v0.80.0
+          run-install: false
+          cache: false
+
+      - name: Install
+        run: uv sync --frozen
+
+      - name: Run zUMIs
+        run: bash oracles/zumis/run.sh oracle-out/zumis
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()  # a release that fails should not hide the ones that ran
+        with:
+          name: oracles-zumis
+          path: oracle-out/
+          retention-days: 30
+
+  generic:
+    needs: changes
+    if: contains(needs.changes.outputs.tools, ' generic ')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    name: scuttle and scikit-image (generic rules)
+
+    env:
+      SC_DROPLETS_DATA: ${{ github.workspace }}/.cache/datasets
+      MPLBACKEND: Agg
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3.2.4
+        with:
+          version: "0.13.1"
+          enable-cache: false
+
+      - uses: prefix-dev/setup-pixi@9936258fee697aff89b3fed6ca1f80a382ef694e # v0.11.3
+        with:
+          pixi-version: v0.80.0
+          run-install: false
+          cache: false
+
+      - name: Install
+        run: uv sync --frozen
+
+      - name: Run scuttle and scikit-image
+        run: bash oracles/generic/run.sh oracle-out/generic
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()  # a release that fails should not hide the ones that ran
+        with:
+          name: oracles-generic
+          path: oracle-out/
+          retention-days: 30
+
+  splicing:
+    needs: changes
+    if: contains(needs.changes.outputs.tools, ' splicing ')
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    name: kb nac counts (splicing data)
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      # The FASTQs (5.5 GB), the index (2 GB, 3.3 GB unpacked) and kb's output need the room.
+      - name: Free disk space
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+
+      - uses: prefix-dev/setup-pixi@9936258fee697aff89b3fed6ca1f80a382ef694e # v0.11.3
+        with:
+          pixi-version: v0.80.0
+          run-install: false
+          cache: false
+
+      - name: Run kb count --workflow nac
+        run: bash oracles/splicing/run.sh oracle-out/splicing
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: oracles-splicing
+          path: oracle-out/
+          retention-days: 30

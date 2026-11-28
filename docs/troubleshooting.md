@@ -1,6 +1,6 @@
 ---
 title: Troubleshooting
-nav_order: 7
+nav_order: 8
 ---
 
 # Troubleshooting
@@ -29,8 +29,9 @@ for example). Name the type to count with `--feature-type`, or count everything 
 
 ## "... cannot be reproduced"
 
-The release asked for falls in a range whose code is not public (Cell Ranger 4.0 to 7.1). The
-method's page says what is known about it from the release notes.
+The release asked for falls in a range that cannot be reproduced: its code is not public and no
+rule matches its outputs exactly (Cell Ranger 1.x and 6.0 to 7.1). The method's page says what is
+known about it from the release notes and 10x's outputs.
 
 ## "... needs --n-cells" (or another option)
 

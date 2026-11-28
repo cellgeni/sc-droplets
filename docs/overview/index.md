@@ -44,6 +44,12 @@ Several methods with different names compute the same thing:
 - **A robust maximum divided by ten**: Cell Ranger 2 OrdMag, STARsolo CellRanger2.2,
   alevin `--expectCells`, DropletUtils `defaultDrops`, alevin-fry `--expect-cells` (with a
   twist: it takes the 0.99·N-th barcode, not the 0.01·N-th).
+- **A test against the ambient profile**: DropletUtils emptyDrops, Cell Ranger 3+, STARsolo
+  EmptyDrops_CR, DropletUtils `emptyDropsCellRanger`.
+
+[Same idea, different tools](families.md) sets each family's members side by side on the same
+matrices. [Reads, UMIs, ties and rounding](arithmetic.md) collects the details that move a call
+within a family: what is counted, which barcodes enter, ties, rounding and random numbers.
 
 ## Every method, and where it stands
 
@@ -53,24 +59,24 @@ closed).
 
 | Tool | Methods | Status |
 |---|---|---|
-| Generic | [top N](../methods/generic/top-n.md), [fixed threshold](../methods/generic/threshold.md) | implemented |
-| Generic | MAD, Otsu, multi-Otsu, KDE valley, Gaussian mixtures (1-D, 2-D), negative-binomial mixture | planned, 0.1.0 |
-| Cell Ranger | OrdMag (1.x, 2.x, 7.2+), EmptyDrops step (3.0, 7.2, 8.0, 9.0, 10.0, 10.1), targeted gradient, antibody and high-occupancy filters | planned, 0.1.0; 4.0–7.1 are a documented gap (no public source) |
-| STARsolo | CellRanger2.2, TopCells, EmptyDrops_CR, `soloBasicCellFilter.awk` | planned, 0.1.0 |
-| DropletUtils | barcodeRanks (four knee definitions), emptyDrops (eight behaviours), emptyDropsCellRanger, defaultDrops | planned, 0.1.0 |
-| CellBender | prior estimates of expected cells and total droplets (0.1, 0.2, 0.3–0.4) | planned, 0.1.0; the VAE is docs only |
-| cellsweep | empty-droplet step: autoknee, kneed, mx_filter | planned, 0.1.0 |
-| UMI-tools | whitelist distance and density | planned, 0.1.0 |
-| alevin (salmon 1.x) | knee with Gauss correction, expect cells, force cells | planned, 0.1.0 |
-| alevin-fry | knee distance, expect cells, force cells, unfiltered permit list | planned, 0.1.0 |
-| Drop-seq | dropbead knee | planned, 0.1.0 |
-| bustools / kb | allowlist (`kb --filter bustools`) | planned, 0.1.0 |
-| dropEst | cell-number bounds | planned, 0.1.0 |
-| zUMIs | UIK knee; Gaussian mixture (before Nov 2019) | planned, 0.1.0 |
-| Kneedle | kneed 0.8.5, 0.8.6, 0.9.0 | planned, 0.1.0 |
-| CB2, DIEM, DropletQC, DropSift, dropEst classifier, alevin naive Bayes, valiDrops, SiftCell | statistical tests and classifiers | planned, 0.2 |
-| Cell Ranger ATAC and ARC, EmptyDropsMultiome, BAP, SADE | ATAC and multiome | planned, 0.3 |
-| CellBender VAE, EmptyNN, dropkick, BD Rhapsody, ScaleBio, CeleScope, Ambimux, AmbientMapper | | docs only |
+| Generic | [top N](../methods/generic/top-n.md), [fixed threshold](../methods/generic/threshold.md), [MAD outliers](../methods/generic/mad.md), [Otsu](../methods/generic/otsu.md), [multi-Otsu](../methods/generic/multiotsu.md), [kernel-density valley](../methods/generic/kde-valley.md), [Gaussian mixtures](../methods/generic/gmm.md) (one and [two dimensions](../methods/generic/gmm-2d.md)) | implemented |
+| Generic | negative-binomial mixture (Cell Ranger ATAC's, on RNA) | planned, 0.3, with Cell Ranger ATAC |
+| Cell Ranger | [cell calling](../methods/cellranger/cellranger.md) (2.x, 3.x, 4.0, 5.x, 7.2, 8.0, 8.0.1, 9.0, 10.0, 10.1, with the antibody-aggregate, 8.0+ and high-occupancy filters), [OrdMag](../methods/cellranger/ordmag.md) | implemented; 4.0 and 5.x from 10x's outputs (no public source); 1.x and 6.0–7.1 are documented gaps; targeted (gradient) calling planned |
+| STARsolo | [CellRanger2.2](../methods/starsolo/cellranger2-2.md), [TopCells](../methods/starsolo/topcells.md), [EmptyDrops_CR](../methods/starsolo/emptydrops-cr.md), [`soloBasicCellFilter.awk`](../methods/starsolo/basic-awk.md) | implemented |
+| DropletUtils | [barcodeRanks](../methods/dropletutils/barcoderanks.md) (four knee definitions), [emptyDrops](../methods/dropletutils/emptydrops.md) (ten behaviours), [emptyDropsCellRanger](../methods/dropletutils/emptydropscellranger.md), [defaultDrops](../methods/dropletutils/defaultdrops.md) | implemented; 1.0–1.2's Dirichlet-multinomial (R's `rgamma`) refused |
+| CellBender | [priors](../methods/cellbender/prior.md): probable cells, analysed and surely-empty droplets, from mode and median (0.1, 0.2) or Otsu and a kernel density (0.3–0.4) | implemented; the [model](../methods/cellbender/model.md) is docs only |
+| cellsweep | [empty-droplet step](../methods/cellsweep/empty.md): second derivative (to 1.0.1), kneed (1.0.2), mx_filter | implemented |
+| UMI-tools | whitelist [distance](../methods/umitools/distance.md) and [density](../methods/umitools/density.md) | implemented |
+| alevin (salmon 0.11 – 1.10) | [initial whitelist](../methods/alevin/initial-whitelist.md): tangent knee with a kernel-density correction, expected cells, forced cells; the low-confidence band | implemented; the [naive Bayes classifier](../methods/alevin/naive-bayes.md) is planned |
+| alevin-fry | [permit list](../methods/alevinfry/permit-list.md): knee distance, expect cells, force cells, unfiltered permit list; 0.12–0.17's own rules for Flex | implemented |
+| Drop-seq | [dropbead](../methods/dropseq/dropbead.md): farthest from the diagonal of the cumulative fraction | implemented |
+| bustools / kb | [allowlist](../methods/bustools/allowlist.md) (`kb --filter bustools`) | implemented |
+| dropEst | [cell-number bounds](../methods/dropest/bounds.md): lagged log-log derivatives, High / Unknown / Low | implemented; the [classifier](../methods/dropest/classifier.md) is planned |
+| zUMIs | [cell barcodes](../methods/zumis/cell-barcodes.md): the UIK of the cumulative reads (2.5.6b on) | implemented; the earlier Gaussian mixture is a gap (unseeded) |
+| Kneedle | [kneed's KneeLocator](../methods/kneedle/kneedle.md) on the rank curve (0.5.1 – 0.9.0), with yascp's sensitivity search | implemented |
+| [CB2](../methods/planned/cb2.md), [DIEM](../methods/planned/diem.md), [DropletQC](../methods/planned/dropletqc.md), [DropSift](../methods/planned/dropsift.md), [valiDrops](../methods/planned/validrops.md), [SiftCell](../methods/planned/siftcell.md), [miQC](../methods/planned/miqc.md) | statistical tests, classifiers and quality mixtures | [planned](../methods/planned/index.md), 0.2 |
+| [Cell Ranger ATAC](../methods/planned/cellranger-atac.md) and [ARC](../methods/planned/cellranger-arc.md), [EmptyDropsMultiome](../methods/planned/emptydropsmultiome.md), [BAP](../methods/planned/bap.md), [SADE](../methods/planned/sade.md) | ATAC and multiome | [planned](../methods/planned/index.md), 0.3 |
+| [EmptyNN](../methods/documented/emptynn.md), [dropkick](../methods/documented/dropkick.md), [BD Rhapsody](../methods/documented/bd-rhapsody.md), [ScaleBio](../methods/documented/scalebio.md), [CeleScope](../methods/documented/celescope.md), [Ambimux](../methods/documented/ambimux.md), [AmbientMapper](../methods/documented/ambientmapper.md) | classifiers, vendor pipelines, genotype-based calls | [docs only](../methods/documented/index.md) |
 
 ## Versions matter
 
@@ -80,7 +86,9 @@ the methods' pages describe:
 | Tool | Release | Change |
 |---|---|---|
 | Cell Ranger | 3.0 | an EmptyDrops-style test added after OrdMag |
-| Cell Ranger | 7.x | expected cells estimated when not given; ambient range depends on chemistry |
+| Cell Ranger | 4.0 | the test's simulation draws from a random stream of its own |
+| Cell Ranger | 5.0 | antibody aggregates removed before calling |
+| Cell Ranger | 7.2 | expected cells estimated when not given; ambient range depends on chemistry |
 | Cell Ranger | 8.0 | candidates must lie above the ambient range; FDR 0.001 for some chemistries |
 | Cell Ranger | 9.0 | 100,000 simulations and a new simulator |
 | DropletUtils | 1.2 | emptyDrops fits a Dirichlet-multinomial by default |
@@ -88,7 +96,8 @@ the methods' pages describe:
 | DropletUtils | 1.28 | emptyDrops back to a plain multinomial |
 | STARsolo | 2.7.8a | EmptyDrops_CR added; CellRanger2.2 rounding changed |
 | CellBender | 0.3.0 | priors from Otsu thresholding and a density peak instead of mode and median |
-| salmon | 2.0 | alevin removed; its rules are historical |
+| salmon | 1.11 | alevin removed; its rules are historical |
 | kneed | 0.8.6, 0.9.0 | knee detection changed, which moves cellsweep's call |
 
-Previous comparisons of these methods are collected in [Reviews and benchmarks](reviews.md).
+Previous comparisons of these methods are collected in [Reviews and benchmarks](reviews.md); this
+package's own, every method on five public samples, is the [Comparison on public data](comparison.md).

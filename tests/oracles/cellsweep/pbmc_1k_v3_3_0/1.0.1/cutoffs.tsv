@@ -1,0 +1,5 @@
+default	52133.0	2
+mx_filter	0.0	6794880
+expected	4336.0	1000
+mx_filter_detected	1.0	234600
+mx_filter_over100	2067.0	1122

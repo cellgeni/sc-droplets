@@ -1,0 +1,41 @@
+# Python environments for CellBender's own SingleCellRNACountsDataset, from conda-forge. Used by
+# run.sh, which puts each release's tagged source on PYTHONPATH. numpy stays below 1.25, whose
+# argsort sorts with SIMD code on some processors and leaves ties in another order.
+[workspace]
+name = "cellbender-oracles"
+channels = ["conda-forge"]
+platforms = ["linux-64", "osx-64"]
+
+# CellBender 0.1.0 and 0.2.x (Python 3.7 in their Docker images)
+[feature.py37.dependencies]
+python = "3.7.*"
+numpy = "1.21.*"
+scipy = "1.7.*"
+pytables = "*"
+pytorch = "*"
+pyro-ppl = "1.8.*"
+scikit-learn = "*"
+matplotlib-base = "*"
+pandas = "*"
+anndata = "*"
+
+# old osx-64 builds were linked against libc++ before 15
+[feature.py37.target.osx-64.dependencies]
+libcxx = "<15"
+
+# CellBender 0.3.0, 0.3.2 and 0.4.0 (0.4.0 needs Python 3.10+)
+[feature.py311.dependencies]
+python = "3.11.*"
+numpy = "1.24.*"
+scipy = "*"
+pytables = "*"
+pytorch = "*"
+pyro-ppl = ">=1.8.4"
+scikit-learn = "*"
+matplotlib-base = "*"
+pandas = "*"
+anndata = ">=0.9"
+
+[environments]
+py37 = { features = ["py37"] }
+py311 = { features = ["py311"] }

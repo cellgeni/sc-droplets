@@ -87,3 +87,40 @@ def test_the_terminal_knee_has_the_asked_size_and_names_its_marks():
     assert all(len(l.split("┤", 1)[1]) == 40 for l in plot_rows)
     assert lines[-1].strip() == "···· cut: 500"
     assert scd.pl.knee_text(np.zeros(3)) == ["(no barcode has any counts)"]
+
+
+def test_diagnostics_of_a_threshold_method_shows_its_cut_and_robust_maximum(adata):
+    scd.call(adata, "starsolo-cellranger2.2")
+    figure = scd.pl.diagnostics(adata, "starsolo_cellranger2_2")
+    (ax,) = figure.axes
+    labels = [t.get_text() for t in ax.get_legend().get_texts()]
+    assert any(l.startswith("cut: ") for l in labels) and any(l.startswith("robust maximum") for l in labels)
+
+
+def test_diagnostics_of_ordmag_shades_its_bootstraps(adata):
+    figure = scd.pl.diagnostics(adata, "cellranger-ordmag@2.1")
+    labels = [t.get_text() for t in figure.axes[0].get_legend().get_texts()]
+    assert any("OrdMag bootstraps" in l for l in labels)
+
+
+def test_diagnostics_of_a_test_has_classes_likelihoods_and_p_values():
+    adata = scd.simulate_droplets(n_cells=300, n_empty=3000, n_low=3000, n_genes=200, cell_umis=1500, cell_sigma=1.0, seed=7)
+    scd.call(adata, "starsolo-emptydrops-cr", ind_min=2000, ind_max=5000, umi_min=150, sim_n=200)
+    figure = scd.pl.diagnostics(adata, "starsolo_emptydrops_cr")
+    assert len(figure.axes) == 3
+    classes, loglik, pvalues = figure.axes
+    assert any("ambient ranks" in t.get_text() for t in classes.get_legend().get_texts())
+    assert loglik.get_xlabel() == "UMIs per candidate"
+    assert "adjusted p ≤ 0.01" in pvalues.get_title()
+
+
+def test_diagnostics_of_a_test_that_tested_nothing_says_so(adata):
+    """Cell Ranger on a matrix with fewer barcodes than its ambient range tests no barcode; its
+    candidates' panel used to put an empty scatter on a log axis, which matplotlib cannot draw,
+    and the diagnostics and the report failed."""
+    scd.call(adata, "cellranger")
+    assert not np.isfinite(adata.obs["cellranger_loglik" if "cellranger_loglik" in adata.obs else "cellranger_logprob"]).any()
+    figure = scd.pl.diagnostics(adata, "cellranger")
+    figure.canvas.draw()
+    assert any(t.get_text() == "no barcode was tested" for t in figure.axes[1].texts)
+    assert 'id="call-cellranger"' in scd.report(adata)

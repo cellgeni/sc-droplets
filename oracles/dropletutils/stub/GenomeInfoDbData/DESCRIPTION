@@ -1,0 +1,7 @@
+Package: GenomeInfoDbData
+Version: 1.2.99
+Title: Empty stand-in for the oracle environments
+Description: GenomeInfoDb imports GenomeInfoDbData, a data package that conda installs with a
+    post-link script downloading the data. DropletUtils never uses those tables, so this empty
+    package satisfies the import without running that script.
+License: Artistic-2.0

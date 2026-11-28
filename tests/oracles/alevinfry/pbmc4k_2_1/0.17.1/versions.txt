@@ -1,0 +1,4 @@
+alevin-fry 0.17.1
+source 9c82c0ba8432ceea18d25089833d82cc5950fb59
+rustc 1.91.1 (ed61e7d7e 2025-11-07)
+platform Linux x86_64

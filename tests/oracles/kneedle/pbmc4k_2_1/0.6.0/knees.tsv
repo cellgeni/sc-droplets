@@ -1,0 +1,5 @@
+yascp_interp1d	936	2400.0
+yascp_polynomial	1	5000.0
+loglog_concave	89081	1.0
+loglog_concave_online	90	1.0
+loglog_convex	2384	1.0

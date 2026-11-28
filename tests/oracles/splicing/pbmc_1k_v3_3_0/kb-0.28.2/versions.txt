@@ -1,0 +1,6 @@
+bustools 0.43.2
+kallisto 0.50.1
+kb-python 0.28.2
+index https://github.com/pachterlab/kallisto-transcriptome-indices/releases/download/v1/human_index_nac.tar.xz
+reads all
+platform Linux-x86_64

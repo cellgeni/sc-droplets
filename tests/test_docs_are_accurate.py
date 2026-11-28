@@ -11,6 +11,7 @@ Prose drifts from code silently, and nothing else in the suite reads the docs.
 from __future__ import annotations
 
 import importlib.util
+import os
 import re
 import shlex
 from pathlib import Path
@@ -221,6 +222,28 @@ def test_every_implemented_method_page_is_for_a_registered_method():
             assert method_id in registered, f"{_label(path)}: {method_id} is not registered"
 
 
+#: Pages of methods not (yet) run by the package: what the method does, not how to run it here.
+OTHER_SECTIONS = ["At a glance", "How it works", "Versions", "Parameters", "Status", "References"]
+OTHER_PAGES = [(i, p, m) for i, (p, m, _) in METHOD_PAGES.items() if m.get("status") in ("planned", "docs-only")]
+OTHER_INDEX = {"planned": SITE / "methods" / "planned" / "index.md", "docs-only": SITE / "methods" / "documented" / "index.md"}
+
+
+@pytest.mark.parametrize("method_id, path, meta", OTHER_PAGES, ids=[i for i, _, _ in OTHER_PAGES])
+def test_planned_and_documented_pages_have_their_sections_and_are_listed(method_id, path, meta):
+    """A planned or documented-only page follows its own template, names no registered method,
+    and is linked from the index of its status, wherever its tool's pages are."""
+    _, body = front_matter(path.read_text())
+    assert re.findall(r"^## (.+)$", body, re.M) == OTHER_SECTIONS, f"{_label(path)} has other sections"
+    assert method_id not in {c.info.id for c in METHODS}, f"{_label(path)}: {method_id} is registered"
+    index = OTHER_INDEX[meta["status"]]
+    target = os.path.relpath(path, index.parent).replace(os.sep, "/")
+    assert f"]({target})" in index.read_text(), f"{_label(index)} does not link {target}"
+
+
+def test_there_are_planned_and_documented_pages():
+    assert {m.get("status") for _, _, m in OTHER_PAGES} == {"planned", "docs-only"}
+
+
 def test_the_methods_table_is_current():
     spec = importlib.util.spec_from_file_location("methods_table", SITE / "_scripts" / "methods_table.py")
     module = importlib.util.module_from_spec(spec)
@@ -277,3 +300,29 @@ def test_every_relative_link_points_at_a_page_and_heading_that_exist(path, targe
         assert destination.is_relative_to(SITE), f"{_label(path)} links outside the site"
     if anchor and destination.suffix == ".md":
         assert anchor in _anchors(destination), f"{_label(path)}: no heading #{anchor} in {file}"
+
+
+ASSETS = [
+    (path, target)
+    for path in PAGES
+    for target in re.findall(
+        r"\{\{\s*['\"](/[^'\"]+)['\"]\s*\|\s*relative_url\s*\}\}",
+        re.sub(r"\{% raw %\}.*?\{% endraw %\}", "", path.read_text(), flags=re.S),  # examples, not links
+    )
+]
+
+
+@pytest.mark.parametrize("path, target", ASSETS, ids=[f"{_label(p)} -> {t}" for p, t in ASSETS])
+def test_every_site_asset_exists(path, target):
+    """Images are linked as `{{ '/assets/...' | relative_url }}`: a relative path would break under
+    the site's pretty permalinks, and the link check above skips them."""
+    assert (SITE / target.lstrip("/")).is_file(), f"{_label(path)} shows {target}, which does not exist"
+
+
+@pytest.mark.parametrize("path", PAGES, ids=[_label(p) for p in PAGES])
+def test_inline_formulas_use_kramdown_dollars(path):
+    """kramdown reads `\\(` as an escaped parenthesis, so `\\(x\\)` showed as "(x)" on the
+    site; inline formulas are written `$$x$$`, which kramdown turns into KaTeX's form."""
+    _, body = front_matter(path.read_text())
+    prose = re.sub(r"```.*?```", "", body, flags=re.S)
+    assert "\\(" not in prose, f"{_label(path)} has \\( ... \\); write $$...$$ instead"

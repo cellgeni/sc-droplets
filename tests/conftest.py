@@ -14,10 +14,39 @@ import scipy.sparse as sp
 import sc_droplets as scd
 
 
+def pytest_addoption(parser):
+    parser.addoption(
+        "--shard",
+        default=None,
+        metavar="I/N",
+        help="run every N-th selected test, starting at the I-th (1-based), so N CI jobs share a suite",
+    )
+
+
+@pytest.hookimpl(trylast=True)  # after -m and -k have deselected
+def pytest_collection_modifyitems(config, items):
+    shard = config.getoption("--shard")
+    if not shard:
+        return
+    index, count = (int(part) for part in shard.split("/"))
+    if not 1 <= index <= count:
+        raise pytest.UsageError(f"--shard {shard}: I must be between 1 and N")
+    # Round robin in collection order, so each shard gets a share of every slow test function.
+    keep = [item for i, item in enumerate(items) if i % count == index - 1]
+    config.hook.pytest_deselected(items=[item for i, item in enumerate(items) if i % count != index - 1])
+    items[:] = keep
+
+
 @pytest.fixture(scope="session")
 def sim():
     """A small raw matrix: 300 cells, 2,000 empty droplets, 5,000 low barcodes."""
     return scd.simulate_droplets(n_cells=300, n_empty=2000, n_low=5000, n_genes=200, seed=7)
+
+
+@pytest.fixture(scope="session")
+def spliced():
+    """`sim` with `spliced` and `unspliced` layers: cells about 25 % unspliced, ambient RNA 10 %."""
+    return scd.simulate_droplets(n_cells=300, n_empty=2000, n_low=5000, n_genes=200, seed=7, splicing=True)
 
 
 @pytest.fixture
@@ -127,18 +156,38 @@ def write_kb(adata, folder: Path, nac: bool = False) -> Path:
     if nac:
         _write_mtx(folder / "cells_x_genes.mature.mtx", adata.layers["spliced"], False)
         _write_mtx(folder / "cells_x_genes.nascent.mtx", adata.layers["unspliced"], False)
-        _write_mtx(folder / "cells_x_genes.ambiguous.mtx", sp.csr_matrix(adata.shape, dtype=np.int64), False)
+        ambiguous = adata.layers["ambiguous"] if "ambiguous" in adata.layers else sp.csr_matrix(adata.shape, dtype=np.int64)
+        _write_mtx(folder / "cells_x_genes.ambiguous.mtx", ambiguous, False)
     else:
         _write_mtx(folder / "cells_x_genes.mtx", adata.X, False)
     return folder
+
+
+def write_loom(adata, path: Path, sample: str = "sample1") -> Path:
+    """A velocyto loom: dense genes × cells layers, CellID as `sample:BARCODEx` (no `-1`)."""
+    import h5py
+
+    def dense(name):
+        layer = adata.layers[name] if name in adata.layers else sp.csr_matrix(adata.shape, dtype=np.int64)
+        return sp.csr_matrix(layer).T.toarray()
+
+    cells = [f"{sample}:{b.split('-')[0]}x" for b in adata.obs_names]
+    with h5py.File(path, "w") as handle:
+        handle["matrix"] = dense("spliced")
+        for name in ("spliced", "unspliced", "ambiguous"):
+            handle[f"layers/{name}"] = dense(name)
+        handle["row_attrs/Gene"] = np.array(adata.var_names, dtype="S")
+        handle["row_attrs/Accession"] = np.array(adata.var["gene_ids"], dtype="S")
+        handle["col_attrs/CellID"] = np.array(cells, dtype="S")
+    return path
 
 
 def write_alevin_fry(adata, folder: Path, usa: bool = False) -> Path:
     """alevin-fry's alevin/ quant folder; USA mode has S, U, A column blocks."""
     folder.mkdir(parents=True)
     if usa:
-        zeros = sp.csr_matrix(adata.shape, dtype=np.int64)
-        matrix = sp.hstack([adata.layers["spliced"], adata.layers["unspliced"], zeros], format="csr")
+        ambiguous = adata.layers["ambiguous"] if "ambiguous" in adata.layers else sp.csr_matrix(adata.shape, dtype=np.int64)
+        matrix = sp.hstack([adata.layers["spliced"], adata.layers["unspliced"], ambiguous], format="csr")
     else:
         matrix = adata.X
     _write_mtx(folder / "quants_mat.mtx", matrix, False)

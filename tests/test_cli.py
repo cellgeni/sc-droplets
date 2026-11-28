@@ -104,6 +104,26 @@ def test_errors_are_one_line_and_exit_1(h5, tmp_path):
     assert result.exit_code == 1 and "also the input" in _out(result)
 
 
+@pytest.mark.parametrize("command", [
+    ["call", "threshold", "{raw}", "--min-counts", "100", "--splicing", "{splicing}", "-o", "{splicing}"],
+    ["compare", "{raw}", "-m", "otsu", "--splicing", "{splicing}", "--table", "{splicing}"],
+    ["plot", "knee", "{raw}", "-m", "otsu", "--splicing", "{splicing}", "-o", "{splicing}"],
+    ["plot", "splicing", "{raw}", "-m", "otsu", "--splicing", "{splicing}", "-o", "{splicing}"],
+    ["report", "{raw}", "-m", "otsu", "--splicing", "{splicing}", "-o", "{splicing}"],
+], ids=["call", "compare", "plot knee", "plot splicing", "report"])
+def test_no_output_may_replace_the_splicing_source(spliced, tmp_path, command):
+    """`--splicing` names a second input, which the output checks used to ignore: `-o` given the
+    same path read the splicing counts and then replaced them with the output."""
+    raw, source = tmp_path / "raw.h5ad", tmp_path / "splice.h5ad"
+    spliced.write_h5ad(raw)
+    spliced.write_h5ad(source)
+    before = source.stat().st_mtime_ns
+    args = [a.format(raw=raw, splicing=source) for a in command]
+    result = runner.invoke(app, args)
+    assert result.exit_code == 1 and "also the input" in _out(result), _out(result)
+    assert source.stat().st_mtime_ns == before and ad.read_h5ad(source).n_obs == spliced.n_obs
+
+
 def test_reads_may_come_from_a_table(h5, sim, tmp_path):
     table = tmp_path / "reads.csv"
     table.write_text("barcode,reads\n" + "".join(f"{b},{i}\n" for i, b in enumerate(sim.obs_names)))
@@ -151,3 +171,16 @@ def test_plot_knee_runs_methods_or_draws_stored_calls(h5, tmp_path):
     assert result.exit_code == 0, result.output
     result = runner.invoke(app, ["plot", "knee", str(tmp_path / "c.h5ad"), "--key", "nope", "-o", str(tmp_path / "x.png")])
     assert result.exit_code == 1 and "no stored call" in _out(result)
+
+
+def test_plot_diagnostics_runs_a_method_or_draws_a_stored_call(h5, tmp_path):
+    result = runner.invoke(app, ["plot", "diagnostics", str(h5), "-m", "starsolo-cellranger2.2", "-o", str(tmp_path / "d.png")])
+    assert result.exit_code == 0, result.output
+    assert (tmp_path / "d.png").stat().st_size > 1000
+    runner.invoke(app, ["call", "top-n", str(h5), "--n-cells", "300", "-o", str(tmp_path / "c.h5ad")])
+    result = runner.invoke(app, ["plot", "diagnostics", str(tmp_path / "c.h5ad"), "--key", "top_n", "-o", str(tmp_path / "e.png")])
+    assert result.exit_code == 0, result.output
+    result = runner.invoke(app, ["plot", "diagnostics", str(h5), "-o", str(tmp_path / "f.png")])
+    assert result.exit_code == 1 and "exactly one of --method and --key" in _out(result)
+    result = runner.invoke(app, ["plot", "diagnostics", str(tmp_path / "c.h5ad"), "--key", "nope", "-o", str(tmp_path / "g.png")])
+    assert result.exit_code == 1 and "no stored call nope" in _out(result)

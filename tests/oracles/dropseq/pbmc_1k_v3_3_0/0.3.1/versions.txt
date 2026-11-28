@@ -1,0 +1,3 @@
+R version 4.4.3 (2025-02-28)
+platform x86_64-conda-linux-gnu
+dropbead 73fd12129c9705eee21aad109b52ac1e9c8d21f4

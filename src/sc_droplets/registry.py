@@ -6,7 +6,7 @@ dataclass (its parameters, built with `param`). The CLI builds one
 `sc-droplets call <id>` subcommand per registered method from these, and the
 docs test checks every method has its page.
 
-Versions are those of the *original tool*: `cellranger-emptydrops@9.0` is what
+Versions are those of the *original tool*: `cellranger@9.0` is what
 Cell Ranger 9.0 did. Each `Variant` covers a half-open range of tool releases
 [since, until). A `Gap` is a range whose behaviour is unknown (no public
 source); asking for it is an error that names the docs page.
@@ -57,6 +57,7 @@ RESERVED_PARAMS = frozenset(
         "key",
         "key_added",
         "solo_feature",
+        "splicing",
         "inplace",
     }
 )

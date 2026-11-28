@@ -5,7 +5,7 @@ one, not that.
 
 `sc-droplets` collects every method for calling cells vs empty droplets in droplet single-cell
 data, version by version: a review site (one page per algorithm), a Python package on AnnData,
-and a command line. The point is fidelity: `cellranger-emptydrops@9.0` must call the cells Cell
+and a command line. The point is fidelity: `cellranger@9.0` must call the cells Cell
 Ranger 9.0 called on the same matrix. A method that only resembles its original is a bug.
 
 Naming:
@@ -20,11 +20,16 @@ uv run sc-droplets --help                            # run the CLI from source
 uv run pytest -m "not integration"                   # unit suite; what CI gates on
 uv run pytest tests/test_api.py::test_top_n_breaks_ties_by_input_order_or_keeps_them_all
 uv run pytest -m "not integration and not perf" --cov=sc_droplets --cov-fail-under=90
+uv run pytest -m integration -n auto --dist worksteal tests/test_validation.py  # the oracle suite, on every core
 uv run python docs/_scripts/methods_table.py         # regenerate the table on docs/methods/index.md
+uv run python docs/_scripts/comparison.py            # rerun the Comparison on public data page (minutes)
+uv run python docs/_scripts/figures.py               # redraw the Visualising calls guide's figures
+uv run python docs/_scripts/families.py              # rerun the Same idea, different tools tables
 ```
 
 Markers: `integration` (downloads public data or builds oracle environments; needs the network),
-`perf` (cost guards, their own CI job), `slow`.
+`perf` (cost guards, their own CI job), `slow`. `--shard I/N` runs every N-th selected test (CI
+splits the validation suite into two jobs, each on every core with pytest-xdist's `-n auto`).
 
 ## Architecture
 
@@ -40,12 +45,50 @@ Markers: `integration` (downloads public data or builds oracle environments; nee
 - `result.py`: `CallResult` and `store`: `obs[k]`, `obs[k + "_class"]`, `obs[k + "_" + col]`,
   `uns["sc_droplets"][k]`. Everything in `uns` must survive `write_h5ad` (`h5ad_safe`).
 - `api.py`: `call`, `compare`, `agreement`, `list_methods`, `stored`.
+- `metrics.py`: per-barcode measures beside the counts: `unspliced_fraction` (U / (S + U) from
+  layers, a velocyto loom, STARsolo Velocyto or GeneFull − Gene, kb nac, alevin-fry USA),
+  `add_metrics` (matches a separate source by `barcode_key`), `mito_fraction`, and `separation`
+  (each call's medians in and out, and the AUROC), which `compare` joins in.
 - `io/`: `read` finds the raw matrix in any file or pipeline folder (`find_matrix`); `tenx.py`
-  (10x HDF5 v2/v3), `mtx.py` (Cell Ranger, STARsolo, Velocyto, kb incl. nac, alevin-fry incl.
+  (10x HDF5 v2/v3), `loom.py` (velocyto), `mtx.py` (Cell Ranger, STARsolo, Velocyto, kb incl. nac, alevin-fry incl.
   USA); `write.py` stages every output beside its name and renames it into place.
 - `methods/`: one module per tool page, listed in `methods/__init__.py::_MODULES`.
+  `cellranger.py` holds the chemistry tables (ambient range and FDR per release and kit family),
+  OrdMag v2/v7, the EmptyDrops steps, and the aggregate and high-occupancy filters.
+  `dropletutils.py` holds barcodeRanks (four knee rules), emptyDrops, emptyDropsCellRanger and
+  defaultDrops. `umitools.py` holds `whitelist`'s distance knee and density valley; `kneedle.py`
+  runs kneed's Kneedle (`primitives/kneed.py`, one behaviour per release) on the rank curve;
+  `cellsweep.py` holds cellsweep's empty-droplet step; `cellbender.py` CellBender's priors (the
+  mode and median of 0.1–0.2, the Otsu and kernel-density heuristics of 0.3+); `alevinfry.py`
+  alevin-fry's permit-list rules; `bustools.py` bustools' allowlist (the sample of the first BUS
+  blocks simulated from the matrix); `alevin.py` alevin's initial whitelist (salmon 0.11 – 1.10);
+  `dropseq.py` dropbead's cell number; `dropest.py` dropestr's bounds; `zumis.py` zUMIs' detection
+  with inflection's `uik`. `generic.py` holds the rules of no single tool: top N, a fixed
+  threshold, MAD outliers (scuttle's `isOutlier`), Otsu and multi-Otsu (scikit-image's), a
+  kernel-density valley, and Gaussian mixtures in one and two dimensions (scikit-learn's
+  `GaussianMixture`, its defaults by default); the distribution rules take candidates above a
+  floor (`--min-counts`).
+- `primitives/`: the arithmetic of each tool, reused across methods: `goodturing` (Cell Ranger's,
+  STAR's and edgeR's), `legacysort` (numpy's classic quicksort, with a `window` so a slice is
+  cheap: tie order decides Cell Ranger's ambient droplets), `stdrandom` (C++ `mt19937` and
+  libstdc++'s `discrete_distribution`), `rrandom` (R's `set.seed` Mersenne-Twister, dqrng's
+  seeds), `boostrandom` (PCG32, Boost's integer buckets, alias table, ziggurat exponential and
+  gamma), `smoothspline` (R's `smooth.spline`, operation for operation), `rstats` (R's
+  `quantile`, `p.adjust`, `optimize`, `seq.int`), `rmath` (R's `lgamma`; R's long-double
+  `sum`/`cumsum`, emulated where numpy has no 80-bit type), `simulate` (Monte Carlo engines:
+  Cell Ranger 3.x–8.x with its block refills, 9.0+ PCG64, STAR, DropletUtils), `multinomial`,
+  `pvalues`, `rounding`, `otsu` (scikit-image's Otsu and multi-Otsu, in 32-bit floats as 0.20+).
+  - Where the original calls the C library (`log`, `log10`), call it too (`math`, `rmath.clog`):
+    numpy's vectorised `log` can differ in the last bit (AVX-512), and some results
+    (DropletUtils' alpha) depend on those bits. Square with `x * x`, not `x ** 2` (libm `pow`).
 - `pl/`: plots take an AnnData, draw stored calls or run specs, return the Axes, accept `ax=`.
-  `terminal.py` draws the knee in braille for `inspect`.
+  `knee.py` also colours by an obs column and adds rolling-median tracks; `density.py` the
+  histogram of log totals; `compare.py` several calls side by side (rank strips, counts,
+  Jaccard), `qc.py` genes and mito against count, `splicing.py` the unspliced fraction against
+  the calls (these three return a Figure, grouping barcodes with `_data.agreement_groups`);
+  `diagnostics.py` each method's own view; `terminal.py` draws the knee in braille for `inspect`.
+- `report.py`: `scd.report`, one self-contained HTML page (inline SVG, dense scatters
+  rasterised inside it; the input's file name, never its path).
 - `cli.py`: typer. `call <id>` subcommands are generated from the registry
   (`_add_call_command`): options from `Params`, plus the shared ones. Results and data to
   stdout; messages to stderr (`console`); a failure is one `Error:` line and exit 1 (`_fail`).
@@ -76,6 +119,35 @@ Markers: `integration` (downloads public data or builds oracle environments; nee
   writers for every input layout (`write_10x_h5_v3`, `write_10x_h5_v2`, `write_10x_mtx`,
   `write_starsolo`, `write_kb`, `write_alevin_fry`).
 - Readers are checked against scanpy (`scanpy.read_10x_h5`, `read_10x_mtx`).
+- `tests/test_validation.py` (marker `integration`) is the oracle suite: Cell Ranger against 10x's
+  own filtered matrices (`tests/datasets.py` downloads and caches them in `$SC_DROPLETS_DATA`),
+  STARsolo against STAR's calls in `tests/oracles/starsolo/` (made by `oracles/starsolo/run.sh`
+  in the `Oracles` workflow, which runs on branch pushes that touch `oracles/`, each tool's job
+  only when its scripts or a helper they use changed: `.github/scripts/changed-oracles.sh`;
+  started by hand, every job runs), DropletUtils
+  against R's outputs in `tests/oracles/dropletutils/` (made by `oracles/dropletutils/run.sh`:
+  one pixi environment per release from bioconda, `set.seed(100)`), UMI-tools against its own
+  whitelist functions in `tests/oracles/umitools/` (made by `oracles/umitools/run.sh`: one pixi
+  environment per release, given the matrix's totals), Kneedle against kneed's `KneeLocator` in
+  `tests/oracles/kneedle/` (`oracles/kneedle/run.sh`), cellsweep against its `infer_empty_droplets`
+  in `tests/oracles/cellsweep/` (`oracles/cellsweep/run.sh`), CellBender against its own
+  `SingleCellRNACountsDataset` in `tests/oracles/cellbender/` (`oracles/cellbender/run.sh`: each
+  release's tagged source, with torch and numpy before 1.25), bustools against its own
+  `whitelist` in `tests/oracles/bustools/` (`oracles/bustools/run.sh`: a BUS file written from the
+  matrix, bioconda's builds), alevin-fry against programs built from its own source in
+  `tests/oracles/alevinfry/` (`oracles/alevinfry/run.sh`: `harness.py` copies the knee and the
+  rules out of each tag), alevin against programs built from salmon's own `Alevin.cpp` in
+  `tests/oracles/alevin/` (`oracles/alevin/run.sh`: `harness.py` copies its functions out of
+  each tag; conda-forge's gcc), dropbead, dropEst and zUMIs against their own R functions in
+  `tests/oracles/{dropseq,dropest,zumis}/` (`oracles/<tool>/run.sh`: the R files sourced from each
+  repository at a commit or tag, R from conda-forge), and the generic rules against scuttle's
+  `isOutlier`, scikit-image's `threshold_otsu` and `threshold_multiotsu`, and scikit-learn's
+  `GaussianMixture` (with mclust's fit for comparison) in `tests/oracles/generic/`
+  (`oracles/generic/run.sh`: scuttle from bioconda with the DropletUtils oracle's empty
+  `GenomeInfoDbData`; scikit-image's x86-64 builds, as its arm64 ones fuse a multiply-add). A new
+  method adds its cases here.
+- `tests/oracles/dropletutils/fixtures/` (from `oracles/dropletutils/fixtures.R`): R's own values
+  for the primitives (`smooth.spline`, `lgamma`, `sum`, Good-Turing, Monte Carlo counts).
 - CLI tests use a module-level `CliRunner`; strip ANSI codes and collapse whitespace before
   matching (`_out`).
 - `tests/test_docs_are_accurate.py`: every `sc-droplets …` line in README and `docs/` parses
@@ -97,8 +169,17 @@ this file, for people; keep the two in step.
 - Method pages: front matter `method_ids: [id, ...]` and `status: implemented | planned |
   docs-only`; sections in order: At a glance, How it works, Versions, Parameters, Run it,
   Differences from the original, Validation, References.
-- Formulas: `$$...$$` (kramdown turns them into `\(..\)` / `\[..\]`, KaTeX renders them).
-- Link between pages as relative `page.md`.
+- Planned and docs-only pages (methods the package does not run): sections At a glance, How it
+  works, Versions, Parameters, Status, References; ids not registered; each linked from
+  `docs/methods/planned/index.md` or `docs/methods/documented/index.md`, wherever its tool's
+  pages are. Implementing one moves it to the full template.
+- Formulas: `$$...$$`, inline and display alike (kramdown turns them into `\(..\)` / `\[..\]`, which
+  KaTeX renders). A literal `\(` in a page shows as "("; the docs test refuses it.
+- Link between pages as relative `page.md`. Images: `{{ '/assets/...' | relative_url }}` (a
+  relative path breaks under `permalink: pretty`); the docs test checks they exist.
+- `docs/_scripts/comparison.py`, `families.py` and `figures.py` write the comparison page's tables
+  and figures, the families page's tables and the guide's figures; rerun them when a method's call
+  changes.
 - Preview: `cd docs && bundle install && bundle exec jekyll serve`.
 
 ## Status
@@ -108,9 +189,14 @@ follow-ups noticed along the way, and the next candidates. Update it as work mov
 
 ## Git and releases
 
-- After the scaffold, each milestone is a branch and a pull request.
-- Release: branch `release/X.Y.Z`; version in `pyproject.toml` and `uv.lock`; a `## X.Y.Z`
-  section in `docs/changelog.md`; merge; push tag `X.Y.Z` (no `v`). `publish.yml` checks the tag
+- `dev` collects work in progress; `main` holds releases only. Each milestone or fix is a branch
+  from `dev` and a pull request into `dev`, merged (by the agent too) once its checks pass and
+  its review comments are dealt with.
+- GitHub Pages builds the site from `main`, so documentation changes reach the site with a
+  release.
+- Release: branch `release/X.Y.Z` from `dev`; version in `pyproject.toml` and `uv.lock`; a
+  `## X.Y.Z` section in `docs/changelog.md`; a pull request into `main`; merge; push tag `X.Y.Z`
+  (no `v`); merge `main` back into `dev`. `publish.yml` checks the tag
   against `pyproject.toml`, runs `tests.yml`, publishes to PyPI (trusted publishing), then
   `quay-on-tag.yml` builds, smoke-tests and pushes `quay.io/cellgeni/sc-droplets`.
 - Workflows pin third-party actions by commit SHA with the version in a comment, and pass tags

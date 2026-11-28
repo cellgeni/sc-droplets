@@ -30,11 +30,11 @@ barcodes ranked by counts
 ```
 
 {: .important }
-sc-droplets is in early development. The first release, 0.1.0, will implement every knee and
-threshold heuristic and every statistical test, each checked against its original tool. Until
-then the package has the generic [top N](methods/generic/top-n.md) and
-[fixed threshold](methods/generic/threshold.md) rules, and the
-[Overview](overview/index.md) lists what is coming.
+0.1.0, the first release, runs 29 methods in 76 release-specific behaviours, each checked
+against its original tool: those of Cell Ranger, STARsolo, DropletUtils, CellBender, cellsweep,
+UMI-tools, alevin, alevin-fry, bustools, Drop-seq, dropEst, zUMIs and Kneedle, and the
+[generic rules](methods/generic/index.md). The methods it does not run yet have pages too:
+[Planned](methods/planned/index.md) and [Documented only](methods/documented/index.md).
 
 ## Install
 

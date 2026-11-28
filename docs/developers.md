@@ -1,6 +1,6 @@
 ---
 title: Developers
-nav_order: 6
+nav_order: 7
 ---
 
 # Developers
@@ -30,9 +30,13 @@ uv run pytest -m "not integration"
 | `src/sc_droplets/counts.py` | `Droplets`: what a method sees (counts of the chosen features, totals, reads) |
 | `src/sc_droplets/result.py` | `CallResult` and how a call is stored on AnnData |
 | `src/sc_droplets/api.py` | `call`, `compare`, `agreement`, `list_methods` |
-| `src/sc_droplets/io/` | readers (10x HDF5, MTX folders, pipeline folders) and writers |
+| `src/sc_droplets/metrics.py` | the unspliced and mitochondrial fractions, and each call's separation scores |
+| `src/sc_droplets/io/` | readers (10x HDF5, velocyto loom, MTX folders, pipeline folders) and writers |
 | `src/sc_droplets/methods/` | one module per tool page |
-| `src/sc_droplets/pl/` | plots |
+| `src/sc_droplets/primitives/` | each tool's arithmetic, shared: Good-Turing variants, numpy's classic quicksort, C++, R and Boost random numbers, R's `smooth.spline`, `lgamma`, long-double sums and statistics, the Monte Carlo engines, scikit-image's Otsu and multi-Otsu |
+| `oracles/` | scripts that run the original tools on public data (`.github/workflows/oracles.yml`); their output goes to `tests/oracles/`. `oracles/dropletutils/` runs every DropletUtils release from bioconda with pixi, `oracles/umitools/` UMI-tools' own whitelist functions, `oracles/kneedle/` kneed's `KneeLocator`, `oracles/cellsweep/` cellsweep's `infer_empty_droplets`, `oracles/cellbender/` CellBender's `SingleCellRNACountsDataset` from each release's tagged source, `oracles/bustools/` bustools' `whitelist` on a BUS file written from the matrix, `oracles/alevinfry/` programs built from alevin-fry's source at each tag, `oracles/alevin/` programs built from salmon's `Alevin.cpp` at each tag, `oracles/dropseq/`, `oracles/dropest/` and `oracles/zumis/` the tools' own R functions sourced at a commit or tag, `oracles/generic/` scuttle's `isOutlier`, scikit-image's Otsu and multi-Otsu and scikit-learn's `GaussianMixture` (with mclust's fit for comparison) for the generic rules |
+| `src/sc_droplets/pl/` | plots: knee (with colour and tracks), density, compare, QC, splicing, each method's diagnostics |
+| `src/sc_droplets/report.py` | the self-contained HTML report |
 | `src/sc_droplets/cli.py` | the command; `call <id>` subcommands are built from the registry |
 | `docs/` | this site; `docs/_research/` holds the source-reading notes the pages start from |
 | `tests/` | the unit suite; `integration` tests download public data |
@@ -48,21 +52,33 @@ written from.
    Versions, Parameters, Run it, Differences from the original, Validation, References. Read the
    original's source at each release where it changed, and write down every constant, rounding
    rule and tie break.
+   A method with a *planned* page (under `docs/methods/planned/`, or its tool's folder) already
+   has At a glance, How it works, Versions and Parameters; move it to its tool, replace *Status*
+   with the three sections that follow Parameters, and drop it from the Planned index.
 2. **Code.** In `src/sc_droplets/methods/<tool>.py`, a `Method` subclass with a `MethodInfo`
    (one `Variant` per behaviour, each with the range of tool releases it covers, and a `Gap` for
    releases that cannot be reproduced), a `Params` dataclass built with `param`, and `run`.
    Decorate it with `@register` and add the module to `methods/__init__.py`.
 3. **Oracle.** Check it against the original tool on the same matrix: exact for deterministic
    methods, within Monte Carlo noise for the rest. Correctness is never shown by the
-   implementation agreeing with itself.
+   implementation agreeing with itself. Add the cases to `tests/test_validation.py`: public data
+   goes in `tests/datasets.py`; a tool that has to be run goes in `oracles/`.
 4. **Table.** Regenerate the table on the Methods page:
 
    ```bash
    uv run python docs/_scripts/methods_table.py
    ```
 
+5. **Comparison.** Add the method to `SPECS` in `docs/_scripts/comparison.py` (with its defaults)
+   and rerun it, so the *Comparison on public data* page has its row on every sample:
+
+   ```bash
+   uv run python docs/_scripts/comparison.py
+   ```
+
 `tests/test_docs_are_accurate.py` fails until the page exists, lists the method's options, and
-the table is current.
+the table is current. Images on pages are linked as `{% raw %}{{ '/assets/...' | relative_url }}{% endraw %}`,
+which the same test checks.
 
 ## Tests
 
@@ -70,7 +86,13 @@ the table is current.
 uv run pytest -m "not integration"
 uv run pytest tests/test_registry.py::test_specs_split_into_id_version_and_parameters
 uv run pytest -m "not integration and not perf" --cov=sc_droplets --cov-fail-under=90
+uv run python tests/datasets.py                       # download the public datasets (about 1 GB)
+uv run pytest -m integration -n auto --dist worksteal tests/test_validation.py # every method against its original tool, on every core
 ```
+
+CI runs the validation suite as two jobs (`--shard 1/2`, `--shard 2/2`), each on every core of its
+runner. The `Oracles` workflow runs a tool's job only when that tool's scripts, or a helper they
+use, changed (`.github/scripts/changed-oracles.sh`); started by hand, it runs them all.
 
 House style: test names read as sentences; a regression test's docstring says what used to go
 wrong; comments explain why.
@@ -83,9 +105,16 @@ bundle install
 bundle exec jekyll serve
 ```
 
+## Branches
+
+`dev` collects work in progress: each milestone or fix is a branch from `dev` and a pull request
+into `dev`, merged once its checks pass. `main` holds releases only, and the site is built from
+it, so documentation reaches the site with a release.
+
 ## Releases
 
-1. A branch `release/X.Y.Z`; the version in `pyproject.toml` and `uv.lock`.
+1. A branch `release/X.Y.Z` from `dev`; the version in `pyproject.toml` and `uv.lock`.
 2. A `## X.Y.Z` section in [Changelog](changelog.md).
-3. Merge, then push a tag `X.Y.Z` (no `v`). The tag runs the suite, checks the tag against
+3. A pull request into `main`. Merge, then push a tag `X.Y.Z` (no `v`), and merge `main` back
+   into `dev`. The tag runs the suite, checks the tag against
    `pyproject.toml`, publishes to PyPI and pushes `quay.io/cellgeni/sc-droplets:X.Y.Z`.

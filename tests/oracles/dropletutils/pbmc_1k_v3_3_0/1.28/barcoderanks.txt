@@ -1,0 +1,3 @@
+DropletUtils 1.30.0 br128
+knee 5383.0000000000009
+inflection 1154

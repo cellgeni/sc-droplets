@@ -1,0 +1,4 @@
+scikit-learn 1.9.1
+numpy 2.5.5
+python 3.13.18
+platform Linux-x86_64
