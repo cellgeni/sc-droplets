@@ -5,9 +5,11 @@ record for the current item is in the section below.
 
 ## Released
 
-Nothing yet.
+- 0.1.0 (2026-11-28): 29 methods of 13 tools and the generic rules, 76 release-specific
+  behaviours, each checked against its original tool; plots and the report; the site with the
+  review and the guides. Branch `release/0.1.0`, tag `0.1.0`. See the changelog.
 
-## In progress: 0.1.0
+## 0.1.0: how it was built
 
 Every knee and threshold heuristic and every statistical test, each checked against its
 original tool, with a page per algorithm and the review pages. Decisions (November 2026):
@@ -171,7 +173,7 @@ Milestones, each its own pull request after the scaffold:
   - Moved: the negative-binomial mixture (Cell Ranger ATAC's EM) goes to 0.3 with Cell Ranger
     ATAC, where 10x's own ATAC calls (`singlecell.csv`) can check it; on RNA there is no original
     to check it against.
-- [ ] 5. Overview pages in full, *planned* and *docs only* pages, guides; release 0.1.0. One pull
+- [x] 5. Overview pages in full, *planned* and *docs only* pages, guides; release 0.1.0. One pull
   request per group:
   - [x] The review pages (`milestone-5-overview`): *Same idea, different tools* (four families,
     each member run side by side on PBMC 1k and the spinal cord nuclei by
@@ -197,12 +199,15 @@ Milestones, each its own pull request after the scaffold:
     *Visualising calls*. Their commands were run on a simulated matrix; that found a test's
     diagnostics (and so the report) failing when no barcode was tested (Cell Ranger on fewer
     barcodes than its ambient range), now fixed.
-  - [ ] Release 0.1.0.
+  - [x] Release 0.1.0 (`release/0.1.0`): version, changelog, README and home page; the image
+    step maps the organisation's quay.io robot (`QUAY_PASSWORD`), which the repository has in
+    place of `QUAY_TOKEN`.
 
-Needs the maintainer of the GitHub organisation (not doable from here): a PyPI pending trusted
-publisher for `sc-droplets` (workflow `publish.yml`, environment `pypi`), the
-`quay.io/cellgeni/sc-droplets` repository with `QUAY_USERNAME` / `QUAY_TOKEN` secrets, and
-GitHub Pages from `main`, `/docs`.
+Publishing set-up (November 2026): GitHub Pages builds from `main`, `/docs`; the organisation
+shares `QUAY_USERNAME` and `QUAY_PASSWORD` with the repository. Not checkable from here, and the
+maintainer's to set up if a release's publish run fails there: a PyPI (pending) trusted publisher
+for `sc-droplets` (workflow `publish.yml`, environment `pypi`), and the robot's write access to
+`quay.io/cellgeni/sc-droplets`. A failed publish job can be re-run once they are in place.
 
 ## Follow-ups noticed
 
