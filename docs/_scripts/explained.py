@@ -203,6 +203,8 @@ def check_identities(s: Sample) -> None:
     by_rule = dropseq.estimate_cell_number(c.astype(np.float64))
     assert by_rule == int(np.sum(top > mean)), (s.key, "dropbead", by_rule)
     note(f"{s.key}.dropbead.mean", round(mean, 1))
+    # the chord widget joins the window's first and last barcodes, as UMI-tools does
+    note(f"{s.key}.chord_over_top_15000", umitools_pass(c, cum, dropseq.MAX_CELLS) + 1)
     note(f"{s.key}.dropbead.cells", by_rule)
     # UMI-tools: every pass is the mean rule; the loop is k -> f(min(3k, n)).
     knee, passes = umitools.distance_knee(c)
@@ -793,6 +795,429 @@ def fig_umitools_diagnostics(p: Sample) -> None:
 
 
 # ---------------------------------------------------------------------------
+# dropbead
+# ---------------------------------------------------------------------------
+
+
+def dropbead_cells(c: np.ndarray, window: int) -> int:
+    """dropbead's number of cells by the identity: the top `window` counts above their mean."""
+    top = c[:window].astype(np.float64)
+    return int(np.sum(top > top.sum() / window))
+
+
+def fig_dropbead_window(p: Sample, q: Sample) -> None:
+    fig, ax = plt.subplots(figsize=(7.4, 4.2))
+    for s, colour in ((p, BLUE), (q, VERMILLION)):
+        for window in (2000, 10000, 15000, 50000):
+            assert dropseq.estimate_cell_number(s.c.astype(np.float64), window) == dropbead_cells(s.c, window), (s.key, window)
+        windows = np.unique(np.round(np.logspace(math.log10(300), math.log10(min(s.n, 10 ** 6)), 400)).astype(np.int64))
+        cells = [dropbead_cells(s.c, int(w)) for w in windows]
+        ax.plot(windows, cells, color=colour, lw=1.8, label=s.label)
+        ax.axhline(s.tenx_ranks.size, color=colour, lw=1, ls=":")
+        note(f"{s.key}.dropbead.by_window", {w: dropbead_cells(s.c, w) for w in (1000, 5000, 10000, 15000, 30000, 100000)})
+    ax.axvline(15000, color="k", lw=1, ls="--")
+    ax.text(15000 * 1.08, 0.04, "max.cells = 15,000", fontsize=9, transform=ax.get_xaxis_transform())
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlabel("barcodes on the curve, N (log)")
+    ax.set_ylabel("cells (log)")
+    ax.set_title("dropbead's answer as its window grows (dotted: 10x's call)")
+    ax.legend(loc="upper left")
+    fig.tight_layout()
+    save(fig, "dropbead-window")
+
+
+# ---------------------------------------------------------------------------
+# alevin-fry
+# ---------------------------------------------------------------------------
+
+
+def fig_alevinfry_bifurcation(p: Sample, q: Sample) -> None:
+    multipliers = np.round(np.arange(2.0, 8.001, 0.05), 2)
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4.4))
+    for ax, s in zip(axes, (p, q)):
+        ks = np.unique(np.round(np.logspace(2, math.log10(s.n), 500)).astype(np.int64))
+        ends = []
+        for multiplier in multipliers:
+            g = refit_map(s, multiplier, ks)
+            for k, kind in fixed_points(ks, g, smallest=100):
+                ax.plot(multiplier, k, "o", ms=2.6, color="k" if kind == "stable" else "#bbbbbb", zorder=2)
+            passes = iterate(lambda m: umitools_pass(s.c, s.cum, m), s.n, lambda k: max(2, min(int(multiplier * k), s.n)))
+            ends.append(passes[-1][1] + 1)
+        ax.plot(multipliers, ends, color=VERMILLION, lw=1.6, label="where the loop ends, from every barcode", zorder=3)
+        ax.axhline(s.tenx_ranks.size, color=BLUE, lw=1, ls=":", label="10x's call")
+        for multiplier in (3, 5):
+            ax.axvline(multiplier, color="#cccccc", lw=0.8, zorder=0)
+        ax.plot([], [], "o", ms=3, color="k", label="stable fixed points")
+        ax.plot([], [], "o", ms=3, color="#bbbbbb", label="unstable fixed points")
+        ax.set_yscale("log")
+        ax.set_ylim(80, s.n * 1.5)
+        ax.set_xlabel("multiplier c (window = c × knee)")
+        ax.set_ylabel("knee (log)")
+        ax.set_title(s.label)
+        note(f"{s.key}.bifurcation.ends", {float(m): e for m, e in zip(multipliers, ends) if m in (2.5, 2.7, 2.8, 3.0, 4.0, 4.5, 4.6, 4.7, 4.8, 5.0, 6.0)})
+        note(f"{s.key}.bifurcation.holds_from", float(multipliers[np.flatnonzero(np.array(ends) > 100)[0]]))
+        jumps = np.flatnonzero(np.array(ends) > 50000)
+        if jumps.size:
+            note(f"{s.key}.bifurcation.second_cliff_from", float(multipliers[jumps[0]]))
+    axes[0].legend(loc="upper left", fontsize=8)
+    fig.suptitle("Fixed points of the refit loop against the multiplier (grey lines: UMI-tools' 3 and alevin-fry's 5)", y=1.02)
+    fig.tight_layout()
+    save(fig, "alevinfry-bifurcation")
+
+
+def fig_alevinfry_diagnostics(q: Sample) -> None:
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        scd.call(q.adata, "alevinfry-permit-list", key_added="alevinfry")
+    save(scd.pl.diagnostics(q.adata, "alevinfry"), "alevinfry-diagnostics")
+
+
+# ---------------------------------------------------------------------------
+# zUMIs
+# ---------------------------------------------------------------------------
+
+
+def zumis_cells(c: np.ndarray, floor: float) -> int:
+    window = c[: int(np.sum(c >= floor))].astype(np.float64)
+    return int(np.sum(c > window[1:].mean()))
+
+
+def fig_zumis_floor(p: Sample, q: Sample) -> None:
+    fig, ax = plt.subplots(figsize=(7.4, 4.2))
+    for s, colour in ((p, BLUE), (q, VERMILLION)):
+        for floor in (30, 100, 1000):
+            by_rule = int(s.call(f"zumis-cell-barcodes:n_reads_per_cell={floor}").n_cells)
+            assert by_rule == zumis_cells(s.c, floor), (s.key, floor, by_rule)
+        floors = np.unique(np.round(np.logspace(0, math.log10(3000), 300)).astype(np.int64))
+        ax.plot(floors, [zumis_cells(s.c, f) for f in floors], color=colour, lw=1.8, label=s.label)
+        ax.axhline(s.tenx_ranks.size, color=colour, lw=1, ls=":")
+        note(f"{s.key}.zumis.by_floor", {f: zumis_cells(s.c, f) for f in (1, 10, 20, 50, 100, 200, 300, 500, 1000)})
+    ax.axvline(100, color="k", lw=1, ls="--")
+    ax.text(108, 0.9, "nReadsperCell = 100", fontsize=9, transform=ax.get_xaxis_transform())
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlabel("floor: barcodes with fewer are left off the curve (log)")
+    ax.set_ylabel("cells (log)")
+    ax.set_title("zUMIs' answer as its floor moves (dotted: 10x's call)")
+    ax.legend(loc="lower left")
+    fig.tight_layout()
+    save(fig, "zumis-floor")
+
+
+# ---------------------------------------------------------------------------
+# Kneedle
+# ---------------------------------------------------------------------------
+
+
+def kneedle_curve(s: Sample):
+    from sc_droplets.methods import kneedle as kneedle_method
+    from sc_droplets.primitives import kneed
+
+    _, x, y = kneedle_method.rank_curve(s.totals, 1000.0, False, False)
+    return x, y, kneed.prepare(x, y, curve="convex", direction="decreasing", behaviour="0.9")
+
+
+def kneedle_descents(found) -> List[Tuple[int, float, int]]:
+    """Each maximum of the difference curve, its fall to the next minimum, and where that is."""
+    d, minima = found.y_difference, found.minima
+    out = []
+    for top in found.maxima:
+        after = minima[minima > top]
+        end = int(after[0]) if after.size else d.size - 1
+        out.append((int(top), float(d[top] - d[end]), end))
+    return out
+
+
+def fig_kneedle(p: Sample, q: Sample) -> None:
+    fig, axes = plt.subplots(2, 2, figsize=(12, 7.4))
+    for row, s in zip(axes, (p, q)):
+        x, y, found = kneedle_curve(s)
+        knee = int(s.call("kneedle").thresholds["knee_rank"])
+        sensitivity = float(s.call("kneedle").thresholds["sensitivity"])
+        descents = kneedle_descents(found)
+        longest = max(descents, key=lambda t: t[1])
+        # yascp's search lowers S by 100 until a maximum falls by more than S / (n - 1): the first
+        # such maximum is the knee. Here one fall dwarfs the others, so it is also the longest.
+        first = next(t for t in descents if t[1] > sensitivity / (x.size - 1))
+        assert first[0] + 1 == knee, (s.key, first, knee)
+        assert first == longest, (s.key, first, longest)
+        slope = float(y[0] - y[-1]) / (x.size - 1)
+        gaps = -np.diff(y.astype(np.float64))
+        assert np.all(gaps[longest[0]:longest[2]] <= slope), s.key  # no neighbour gap above the chord's slope
+        ranks = np.arange(1, x.size + 1)
+        ax = row[0]
+        ax.plot(ranks, found.y_difference, color=GREY, lw=1.2)
+        ax.plot(found.maxima + 1, found.y_difference[found.maxima], ".", color="k", ms=3, label="local maxima")
+        ax.axvspan(longest[0] + 1, longest[2] + 1, color=SKY, alpha=0.2, lw=0, label="the longest fall")
+        top = int(np.argmax(found.y_difference)) + 1
+        ax.plot(top, found.y_difference[top - 1], "o", color=VERMILLION, ms=6, label=f"highest point: rank {top}")
+        ax.plot(knee, found.y_difference[knee - 1], "s", color=PURPLE, ms=6, label=f"the search's knee: rank {knee:,}")
+        ax.set_xscale("log")
+        ax.set_xlabel("rank (log)")
+        ax.set_ylabel("difference curve")
+        ax.set_title(f"{s.label}: {x.size:,} barcodes with at least 1,000 UMIs; S = {sensitivity:,.0f}")
+        ax.legend(loc="lower left", fontsize=8)
+        ax = row[1]
+        ax.plot(ranks[:-1], np.maximum(gaps, 0.5), ".", color=GREY, ms=2)
+        ax.axhline(slope, color="k", ls="--", lw=1, label=f"the chord's slope: {slope:.1f} UMIs per rank")
+        ax.axvspan(longest[0] + 1, longest[2] + 1, color=SKY, alpha=0.2, lw=0)
+        ax.axvline(knee, color=PURPLE, lw=1)
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+        ax.set_xlabel("rank (log)")
+        ax.set_ylabel("gap to the next barcode (UMIs, log)")
+        ax.set_title("no gap in the shaded stretch exceeds the chord's slope")
+        ax.legend(loc="upper left", fontsize=8)
+        note(f"{s.key}.kneedle.points", int(x.size))
+        note(f"{s.key}.kneedle.chord_slope", round(slope, 1))
+        note(f"{s.key}.kneedle.highest", top)
+        note(f"{s.key}.kneedle.longest_fall", [longest[0] + 1, longest[2] + 1, round(longest[1], 3)])
+        note(f"{s.key}.kneedle.second_longest", round(sorted(t[1] for t in descents)[-2], 3))
+        note(f"{s.key}.kneedle.maxima", len(descents))
+        note(f"{s.key}.kneedle.sensitivity", sensitivity)
+        note(f"{s.key}.kneedle.by_release", {r: int(s.call(f"kneedle@{r}").n_cells) for r in ("0.5.1", "0.7.0", "0.8.6", "0.9.0")})
+    fig.tight_layout()
+    save(fig, "kneedle-gaps")
+
+
+# ---------------------------------------------------------------------------
+# cellsweep
+# ---------------------------------------------------------------------------
+
+
+def fig_cellsweep(p: Sample, q: Sample) -> None:
+    from sc_droplets.methods import cellsweep
+
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+    for ax, s in zip(axes[:2], (p, q)):
+        cut, counts, smooth, d2 = cellsweep.threshold_cutoff(s.totals)
+        ranks = np.arange(1, d2.size + 1)
+        cliff = slice(s.tenx_ranks.size // 2, 3 * s.tenx_ranks.size)
+        at = cliff.start + int(np.argmin(d2[cliff]))
+        ax.plot(ranks, d2, color=GREY, lw=0.8)
+        ax.plot(int(np.argmin(d2)) + 1, d2.min(), "o", color=VERMILLION, ms=6, label=f"most negative: rank {int(np.argmin(d2)) + 1}")
+        if s.key == "pbmc":  # the nuclei have no cliff for it to dip at
+            ax.plot(at + 1, d2[at], "s", color=BLUE, ms=6, label=f"the cliff's dip: rank {at + 1:,}")
+        ax.set_xscale("log")
+        ax.set_xlabel("rank (log)")
+        ax.set_ylabel("second derivative of smoothed log10 UMIs")
+        ax.set_title(f"{s.label}: cellsweep to 1.0.1")
+        ax.legend(loc="lower right", fontsize=8)
+        from scipy.ndimage import gaussian_filter1d  # the same rule against log rank, for the page's aside
+
+        log_rank = np.log10(np.arange(1, counts.size + 1))
+        d2_log = np.gradient(np.gradient(gaussian_filter1d(np.log10(counts), 2), log_rank), log_rank)
+        note(f"{s.key}.cellsweep.d2_against_log_rank", {"at": int(np.argmin(d2_log)) + 1, "count": float(counts[np.argmin(d2_log)])})
+        note(f"{s.key}.cellsweep.v0.1", {"cells": int(s.call("cellsweep-empty@0.1.0").n_cells),
+                                         "cut": float(s.call("cellsweep-empty@0.1.0").thresholds["umis"])})
+        note(f"{s.key}.cellsweep.d2", {"min": float(f"{d2.min():.3g}"), "at": int(np.argmin(d2)) + 1,
+                                       "cliff_min": float(f"{d2[at]:.3g}"), "cliff_at": at + 1})
+    ax = axes[2]
+    for s, colour in ((p, BLUE), (q, VERMILLION)):
+        t = s.totals[s.totals > cellsweep.MIN_COUNTS]
+        umis, n_barcodes = np.unique(t, return_counts=True)
+        ranks = np.cumsum(n_barcodes[::-1])
+        ax.plot(ranks, umis[::-1], ".-", color=colour, ms=2, lw=0.8, label=s.label)
+        result = s.call("cellsweep-empty")
+        cut, found, index = cellsweep.kneed_cutoff(s.totals, "0.9.0")
+        assert index == int(found.maxima[-1]), s.key  # online, S = 1: the walk ends at the last maximum
+        note(f"{s.key}.cellsweep.kneed_highest_is_last", int(np.argmax(found.y_difference)) == index)
+        ax.plot(int(result.n_cells), result.thresholds["umis"], "o", color="k", ms=6)
+        ax.text(int(result.n_cells) * 1.3, result.thresholds["umis"] * 1.3, f"{int(result.n_cells):,} cells", fontsize=8)
+        note(f"{s.key}.cellsweep.kneed", {"cells": int(result.n_cells), "cut": float(result.thresholds["umis"]),
+                                          "distinct_totals": int(umis.size),
+                                          "by_kneed": {v: int(s.call(f"cellsweep-empty:kneed_version={v}").n_cells) for v in ("0.8.5", "0.8.6", "0.9.0")}})
+    rank_axes(ax)
+    ax.set_title("1.0.2: Kneedle on one point per distinct total")
+    ax.legend(loc="lower left", fontsize=8)
+    fig.tight_layout()
+    save(fig, "cellsweep-rules")
+
+
+# ---------------------------------------------------------------------------
+# barcodeRanks
+# ---------------------------------------------------------------------------
+
+BR_KNEES = [
+    ("1.0 – 1.8: curvature, mis-indexed", "dropletutils-barcoderanks@1.0", "v", PURPLE),
+    ("1.10 – 1.26: spline curvature", "dropletutils-barcoderanks@1.26", "o", VERMILLION),
+    ("1.28: chord", "dropletutils-barcoderanks@1.28", "s", GREEN),
+    ("1.30: traced window", "dropletutils-barcoderanks@1.30", "D", ORANGE),
+    ("inflection, to 1.28", "dropletutils-barcoderanks@1.26:use=inflection", "^", SKY),
+    ("inflection, 1.30", "dropletutils-barcoderanks@1.30:use=inflection", "P", BLUE),
+]
+
+
+def fig_barcoderanks(p: Sample, q: Sample) -> None:
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4.6), sharey=True)
+    for ax, s in zip(axes, (p, q)):
+        draw_curve(ax, s, colour=LIGHT)
+        above = int(np.sum(s.c > 100))
+        picks = thin(above)
+        ax.plot(s.ranks[picks], s.c[picks], color=GREY, lw=1.6)
+        found = {}
+        for label, spec, marker, colour in BR_KNEES:
+            result = s.call(spec)
+            cells, cut = int(result.n_cells), float(result.thresholds["umis"])
+            ax.plot(cells, cut, marker, color=colour, ms=7, label=f"{label}: {cells:,}", zorder=3)
+            found[spec] = (cells, round(cut, 1))
+        ax.axvline(s.tenx_ranks.size, color=BLUE, lw=1, ls=":")
+        rank_axes(ax)
+        ax.set_title(f"{s.label} (dotted: 10x's {s.tenx_ranks.size:,})")
+        ax.legend(loc="lower left", fontsize=8)
+        note(f"{s.key}.barcoderanks", found)
+    fig.tight_layout()
+    save(fig, "barcoderanks-knees")
+
+
+def fig_barcoderanks_trace(p: Sample) -> None:
+    from sc_droplets.methods import dropletutils
+
+    settings = {"knee": "trace", "round_totals": True}
+    ranks = dropletutils.barcode_ranks(p.totals, settings, lower=100.0, exclude_from=50, window=1.0, gradient_threshold=-1.0)
+    x, y = ranks.x, ranks.y
+    fig, ax = plt.subplots(figsize=(5.2, 5.6))
+    ax.plot(x, y, color=GREY, lw=1.6)
+    for label, key, colour in (("the knee's window", "knee_window", ORANGE), ("the inflection's window", "inflection_window", BLUE)):
+        left, right = ranks.diagnostics[key]
+        ends = np.interp([left, right], x, y)
+        ax.plot([left, right], ends, color=colour, lw=2, label=label)
+        inside = (x >= left) & (x <= right)
+        ax.plot(x[inside], y[inside], color=colour, lw=3, alpha=0.35)
+    ax.plot(math.log10(int(p.call("dropletutils-barcoderanks@1.30").n_cells)), math.log10(ranks.knee), "o", color=ORANGE, ms=7)
+    ax.set_aspect("equal")
+    ax.set_xlabel("log10 rank")
+    ax.set_ylabel("log10 UMIs")
+    ax.set_title("1.30: windows one unit long, traced along the curve")
+    ax.legend(loc="lower left")
+    fig.tight_layout()
+    save(fig, "barcoderanks-trace")
+    note("pbmc.barcoderanks.trace", {"windows": ranks.diagnostics["n_windows"], "knee": round(ranks.knee, 1), "inflection": round(ranks.inflection, 1)})
+
+
+# ---------------------------------------------------------------------------
+# dropEst
+# ---------------------------------------------------------------------------
+
+
+def dropest_slopes(c: np.ndarray, lag: float = 0.05):
+    """dropestr's lagged slope of log count against log rank, placed at rank i + lag."""
+    from sc_droplets.primitives.rounding import round_half_even
+
+    n = c.size
+    lag_n = int(round_half_even(n * lag))
+    log_u = np.log(c.astype(np.float64))
+    log_rank = np.log(np.arange(1, n + 1, dtype=np.float64))
+    slope = (log_u[lag_n:] - log_u[:-lag_n]) / (log_rank[lag_n:] - log_rank[:-lag_n])
+    return np.arange(lag_n + 1, n + 1), slope, lag_n
+
+
+def fig_dropest(p: Sample, q: Sample) -> None:
+    from sc_droplets.methods import dropest
+
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4.2))
+    ax = axes[0]
+    for floor, colour in ((1, VERMILLION), (20, BLUE)):
+        sub = p.c[p.c >= floor]
+        at, slope, lag = dropest_slopes(sub)
+        bounds = dropest.estimate_cells_number(sub)
+        note(f"pbmc.dropest.floor_{floor}", {"barcodes": int(sub.size), "lag": lag, "expected": bounds["expected"]})
+        ax.plot(at, slope, color=colour, lw=1.2, label=f"{'every barcode' if floor == 1 else f'at least {floor} UMIs'}: lag {lag:,}, expected {bounds['expected']:,}")
+        ax.axvline(bounds["expected"], color=colour, lw=1, ls="--")
+    ax.axvline(p.tenx_ranks.size, color="k", lw=1, ls=":")
+    ax.set_xscale("log")
+    ax.set_xlabel("rank (log)")
+    ax.set_ylabel("slope of log UMIs over the lag")
+    ax.set_title(f"{p.label}: the lagged slope (dotted: 10x)")
+    ax.legend(loc="lower left", fontsize=8)
+    ax = axes[1]
+    for s, colour in ((p, BLUE), (q, VERMILLION)):
+        assert dropest.estimate_cells_number(s.c)["expected"] == int(s.call("dropest-bounds").n_cells)
+        floors = np.unique(np.round(np.logspace(0, math.log10(1000), 120)).astype(np.int64))
+        expected = []
+        for floor in floors:
+            try:
+                expected.append(dropest.estimate_cells_number(s.c[s.c >= floor])["expected"])
+            except Exception:  # noqa: BLE001 - too few barcodes for the lag: no estimate
+                expected.append(np.nan)
+        ax.plot(floors, expected, color=colour, lw=1.6, label=s.label)
+        ax.axhline(s.tenx_ranks.size, color=colour, lw=1, ls=":")
+        note(f"{s.key}.dropest.by_floor", {int(f): dropest.estimate_cells_number(s.c[s.c >= f])["expected"] for f in (1, 2, 5, 10, 20, 50, 100, 200, 500)})
+        note(f"{s.key}.dropest.lag", dropest.estimate_cells_number(s.c)["lag"])
+        note(f"{s.key}.dropest.barcodes_with_2_or_more", int(np.sum(s.c >= 2)))
+        note(f"{s.key}.dropest.upper_bound_from_100", dropest.estimate_cells_number(s.c[s.c >= 100])["max"])
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlabel("barcodes given: those with at least this many UMIs (log)")
+    ax.set_ylabel("expected cells (log)")
+    ax.set_title("dropEst's estimate against what it is given (dotted: 10x)")
+    ax.legend(loc="upper right", fontsize=8)
+    fig.tight_layout()
+    save(fig, "dropest-lag")
+
+
+# ---------------------------------------------------------------------------
+# alevin
+# ---------------------------------------------------------------------------
+
+
+def alevin_curve(s: Sample, top: int = 100000):
+    """alevin's log cumulative curve of the top M, summed from the smallest up, and the tangent."""
+    m = min(s.n, top)
+    values = s.c[:m][::-1].astype(np.float64)
+    total = np.cumsum(values)
+    curve = np.log(total)
+    i = np.arange(m, dtype=np.float64)
+    ratio = np.full(m, np.inf)
+    ratio[1:] = curve[1:] / i[1:]
+    return m, total, curve, int(np.argmin(ratio))
+
+
+def fig_alevin(p: Sample, q: Sample) -> None:
+    from sc_droplets.methods import alevin
+
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+    m, total, curve, j = alevin_curve(p)
+    ax = axes[0]
+    i = np.arange(m)
+    ax.plot(i, curve, color=GREY, lw=1.6)
+    ax.plot([0, m], [0, curve[j] / j * m], color=VERMILLION, lw=1)
+    ax.plot(j, curve[j], "o", color=VERMILLION, ms=6)
+    ax.set_xlabel("barcodes summed, from the smallest of the top 100,000")
+    ax.set_ylabel("ln(cumulative UMIs)")
+    ax.set_title(f"{p.label}: the tangent from the origin touches at {m - j:,} from the top")
+    inset = ax.inset_axes([0.42, 0.12, 0.5, 0.5])
+    near = slice(j - 3000, m)
+    inset.plot(i[near], curve[near], color=GREY, lw=1.4)
+    inset.plot(i[near], curve[j] / j * i[near], color=VERMILLION, lw=1)
+    inset.plot(j, curve[j], "o", color=VERMILLION, ms=4)
+    inset.tick_params(labelsize=7)
+    for ax, s in zip(axes[1:], (p, q)):
+        m, total, curve, j = alevin_curve(s)
+        knee = alevin.left_boundary(s.c, m)
+        r = np.arange(1, m)  # rank r: the barcodes below it among the top m are ranks r + 1 .. m
+        below = total[::-1][1:]  # sum of the counts below rank r
+        threshold = below / (m - r) * np.log(below)
+        picks = thin(m - 1)
+        ax.plot(r[picks], s.c[: m - 1][picks], color=GREY, lw=1.6, label="UMIs")
+        ax.plot(r[picks], threshold[picks], color=VERMILLION, lw=1.2, ls="--", label="ln(sum below) × mean below")
+        ax.axvline(knee, color=VERMILLION, lw=1)
+        ax.axvline(s.tenx_ranks.size, color=BLUE, lw=1, ls=":")
+        rank_axes(ax)
+        ax.set_title(f"{s.label}: the tangent's {knee:,} cells")
+        ax.legend(loc="lower left", fontsize=8)
+        mean_below = float(total[j] / (j + 1))
+        note(f"{s.key}.alevin", {"cells": knee, "count_at_knee": int(s.c[knee - 1]), "mean_below": round(mean_below, 1),
+                                 "ln_sum_below": round(float(curve[j]), 2), "product": round(float(mean_below * curve[j]), 1),
+                                 "v0.11": int(s.call("alevin-initial-whitelist@0.11.0").thresholds["knee_rank"]),
+                                 "valley": int(s.call("alevin-initial-whitelist").thresholds["gauss_rank"]),
+                                 "after_correction": int(s.call("alevin-initial-whitelist").n_cells)})
+    fig.tight_layout()
+    save(fig, "alevin-tangent")
+
+
+# ---------------------------------------------------------------------------
 # Widget data
 # ---------------------------------------------------------------------------
 
@@ -817,7 +1242,8 @@ def write_data(s: Sample, specs: List[Tuple[str, str]]) -> None:
 # ---------------------------------------------------------------------------
 
 
-PAGES = ("rank-curve", "knee", "umitools", "data")
+PAGES = ("rank-curve", "knee", "dropbead", "umitools", "alevinfry", "zumis", "kneedle", "cellsweep", "barcoderanks",
+         "dropest", "alevin", "data")
 
 
 def main() -> None:
@@ -846,10 +1272,28 @@ def main() -> None:
         fig_knee_linear_loglog(p)
         fig_knee_curvature(p)
         fig_knee_landing(p, q)
+    if "dropbead" in pages:
+        fig_dropbead_window(p, q)
     if "umitools" in pages:
         fig_umitools_passes(p, q)
         fig_umitools_window(p, q)
         fig_umitools_diagnostics(p)
+    if "alevinfry" in pages:
+        fig_alevinfry_bifurcation(p, q)
+        fig_alevinfry_diagnostics(q)
+    if "zumis" in pages:
+        fig_zumis_floor(p, q)
+    if "kneedle" in pages:
+        fig_kneedle(p, q)
+    if "cellsweep" in pages:
+        fig_cellsweep(p, q)
+    if "barcoderanks" in pages:
+        fig_barcoderanks(p, q)
+        fig_barcoderanks_trace(p)
+    if "dropest" in pages:
+        fig_dropest(p, q)
+    if "alevin" in pages:
+        fig_alevin(p, q)
     if "data" in pages:
         specs = [("dropbead", "dropseq-dropbead"), ("UMI-tools", "umitools-distance"), ("alevin-fry", "alevinfry-permit-list"),
                  ("zUMIs", "zumis-cell-barcodes"), ("Kneedle", "kneedle"), ("barcodeRanks 1.28", "dropletutils-barcoderanks@1.28")]
