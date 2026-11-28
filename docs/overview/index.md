@@ -29,7 +29,7 @@ decides where the cells end, and they differ in what they look at:
 | Family | Idea | Examples |
 |---|---|---|
 | Rank and threshold | A fixed rank or count, or a count derived from the top of the curve | top N, fixed UMI threshold, Cell Ranger 2 OrdMag ("99th percentile of the top N, ÷10"), STARsolo CellRanger2.2, alevin-fry `--expect-cells`, bustools allowlist |
-| Knee geometry | A geometric feature of the rank curve: maximum distance to a chord, maximum curvature, a tangent | DropletUtils barcodeRanks, UMI-tools distance, alevin-fry knee, zUMIs, dropbead, Kneedle, cellsweep, dropEst, Cell Ranger targeted gradient |
+| [Knee geometry](../explained/knee/index.md) | A geometric feature of the rank curve: maximum distance to a chord, maximum curvature, a tangent | DropletUtils barcodeRanks, UMI-tools distance, alevin-fry knee, zUMIs, dropbead, Kneedle, cellsweep, dropEst, Cell Ranger targeted gradient |
 | Density | A valley or cut in the distribution of log counts | UMI-tools density, alevin's Gauss correction, Otsu, CellBender 0.3's priors, BAP |
 | Mixture | A fitted mixture whose components are cells and background | Gaussian mixtures on log counts (zUMIs before 2019, cellsweep mx_filter), Cell Ranger ATAC's negative-binomial mixture |
 | Test against ambient | Each droplet's counts tested against the ambient profile estimated from surely-empty droplets | emptyDrops, Cell Ranger 3+, STARsolo EmptyDrops_CR, emptyDropsCellRanger, CB2 |
