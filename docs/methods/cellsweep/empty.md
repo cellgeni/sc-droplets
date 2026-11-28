@@ -14,6 +14,9 @@ status: implemented
 when the AnnData does not say. Each rule finds a cutoff on the barcodes' totals; a barcode below
 the cutoff is empty, every other barcode is a cell.
 
+Why the rule lands where it does, drawn on real data:
+[cellsweep's bend](../../explained/knee/cellsweep.md), in *Explained*.
+
 1. TOC
 {:toc}
 

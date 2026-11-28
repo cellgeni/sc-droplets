@@ -20,6 +20,9 @@ The knee has had four definitions: the least curvature of a smoothing spline (1.
 the first barcodes skipped and an indexing bug fixed (1.10), the farthest point from a chord
 (1.28), and the end of a sliding window traced along the curve (1.30).
 
+Why the rule lands where it does, drawn on real data:
+[barcodeRanks' four knees](../../explained/knee/barcoderanks.md), in *Explained*.
+
 1. TOC
 {:toc}
 

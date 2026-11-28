@@ -16,6 +16,9 @@ knee, or within the expected or forced cells), `low_confidence` (the band), and 
 Only `cell` is called. alevin's naive Bayes classifier then decides the final cells from these
 two groups; that step is not implemented here.
 
+Why the rule lands where it does, drawn on real data:
+[alevin's tangent](../../explained/knee/alevin.md), in *Explained*.
+
 1. TOC
 {:toc}
 

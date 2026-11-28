@@ -15,6 +15,9 @@ gives a threshold on each barcode's count, and every barcode at or above it is k
 matter. The knee is a distance knee like [UMI-tools'](../umitools/distance.md), but repeated on
 five times (not three times) as many barcodes, and the last of equally distant points wins.
 
+Why the rule lands where it does, drawn on real data:
+[alevin-fry's knee](../../explained/knee/alevinfry.md), in *Explained*.
+
 1. TOC
 {:toc}
 

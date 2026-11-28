@@ -15,6 +15,9 @@ give the expected number of cells and two bounds. Each barcode gets one of three
 dropestr labels them for its classifier: `high` (within the lower bound), `unknown`, and `low`
 (from the upper bound on). The cells are the expected number from the top.
 
+Why the rule lands where it does, drawn on real data:
+[dropEst's lagged slopes](../../explained/knee/dropest.md), in *Explained*.
+
 1. TOC
 {:toc}
 

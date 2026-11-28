@@ -244,6 +244,28 @@ def test_there_are_planned_and_documented_pages():
     assert {m.get("status") for _, _, m in OTHER_PAGES} == {"planned", "docs-only"}
 
 
+#: Pages of the Explained section that explain registered methods: `explains: [id, ...]`.
+EXPLAINERS = [(p, m) for p in PAGES for m in [front_matter(p.read_text())[0]] if "explains" in m]
+
+
+def test_there_are_explainer_pages():
+    assert EXPLAINERS
+
+
+@pytest.mark.parametrize("path, meta", EXPLAINERS, ids=[_label(p) for p, _ in EXPLAINERS])
+def test_every_explainer_explains_registered_methods_whose_pages_link_back(path, meta):
+    """An explainer names the methods it explains, and each of their reference pages links to it,
+    so a reader of either finds the other. It never carries `method_ids`, which would make the
+    template check above demand a reference page's sections."""
+    assert "method_ids" not in meta, f"{_label(path)} carries method_ids"
+    registered = {c.info.id: c.info for c in METHODS}
+    for method_id in meta["explains"]:
+        assert method_id in registered, f"{_label(path)} explains {method_id}, which is not registered"
+        page = SITE / registered[method_id].docs
+        target = os.path.relpath(path, page.parent).replace(os.sep, "/")
+        assert f"]({target})" in page.read_text(), f"{_label(page)} does not link {target}"
+
+
 def test_the_methods_table_is_current():
     spec = importlib.util.spec_from_file_location("methods_table", SITE / "_scripts" / "methods_table.py")
     module = importlib.util.module_from_spec(spec)
