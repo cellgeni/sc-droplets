@@ -111,8 +111,10 @@ The log counts of cells and of empty droplets make two humps; cut at the valley 
 | kernel-density valley | $$\log_{10}$$ counts of at least 100 | Scott's, $$n^{-1/5}\hat\sigma$$, or a factor | the lowest point between the two highest peaks |
 
 Each evaluates the density on a grid of 10,000 points. alevin's correction is UMI-tools' rule
-written again in C++, with its own way of choosing the valley. DropSift, DropletQC and BAP use the
-same idea; they are [planned](index.md#every-method-and-where-it-stands).
+written again in C++, with its own way of choosing the valley.
+[DropletQC](../methods/dropletqc/empty-drops.md) cuts at the valley of the nuclear fraction's
+density, not of the counts'; DropSift and BAP use the idea too, and are
+[planned](index.md#every-method-and-where-it-stands).
 
 <!-- families:density:start -->
 

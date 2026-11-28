@@ -1,7 +1,7 @@
 ---
 title: Planned
 parent: Methods
-nav_order: 15
+nav_order: 16
 has_children: true
 ---
 
@@ -18,7 +18,6 @@ implemented, its page moves to its tool and gains *Run it*, *Differences from th
 |---|---|---|
 | [CB2](cb2.md) | scCB2 | cluster the candidates, test clusters and single barcodes against the ambient profile |
 | [DIEM](diem.md) | DIEM | a mixture of debris and cell profiles, fitted to the barcodes above a floor |
-| [DropletQC](dropletqc.md) | DropletQC | the nuclear fraction separates empty droplets, damaged cells and cells |
 | [DropSift](dropsift.md) | DropSift | a classifier trained on exemplar cells and empty droplets |
 | [valiDrops](validrops.md) | valiDrops | a curve threshold, then quality measures and clustering |
 | [SiftCell](siftcell.md) | SiftCell | barcodes shuffled into a null, then a boosted classifier |
