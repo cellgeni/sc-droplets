@@ -281,7 +281,7 @@ class MultiOtsu(Method):
                 doi="10.6688/JISE.2001.17.5.1",
             ),
             Reference(
-                "Heiser, Wang, Chen, Hughes & Lau 2021, Automated quality control and cell identification of "
+                "Heiser, Wang, Chen, Hughey & Lau 2021, Automated quality control and cell identification of "
                 "droplet-based single-cell data using dropkick, Genome Research 31:1742",
                 doi="10.1101/gr.271908.120",
             ),
