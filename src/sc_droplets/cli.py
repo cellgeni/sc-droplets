@@ -189,6 +189,12 @@ def _report_call(result) -> None:
         console.print(f"[yellow]Note:[/] {escape(note)}")
 
 
+def _sources(input: Path, splicing: Optional[Path] = None) -> List[Path]:
+    """The files a command reads, which no output may replace: the input, and the splicing source
+    when it is a separate file."""
+    return [path for path in (input, splicing) if path is not None]
+
+
 def _write(adata, result, output, cells_only, barcodes, table, inputs) -> None:
     from sc_droplets.io.write import check_outputs, write_barcodes, write_h5ad, write_table
 
@@ -506,7 +512,7 @@ def _run_call(cls: Type[registry.Method], common: Dict[str, Any], given: Dict[st
             **{k: v for k, v in given.items() if v is not None},
         )
         _report_call(result)
-        _write(adata, result, common["output"], common["cells_only"], common["barcodes"], common["table"], [common["input"]])
+        _write(adata, result, common["output"], common["cells_only"], common["barcodes"], common["table"], _sources(common["input"], common["splicing"]))
         if common["json_out"]:
             out_console.print(result.to_json(), highlight=False)
         elif not any(common[k] for k in ("output", "barcodes", "table")):
@@ -561,7 +567,7 @@ def compare_command(
     from sc_droplets.io.write import check_outputs, write_h5ad, write_table
 
     try:
-        check_outputs([output, table, plot], [input])
+        check_outputs([output, table, plot], _sources(input, splicing))
         adata = _load(input, solo_feature, genome)
         metrics = _add_metrics(adata, splicing, layer)
         reads_column = _attach_reads(adata, reads)
@@ -691,7 +697,7 @@ def plot_knee(
     from sc_droplets.io.write import check_outputs
 
     try:
-        check_outputs([output], [input])
+        check_outputs([output], _sources(input, splicing))
         adata = _load(input, solo_feature, genome)
         if color or track or splicing:
             _add_metrics(adata, splicing, layer)
@@ -763,7 +769,7 @@ def _plot_figure(input: Path, output: Path, key, method, feature_type, layer, ge
     """Load, gather the calls, draw a multi-panel plot from `scd.pl` and save it."""
     from sc_droplets.io.write import check_outputs
 
-    check_outputs([output], [input])
+    check_outputs([output], _sources(input, splicing))
     adata = _load(input, solo_feature, genome)
     _add_metrics(adata, splicing, layer)
     types = _feature_types(feature_type)
@@ -957,7 +963,7 @@ def report_command(
     from sc_droplets.io.write import check_outputs
 
     try:
-        check_outputs([output], [input])
+        check_outputs([output], _sources(input, splicing))
         adata = _load(input, solo_feature, genome)
         _add_metrics(adata, splicing, layer)
         types = _feature_types(feature_type)
