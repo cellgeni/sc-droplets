@@ -9,6 +9,24 @@ record for the current item is in the section below.
   behaviours, each checked against its original tool; plots and the report; the site with the
   review and the guides. Branch `release/0.1.0`, tag `0.1.0`. See the changelog.
 
+## In progress: 0.2
+
+The methods of the *Planned* pages for RNA, one pull request each, in the order their originals
+can be checked: each moves its page to its tool and the full template, implements it, and adds an
+oracle. Decided (November 2026), from the research notes' summary (`docs/_research/planned-rna.md`):
+
+1. [x] DropletQC (`v0.2-dropletqc`): `dropletqc`, `identify_empty_drops` of v1.0.0, and the ks
+   estimators it runs on (`primitives/ks.py`). Its call depends on the installed ks: 1.14.3
+   changed the binned estimator (`--ks-version`). The nuclear fraction comes from `obs`, a table,
+   or the unspliced fraction as an approximation; the BAM reader and `identify_damaged_cells`
+   (mclust's EEI mixture) are follow-ups. Validated against DropletQC with ks 1.14.2 and 1.15.3:
+   identical calls on 7 cases (PBMC 1k and simulated).
+2. [ ] miQC: flexmix's mixture of regressions, seeded.
+3. [ ] DIEM: its EM, with R's k-means (Hartigan-Wong) and irlba; a staged oracle.
+4. [ ] CB2: the knee, hclust, R's `rmultinom`, emptyDrops; the cluster test within its noise band.
+5. [ ] alevin's naive Bayes whitelist: a harness from `WhiteList.cpp`, on alevin's own features.
+6. [ ] dropEst's classifier, valiDrops, DropSift, SiftCell: staged oracles, after the above.
+
 ## 0.1.0: how it was built
 
 Every knee and threshold heuristic and every statistical test, each checked against its
@@ -231,6 +249,8 @@ for `sc-droplets` (workflow `publish.yml`, environment `pypi`), and the robot's 
 - emptyDrops: a note when `limited` barcodes miss the FDR cut, as DropletUtils' documentation
   advises raising `niters` (on the spinal cord nuclei, 12,988 barcodes beat every simulation and
   none is called).
+- DropletQC in the comparison on public data: it needs a nuclear fraction, which only PBMC 1k has
+  (kb's); add it there, or with the maintainer's STARsolo Velocyto runs.
 - A STARsolo run of pbmc_1k_v3 with Velocyto (the maintainer can make one) would set velocyto's
   unspliced fraction beside kb's on the same reads, and STARsolo's call beside Cell Ranger 3.0's.
 - Cell Ranger 6.0–7.1: the 4.0/5.x rule (plus LT's range) reproduces 6 of 8 6.x datasets exactly

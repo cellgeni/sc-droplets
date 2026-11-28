@@ -8,7 +8,7 @@
 #   EVENT=pull_request BASE=<sha> HEAD=<sha> bash .github/scripts/changed-oracles.sh
 set -euo pipefail
 
-all="starsolo dropletutils umitools kneedle cellsweep cellbender bustools alevinfry alevin dropseq dropest zumis generic splicing"
+all="starsolo dropletutils umitools kneedle cellsweep cellbender bustools alevinfry alevin dropseq dropest zumis generic splicing dropletqc"
 tools=""
 if [ "$EVENT" = workflow_dispatch ] || [ -z "${BASE:-}" ] || ! git cat-file -e "${BASE}^{commit}" 2>/dev/null; then
   tools=$all

@@ -29,6 +29,7 @@ closed.
 | `cellsweep-empty` | cellsweep | knee | v0.1: ≥0.1.0, <1.0.2; v1.0.2: ≥1.0.2 | [cellsweep empty droplets](cellsweep/empty.md) |
 | `dropseq-dropbead` | Drop-seq (dropbead) | knee | default: ≥0.3.1 | [Drop-seq cell number (dropbead)](dropseq/dropbead.md) |
 | `dropest-bounds` | dropEst | knee | default: ≥0.6.0 | [dropEst cell-number bounds](dropest/bounds.md) |
+| `dropletqc` | DropletQC | density | v1.0: ≥1.0.0 | [DropletQC empty droplets](dropletqc/empty-drops.md) |
 | `dropletutils-barcoderanks` | DropletUtils | knee | v1.0: ≥1.0, <1.10; v1.10: ≥1.10, <1.12; v1.12: ≥1.12, <1.28; v1.28: ≥1.28, <1.30; v1.30: ≥1.30 | [DropletUtils barcodeRanks](dropletutils/barcoderanks.md) |
 | `dropletutils-defaultdrops` | DropletUtils | rank-threshold | v1.0: ≥1.0 | [DropletUtils defaultDrops](dropletutils/defaultdrops.md) |
 | `dropletutils-emptydrops` | DropletUtils | statistical-test | v1.0: ≥1.0, <1.2; v1.2: ≥1.2, <1.4; v1.4: ≥1.4, <1.6; v1.6: ≥1.6, <1.8; v1.8: ≥1.8, <1.10; v1.10: ≥1.10, <1.12; v1.12: ≥1.12, <1.20; v1.20: ≥1.20, <1.28; v1.28: ≥1.28, <1.30; v1.30: ≥1.30 | [DropletUtils emptyDrops](dropletutils/emptydrops.md) |

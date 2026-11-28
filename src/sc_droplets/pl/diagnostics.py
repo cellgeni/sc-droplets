@@ -22,6 +22,9 @@ analysed droplets, the surely-empty droplets) and the priors, and the distributi
 came from (the rounded log counts whose mode is the empty prior; or, from 0.3, the log counts,
 Otsu's cut and the last kernel density).
 
+DropletQC: the derivative of the nuclear fraction's density with its sign runs and the cut, and
+the barcodes given, fraction against UMIs, coloured by class, with the cut and the rescue floors.
+
 Test methods (Cell Ranger 3+, STARsolo EmptyDrops_CR, DropletUtils emptyDrops
 and emptyDropsCellRanger): three panels. The rank curve with each barcode's
 class (initial or retained, rescued, tested and kept empty) and the ambient
@@ -54,6 +57,15 @@ def diagnostics(adata: Any, call: str, *, fig: Any = None):
     record = adata.uns[UNS_KEY][key]
     has_test = f"{key}_pvalue" in adata.obs.columns
     diag = dict(record.get("diagnostics", {}))
+    if diag.get("rule") == "dropletqc":
+        if fig is None:
+            fig = plt.figure(figsize=(12.8, 4.8))
+        axes = fig.subplots(1, 2)
+        _dropletqc_derivative(axes[0], record)
+        _dropletqc_plane(axes[1], record)
+        fig.suptitle(f"{record.get('title', key)}: {int(record.get('n_cells', 0)):,} cells\n{key}", fontsize="medium")
+        fig.tight_layout()
+        return fig
     if diag.get("prior_rule") in ("mode-median", "otsu-kde"):
         if fig is None:
             fig = plt.figure(figsize=(12.8, 4.8))
@@ -463,3 +475,45 @@ def _pvalue_panel(ax, adata, key, record) -> None:
     ax.set_title(title, fontsize="medium")
     ax.set_xlabel("Monte Carlo p-value")
     ax.set_ylabel("candidates")
+
+
+def _dropletqc_derivative(ax, record) -> None:
+    """DropletQC: the density derivative of the nuclear fraction along ks's grid, and the cut."""
+    diag = record["diagnostics"]
+    grid = np.asarray(diag["grid"], dtype=float)
+    derivative = np.asarray(diag["derivative"], dtype=float)
+    cut = float(record["thresholds"]["nuclear_fraction"])
+    ax.plot(grid, derivative, color=CURVE_COLOUR, lw=1.2, label="derivative of the density")
+    ax.axhline(0, color="#999999", lw=0.8)
+    if np.isfinite(cut):
+        ax.axvline(cut, color=PALETTE[1], ls="--", lw=1, label=f"cut: {cut:.4g}")
+    ax.set_xlabel(f"nuclear fraction ({diag.get('fraction_source', '')})")
+    ax.set_ylabel("density derivative")
+    ax.set_title("Density derivative (ks::kdde)", fontsize="medium")
+    ax.legend(frameon=False, fontsize="small")
+    ax.grid(True, alpha=0.3)
+
+
+def _dropletqc_plane(ax, record) -> None:
+    """DropletQC: the barcodes given, nuclear fraction against log10 UMIs, by class."""
+    diag = record["diagnostics"]
+    thresholds = record["thresholds"]
+    nf = np.asarray(diag["points_nf"], dtype=float)
+    umi = np.asarray(diag["points_umi"], dtype=float)
+    classes = np.asarray(diag["points_class"], dtype=object)
+    colours = {"cell": PALETTE[0], "rescued": PALETTE[2], "empty_droplet": "#999999"}
+    for name, colour in colours.items():
+        pick = classes == name
+        if pick.any():
+            ax.scatter(nf[pick], np.log10(np.maximum(umi[pick], 1)), s=4, linewidths=0, color=colour,
+                       label=f"{name.replace('_', ' ')} ({int(pick.sum()):,} shown)")
+    cut = float(thresholds["nuclear_fraction"])
+    if np.isfinite(cut):
+        ax.axvline(cut, color=PALETTE[1], ls="--", lw=1, label="cut")
+    ax.axvline(float(thresholds["nf_rescue"]), color=PALETTE[2], ls=":", lw=1, label="rescue floors")
+    ax.axhline(np.log10(max(float(thresholds["umi_rescue"]), 1)), color=PALETTE[2], ls=":", lw=1)
+    ax.set_xlabel("nuclear fraction")
+    ax.set_ylabel("log10 UMIs")
+    ax.set_title("The barcodes given", fontsize="medium")
+    ax.legend(frameon=False, fontsize="small", markerscale=3)
+    ax.grid(True, alpha=0.3)

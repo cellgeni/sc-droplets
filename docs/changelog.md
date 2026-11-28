@@ -5,6 +5,12 @@ nav_order: 9
 
 # Changelog
 
+## Unreleased
+
+- `dropletqc`: DropletQC's empty droplets (`identify_empty_drops`, v1.0.0), with R's ks estimators
+  ported (`primitives/ks.py`); `--ks-version` follows ks 1.14.3's change to them. Checked against
+  DropletQC itself with ks 1.14.2 and 1.15.3.
+
 ## 0.1.0 (2026-11-28)
 
 The first release: 29 methods of 13 tools and the generic rules, in 76 release-specific
