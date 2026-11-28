@@ -3,3 +3,9 @@
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"
   onload="renderMathInElement(document.body, {delimiters: [{left: '\\[', right: '\\]', display: true}, {left: '\\(', right: '\\)', display: false}], throwOnError: false});"></script>
+<!-- On a phone, a wide display formula scrolls inside its own box; and KaTeX's hidden MathML copy of a
+     formula in a table stays inside the table's scroll box instead of widening the page. -->
+<style>
+  .katex-display { overflow-x: auto; overflow-y: hidden; padding: 2px 0; }
+  .table-wrapper { position: relative; }
+</style>
