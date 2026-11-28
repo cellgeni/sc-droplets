@@ -123,4 +123,6 @@ jobs:
       version: ${{ needs.check-version.outputs.version }}
     secrets:
       QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
-      QUAY_TOKEN: ${{ secrets.QUAY_TOKEN }}
+      # cellgeni shares its quay.io robot with the repository as QUAY_PASSWORD; a repository
+      # secret QUAY_TOKEN, if one is added, takes precedence.
+      QUAY_TOKEN: ${{ secrets.QUAY_TOKEN || secrets.QUAY_PASSWORD }}
