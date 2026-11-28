@@ -5,7 +5,11 @@ nav_order: 9
 
 # Changelog
 
-## Unreleased
+## 0.1.0 (2026-11-28)
+
+The first release: 29 methods of 13 tools and the generic rules, in 76 release-specific
+behaviours, each checked against its original tool; the plots and the report; and the site,
+with a page per method, the review and the guides. In the order it was built:
 
 The scaffold: the method registry with tool versions and gaps, readers for 10x HDF5 (v2 and v3),
 Matrix Market folders (Cell Ranger, STARsolo, kb, alevin-fry) and pipeline output folders, the

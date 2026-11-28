@@ -14,9 +14,9 @@ same matrix, and compared.
 - **Command line**: works on `.h5ad`, 10x `.h5`, MTX folders, and the output folders of Cell
   Ranger, STARsolo, kb and alevin-fry.
 
-> Status: early development. The first release (0.1.0) will implement every knee and threshold
-> heuristic and every statistical test, each checked against its original tool. See
-> [STATUS.md](STATUS.md).
+> Status: 0.1.0, the first release. It runs 29 methods: those of 13 tools and the generic rules,
+> in 76 release-specific behaviours, each checked against its original tool. 22 more methods are
+> described on the site, planned for 0.2 and 0.3 or documented only. See [STATUS.md](STATUS.md).
 
 ## Install
 
