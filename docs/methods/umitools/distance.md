@@ -15,6 +15,9 @@ curve, the knee is the point farthest from the straight line joining the curve's
 search is repeated on the first three times as many barcodes until the knee stops moving, since
 the long tail of barcodes with a read or two pushes the first knee too far out.
 
+Why the rule lands where it does, drawn on real data:
+[UMI-tools' distance knee](../../explained/knee/umitools.md), in *Explained*.
+
 1. TOC
 {:toc}
 

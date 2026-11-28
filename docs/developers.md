@@ -1,6 +1,6 @@
 ---
 title: Developers
-nav_order: 7
+nav_order: 8
 ---
 
 # Developers
@@ -94,8 +94,39 @@ CI runs the validation suite as two jobs (`--shard 1/2`, `--shard 2/2`), each on
 runner. The `Oracles` workflow runs a tool's job only when that tool's scripts, or a helper they
 use, changed (`.github/scripts/changed-oracles.sh`); started by hand, it runs them all.
 
+`tests/test_explained.py` checks the identities the Explained pages teach from against the
+methods' own code; `tests/test_docs_are_accurate.py` checks every page's front matter, links,
+images and commands.
+
 House style: test names read as sentences; a regression test's docstring says what used to go
 wrong; comments explain why.
+
+## Writing an Explained page
+
+The Explained section teaches; the method pages specify. A family has a folder,
+`docs/explained/<family>/`, whose `index.md` builds the idea its members share; each tool then
+has a page that applies that idea. A tool page carries `explains: [id, ...]` in its front matter
+(never `method_ids`, which marks a reference page), and each method page it names links back to
+it. Tool pages follow a light template: the rule; why it lands where it does; where it goes
+wrong; details that matter; further reading.
+
+- Figures, and the data the interactive figures read, come from one script, which also prints
+  every number the pages quote:
+
+  ```bash
+  uv run python docs/_scripts/explained.py
+  uv run python docs/_scripts/explained.py --page knee
+  ```
+
+- An identity a page derives (for example, that a chord on the cumulative curve keeps the
+  barcodes above a mean) goes into `tests/test_explained.py`, recomputed independently of the
+  method, and is asserted on the public matrices by the script.
+- The interactive figures (`docs/assets/explained/widgets.js`) are plain JavaScript on the
+  run-length-coded totals in `docs/assets/explained/curves/`. They illustrate; the numbers on the
+  page come from the package.
+
+Rerun the script, like `comparison.py`, `families.py` and `figures.py`, when a method's call
+changes.
 
 ## Previewing the site
 

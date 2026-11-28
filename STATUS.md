@@ -27,6 +27,27 @@ oracle. Decided (November 2026), from the research notes' summary (`docs/_resear
 5. [ ] alevin's naive Bayes whitelist: a harness from `WhiteList.cpp`, on alevin's own features.
 6. [ ] dropEst's classifier, valiDrops, DropSift, SiftCell: staged oracles, after the above.
 
+## In progress: Explained, a learning section
+
+Beside the reference pages, a section that teaches each family of methods: a page that builds
+the family's idea, then a page per tool that applies it, with figures from the methods' own code
+on PBMC 1k and the spinal cord nuclei, and a few interactive figures. Decided (November 2026):
+named *Explained*; pitched at methods developers (derivations welcome, warm-ups short); figures
+drawn by `docs/_scripts/explained.py` plus small widgets in plain JavaScript; every identity a
+page derives tested against the code (`tests/test_explained.py`); one family first, as a pilot.
+
+1. [x] The section's index, The barcode-rank curve, and the knee-geometry family with its nine
+   tools (branch `explained-knee`). Findings the pages teach from: a chord on the cumulative curve
+   keeps the barcodes above the window's mean (dropbead, UMI-tools, alevin-fry, zUMIs); the refit
+   loops are maps whose fixed points are the answer, and alevin-fry's ×5 sits past a saddle-node
+   bifurcation that UMI-tools' ×3 does not reach; Kneedle's searched sensitivity picks the first
+   maximum whose fall beats S / (n − 1); alevin's tangent is a count above ln(sum) × the mean
+   below; dropEst's lag scales with the barcodes it is given.
+2. [ ] The other families, in the reading order: rank and threshold, density, mixture, test
+   against ambient, classifier.
+3. [ ] Once two families are written: check the tool-page template in `test_docs_are_accurate.py`
+   as the method pages' is.
+
 ## 0.1.0: how it was built
 
 Every knee and threshold heuristic and every statistical test, each checked against its

@@ -15,6 +15,9 @@ Sanger's yascp does (`get_estimates_from_umi_counts.py`): the barcodes with at l
 linear axes, a convex decreasing curve, and the sensitivity $$S$$ lowered from 5,000 in steps of
 100 until a knee appears. The cells are the barcodes ranked up to the knee.
 
+Why the rule lands where it does, drawn on real data:
+[Kneedle's difference curve](../../explained/knee/kneedle.md), in *Explained*.
+
 1. TOC
 {:toc}
 

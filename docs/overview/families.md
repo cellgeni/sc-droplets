@@ -89,7 +89,8 @@ which line, and which of two equally far points.
 <!-- families:chord:end -->
 
 The same idea gives 321 to 1,217 cells on PBMC 1k and 2,461 to 154,250 on the nuclei. The curve
-decides more than the formula does.
+decides more than the formula does. [Knee geometry](../explained/knee/index.md) works through why,
+tool by tool.
 
 - On a cumulative curve the farthest point sits on the cliff, where the counts stop adding up:
   UMI-tools, alevin-fry and dropbead find 1,089 to 1,217 cells on PBMC 1k.

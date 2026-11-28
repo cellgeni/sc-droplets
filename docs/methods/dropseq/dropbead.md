@@ -14,6 +14,9 @@ dropbead's `estimateCellNumber`: on the cumulative fraction of reads of the top 
 barcode farthest from the diagonal. It returns a number of cells; the cells are that many barcodes
 from the top.
 
+Why the rule lands where it does, drawn on real data:
+[dropbead's diagonal](../../explained/knee/dropbead.md), in *Explained*.
+
 1. TOC
 {:toc}
 

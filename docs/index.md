@@ -15,6 +15,8 @@ This site and the `sc-droplets` package collect those methods in one place:
 
 - a [review](overview/index.md) that sorts them into families and lists what has been compared
   before;
+- [explainers](explained/index.md) that teach each family's idea on real data, and why its
+  tools land where they do;
 - [one page per algorithm](methods/index.md), with its exact rule, its version history and how
   far our implementation reproduces the original;
 - a Python package that runs any of them on AnnData, and a command line that runs them on the

@@ -14,6 +14,9 @@ zUMIs' automatic cell detection (`cellBC` → `.cellBarcode_unknown` → `.FindB
 later): the unit invariant knee (`inflection::uik`) of the cumulative reads of the barcodes,
 ranked by reads; every barcode with at least the knee's count is a cell.
 
+Why the rule lands where it does, drawn on real data:
+[zUMIs' UIK](../../explained/knee/zumis.md), in *Explained*.
+
 1. TOC
 {:toc}
 
