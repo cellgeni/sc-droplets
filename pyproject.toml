@@ -1,6 +1,6 @@
 [project]
 name = "sc-droplets"
-version = "0.0.1"
+version = "0.1.0"
 description = "Every cell vs empty-droplet calling method for droplet single-cell data, version by version, on AnnData"
 readme = "README.md"
 requires-python = ">=3.12"
