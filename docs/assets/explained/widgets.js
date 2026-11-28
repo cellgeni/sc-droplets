@@ -202,7 +202,7 @@
     var urls = { pbmc: root.dataset.pbmc, nuclei: root.dataset.nuclei };
     var state = { sample: "pbmc", view: "cumulative", a: 1, b: null, stretch: 1, curve: null };
     var controls = htmlEl("div", { "class": "scd-controls" }, root);
-    var pickSample = buttons(controls, [{ label: "PBMC 1k", value: "pbmc" }, { label: "spinal cord nuclei", value: "nuclei" }], function (v) { state.sample = v; state.b = null; refresh(); });
+    var pickSample = buttons(controls, [{ label: "PBMC 1k", value: "pbmc" }, { label: "spinal cord nuclei", value: "nuclei" }], function (v) { state.sample = v; state.curve = null; state.b = null; refresh(); });
     var pickView = buttons(controls, [{ label: "UMIs vs rank", value: "linear" }, { label: "log-log", value: "loglog" }, { label: "cumulative", value: "cumulative" }], function (v) { state.view = v; draw(); });
     var windows = htmlEl("div", { "class": "scd-controls" }, root);
     htmlEl("span", {}, windows, "The curve is drawn over:");
@@ -213,8 +213,8 @@
       { label: "≥ 100 UMIs (zUMIs)", value: "100" },
     ], function (v) { setWindow(v); });
     var sliders = htmlEl("div", { "class": "scd-controls" }, root);
-    var endA = slider(sliders, "first rank", 0, 1000, 1, 0, function (v) { state.a = toRank(v); if (state.a > state.b - 3) state.a = Math.max(1, state.b - 3); pickWindow(null); draw(); });
-    var endB = slider(sliders, "last rank", 0, 1000, 1, 1000, function (v) { state.b = toRank(v); if (state.b < state.a + 3) state.b = state.a + 3; pickWindow(null); draw(); });
+    var endA = slider(sliders, "first rank", 0, 1000, 1, 0, function (v) { if (!state.curve) return; state.a = toRank(v); if (state.a > state.b - 3) state.a = Math.max(1, state.b - 3); pickWindow(null); draw(); });
+    var endB = slider(sliders, "last rank", 0, 1000, 1, 1000, function (v) { if (!state.curve) return; state.b = toRank(v); if (state.b < state.a + 3) state.b = state.a + 3; pickWindow(null); draw(); });
     var stretch = slider(sliders, "stretch the y axis", -1, 1, 0.01, 0, function (v) { state.stretch = Math.pow(2.5, v); draw(); });
     var svg = svgEl("svg", { viewBox: "0 0 640 360", role: "img", "aria-label": "A rank curve, a chord between two of its points, and the point farthest from the chord" }, root);
     var readout = htmlEl("div", { "class": "scd-readout", "aria-live": "polite" }, root);
@@ -224,6 +224,7 @@
 
     function setWindow(kind) {
       var cv = state.curve;
+      if (!cv) return; // the selected sample is still loading
       state.a = 1;
       if (kind === "all") state.b = cv.n;
       else if (kind === "top15000") state.b = Math.min(15000, cv.n);
@@ -233,10 +234,12 @@
     }
 
     function refresh() {
-      pickSample(state.sample);
-      load(urls[state.sample]).then(function (cv) {
+      var wanted = state.sample;
+      pickSample(wanted);
+      load(urls[wanted]).then(function (cv) {
+        if (state.sample !== wanted) return; // another sample was picked while this one loaded
         state.curve = cv;
-        if (state.b === null) setWindow("all");
+        setWindow("all");
       });
     }
 
@@ -303,18 +306,23 @@
     var urls = { pbmc: root.dataset.pbmc, nuclei: root.dataset.nuclei };
     var state = { sample: root.dataset.sample || "nuclei", multiplier: 3, start: null, curve: null };
     var controls = htmlEl("div", { "class": "scd-controls" }, root);
-    var pickSample = buttons(controls, [{ label: "PBMC 1k", value: "pbmc" }, { label: "spinal cord nuclei", value: "nuclei" }], function (v) { state.sample = v; state.start = null; refresh(); });
+    var pickSample = buttons(controls, [{ label: "PBMC 1k", value: "pbmc" }, { label: "spinal cord nuclei", value: "nuclei" }], function (v) { state.sample = v; state.start = null; state.curve = null; refresh(); });
     var mult = slider(controls, "window = k ×", 2, 8, 0.1, 3, function (v) { state.multiplier = v; draw(); });
     var starts = htmlEl("div", { "class": "scd-controls" }, root);
-    var first = slider(starts, "first knee", 0, 1000, 1, 1000, function (v) { state.start = Math.max(2, Math.round(Math.pow(10, 1 + (v / 1000) * (Math.log10(state.curve.n) - 1)))); draw(); });
+    var first = slider(starts, "first knee", 0, 1000, 1, 1000, function (v) { if (!state.curve) return; state.start = Math.max(2, Math.round(Math.pow(10, 1 + (v / 1000) * (Math.log10(state.curve.n) - 1)))); draw(); });
     var reset = htmlEl("button", { type: "button" }, starts, "from every barcode");
     reset.addEventListener("click", function () { state.start = null; draw(); });
     var svg = svgEl("svg", { viewBox: "0 0 640 400", role: "img", "aria-label": "The map from one knee to the next, the diagonal, and the passes drawn as a cobweb" }, root);
     var readout = htmlEl("div", { "class": "scd-readout", "aria-live": "polite" }, root);
 
     function refresh() {
-      pickSample(state.sample);
-      load(urls[state.sample]).then(function (cv) { state.curve = cv; draw(); });
+      var wanted = state.sample;
+      pickSample(wanted);
+      load(urls[wanted]).then(function (cv) {
+        if (state.sample !== wanted) return; // another sample was picked while this one loaded
+        state.curve = cv;
+        draw();
+      });
     }
 
     function draw() {
