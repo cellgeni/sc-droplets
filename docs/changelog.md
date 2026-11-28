@@ -7,6 +7,13 @@ nav_order: 10
 
 ## Unreleased
 
+- *Explained*, a new section that teaches the methods rather than specifying them: The
+  barcode-rank curve, and the knee-geometry family with a page for each of its nine tools. Their
+  figures come from the methods' own code on PBMC 1k and spinal cord nuclei
+  (`docs/_scripts/explained.py`), with interactive figures for the chord, the refit loop and a toy
+  rank curve; the identities they derive are tested (`tests/test_explained.py`).
+- On a phone, wide formulas no longer widen the page.
+- alevin's page names its thresholds as the call stores them (`knee_rank`, `gauss_rank`).
 - `dropletqc`: DropletQC's empty droplets (`identify_empty_drops`, v1.0.0), with R's ks estimators
   ported (`primitives/ks.py`); `--ks-version` follows ks 1.14.3's change to them. Checked against
   DropletQC itself with ks 1.14.2 and 1.15.3.

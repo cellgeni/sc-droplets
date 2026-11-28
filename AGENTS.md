@@ -25,6 +25,7 @@ uv run python docs/_scripts/methods_table.py         # regenerate the table on d
 uv run python docs/_scripts/comparison.py            # rerun the Comparison on public data page (minutes)
 uv run python docs/_scripts/figures.py               # redraw the Visualising calls guide's figures
 uv run python docs/_scripts/families.py              # rerun the Same idea, different tools tables
+uv run python docs/_scripts/explained.py             # redraw the Explained pages' figures and widgets' data
 ```
 
 Markers: `integration` (downloads public data or builds oracle environments; needs the network),
@@ -160,8 +161,14 @@ splits the validation suite into two jobs, each on every core with pytest-xdist'
 - `tests/test_docs_are_accurate.py`: every `sc-droplets …` line in README and `docs/` parses
   against the command tree; every `scd.` name exists; the API reference's signatures match;
   every registered method has its page (front matter `method_ids`, `status`) with the sections
-  in order and every option listed; the methods table is current; pages have `title`,
-  `nav_order` and an existing `parent`; relative links and anchors exist.
+  in order and every option listed; the methods table is current; every explainer
+  (`explains: [id, ...]`) names registered methods whose pages link back to it; pages have
+  `title`, `nav_order` and an existing `parent`; relative links and anchors exist.
+- `tests/test_explained.py`: the identities the Explained pages teach from (a chord on the
+  cumulative curve keeps the barcodes above a mean; the refit loops end at fixed points of their
+  maps; Kneedle's searched sensitivity; cellsweep's last maximum), recomputed independently and
+  compared with the methods' own code on `sim`. `docs/_scripts/explained.py` asserts the same on
+  the two public matrices the pages draw.
 - House style: test names read as sentences; a regression test's docstring says what used to go
   wrong; comments explain why.
 
@@ -184,9 +191,18 @@ this file, for people; keep the two in step.
   KaTeX renders). A literal `\(` in a page shows as "("; the docs test refuses it.
 - Link between pages as relative `page.md`. Images: `{{ '/assets/...' | relative_url }}` (a
   relative path breaks under `permalink: pretty`); the docs test checks they exist.
-- `docs/_scripts/comparison.py`, `families.py` and `figures.py` write the comparison page's tables
-  and figures, the families page's tables and the guide's figures; rerun them when a method's call
-  changes.
+- `docs/_scripts/comparison.py`, `families.py`, `figures.py` and `explained.py` write the
+  comparison page's tables and figures, the families page's tables, the guide's figures, and the
+  Explained pages' figures and widgets' data; rerun them when a method's call changes.
+- Explained pages (`docs/explained/`) teach each family of methods, not its reference:
+  `docs/explained/<family>/index.md` builds the family's idea, and one page per tool applies it.
+  A tool page carries `explains: [id, ...]` (never `method_ids`), and each method page it names
+  links back to it. Tool pages follow a light template (the rule; why it lands where it does;
+  where it goes wrong; details that matter; further reading). Every number they quote is printed
+  by `explained.py`, and every identity they derive is in `tests/test_explained.py`. The
+  interactive figures are plain JavaScript (`docs/assets/explained/widgets.js`) on run-length-coded
+  totals in `docs/assets/explained/curves/`; they illustrate, and the pages quote the package.
+  Knee geometry is written; the other families are to come.
 - Preview: `cd docs && bundle install && bundle exec jekyll serve`.
 
 ## Status
