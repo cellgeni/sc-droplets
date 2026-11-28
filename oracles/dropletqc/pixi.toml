@@ -1,0 +1,20 @@
+# R from conda-forge with two ks releases, to run DropletQC's own identify_empty_drops (sourced from
+# its repository at the tag in run.sh). ks 1.14.3 changed the binned estimator DropletQC calls, so
+# the oracle runs one release on each side. Used by run.sh.
+[workspace]
+name = "dropletqc-oracles"
+channels = ["conda-forge"]
+platforms = ["linux-64", "osx-64", "osx-arm64"]
+
+[dependencies]
+r-base = "4.4.*"
+
+[feature.ks1142.dependencies]
+r-ks = "==1.14.2"
+
+[feature.ks1153.dependencies]
+r-ks = "==1.15.3"
+
+[environments]
+ks1142 = ["ks1142"]
+ks1153 = ["ks1153"]
