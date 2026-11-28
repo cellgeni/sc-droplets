@@ -112,3 +112,15 @@ def test_diagnostics_of_a_test_has_classes_likelihoods_and_p_values():
     assert any("ambient ranks" in t.get_text() for t in classes.get_legend().get_texts())
     assert loglik.get_xlabel() == "UMIs per candidate"
     assert "adjusted p ≤ 0.01" in pvalues.get_title()
+
+
+def test_diagnostics_of_a_test_that_tested_nothing_says_so(adata):
+    """Cell Ranger on a matrix with fewer barcodes than its ambient range tests no barcode; its
+    candidates' panel used to put an empty scatter on a log axis, which matplotlib cannot draw,
+    and the diagnostics and the report failed."""
+    scd.call(adata, "cellranger")
+    assert not np.isfinite(adata.obs["cellranger_loglik" if "cellranger_loglik" in adata.obs else "cellranger_logprob"]).any()
+    figure = scd.pl.diagnostics(adata, "cellranger")
+    figure.canvas.draw()
+    assert any(t.get_text() == "no barcode was tested" for t in figure.axes[1].texts)
+    assert 'id="call-cellranger"' in scd.report(adata)

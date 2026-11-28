@@ -173,3 +173,5 @@ Then the review:
   0.3 (Cell Ranger ATAC and ARC, EmptyDropsMultiome, BAP, SADE), and documented only (CellBender's
   model, EmptyNN, dropkick, BD Rhapsody, ScaleBio, CeleScope, Ambimux, AmbientMapper), each with
   what reproducing it would take.
+- Guides: choosing a method, reproducing a pipeline's calls, comparing methods on a sample,
+  read-based methods, multiplexed and Flex runs.

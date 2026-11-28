@@ -432,14 +432,21 @@ def _loglik_panel(ax, adata, key) -> None:
     column = f"{key}_loglik" if f"{key}_loglik" in adata.obs.columns else f"{key}_logprob"
     loglik = adata.obs[column].to_numpy(dtype=float)
     tested = np.isfinite(loglik)
+    ax.set_xlabel("UMIs per candidate")
+    ax.set_ylabel("log-likelihood under the ambient profile")
+    ax.set_title("Candidates", fontsize="medium")
+    if not tested.any():
+        # No test ran (e.g. Cell Ranger with fewer barcodes than its ambient range): an empty log
+        # axis cannot be drawn, so say so instead.
+        ax.text(0.5, 0.5, "no barcode was tested", ha="center", va="center", transform=ax.transAxes)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        return
     totals = curve_for(adata, [key]).totals
     called = adata.obs[key].to_numpy(dtype=bool)
     for mask, colour, label in ((tested & ~called, CLASS_COLOURS["candidate"], "kept empty"), (tested & called, CLASS_COLOURS["rescued"], "called")):
         ax.scatter(totals[mask], loglik[mask], s=6, color=colour, label=f"{label} ({int(mask.sum()):,})", linewidths=0)
     ax.set_xscale("log")
-    ax.set_xlabel("UMIs per candidate")
-    ax.set_ylabel("log-likelihood under the ambient profile")
-    ax.set_title("Candidates", fontsize="medium")
     ax.legend(frameon=False, fontsize="small")
     ax.grid(True, alpha=0.3)
 
