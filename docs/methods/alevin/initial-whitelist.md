@@ -124,10 +124,10 @@ result = scd.call(adata, "alevin-initial-whitelist", expect_cells=5000)
 adata.obs["alevin_initial_whitelist_class"].value_counts()
 ```
 
-The thresholds hold $$k$$ (`cells`), the knee before the density correction (`knee`), the
-correction's count where it found one (`gauss_boundary`), the whitelist's size (`whitelist`), and
-the band's width as alevin reports it (`low_confidence`). `sc-droplets plot diagnostics` draws the
-rank curve with the classes, and the kernel density with its minima.
+The thresholds hold $$k$$ (`cells`), the knee before the density correction (`knee_rank`), the
+correction's count where it found one (`gauss_rank`), the whitelist's size (`whitelist`), and the
+band's width as alevin reports it (`low_confidence`). `sc-droplets plot diagnostics` draws the
+rank curve with the cells and the cut, and the kernel density with its minima.
 
 ## Differences from the original
 
